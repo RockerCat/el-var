@@ -61,6 +61,20 @@ export function formatMemberCount(n: number): string {
   return n === 1 ? "1 miembro" : `${n} miembros`;
 }
 
+// ──────────────────────────────────────────────────────────────────────
+// Leaderboard
+// ──────────────────────────────────────────────────────────────────────
+
+export type LeaderboardEntry = {
+  user_id: string;
+  display_name: string;
+  total_points: number;
+  exact_count: number;
+  result_count: number;
+  pred_count: number;
+  rank: number;
+};
+
 export function formatRelativeDate(isoDate: string): string {
   const diff = Date.now() - new Date(isoDate).getTime();
   const days = Math.floor(diff / 86_400_000);

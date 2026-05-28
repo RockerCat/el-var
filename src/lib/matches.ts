@@ -10,6 +10,7 @@ export type Team = {
 export type MatchStatus = "scheduled" | "live" | "finished";
 export type MatchStage =
   | "group"
+  | "round_of_32"
   | "round_of_16"
   | "quarter_final"
   | "semi_final"
@@ -36,6 +37,9 @@ export type Prediction = {
   user_id: string;
   home_score: number;
   away_score: number;
+  points: number;
+  points_reason: string | null;
+  scored_at: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -54,11 +58,24 @@ export type PredictionActionState = PredictionActionResult | null;
 
 // ── Helpers ───────────────────────────────────────────────────────────
 
-/** True if the prediction window is still open (>5 min before kickoff). */
+/**
+ * Returns the reason predictions are closed, or null if the window is open.
+ * Two possible reasons mirror the backend RPC exceptions:
+ *   "match_not_scheduled" — status is not 'scheduled' (admin set live/finished)
+ *   "match_started"       — kickoff time has already passed
+ * Frontend uses this for UX labels; the real enforcement lives in the RPC.
+ */
+export function matchClosedReason(
+  match: Pick<Match, "starts_at" | "status">
+): "match_not_scheduled" | "match_started" | null {
+  if (match.status !== "scheduled") return "match_not_scheduled";
+  if (Date.now() >= new Date(match.starts_at).getTime()) return "match_started";
+  return null;
+}
+
+/** True if the prediction window is still open. Mirrors backend cutoff exactly. */
 export function isMatchOpen(match: Pick<Match, "starts_at" | "status">): boolean {
-  if (match.status === "finished") return false;
-  const cutoff = new Date(match.starts_at).getTime() - 5 * 60 * 1000;
-  return Date.now() < cutoff;
+  return matchClosedReason(match) === null;
 }
 
 /** Human-readable date/time label for a match. */
@@ -102,6 +119,7 @@ export function matchDayKey(startsAt: string): string {
 
 export const STAGE_LABELS: Record<MatchStage, string> = {
   group:         "Fase de grupos",
+  round_of_32:   "Ronda de 32",
   round_of_16:   "Octavos de final",
   quarter_final: "Cuartos de final",
   semi_final:    "Semifinal",

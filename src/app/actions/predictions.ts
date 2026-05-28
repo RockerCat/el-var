@@ -63,8 +63,11 @@ export async function savePredictionAction(
         devMessage: isDev ? "[not_authenticated] auth.uid() is NULL in PostgREST" : undefined,
       };
     }
-    if (msg === "match_closed") {
-      return { error: "El plazo para predecir este partido ya cerró." };
+    if (msg === "match_not_scheduled") {
+      return { error: "Predicciones cerradas para este partido." };
+    }
+    if (msg === "match_started") {
+      return { error: "El partido ya comenzó. No se pueden guardar predicciones." };
     }
     if (msg === "match_not_found") {
       return { error: "El partido no existe." };

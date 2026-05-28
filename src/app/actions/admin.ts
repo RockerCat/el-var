@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 
-export type UpdateMatchState = { error: string } | { success: true } | null;
+export type UpdateMatchState = { error: string } | { success: true; scored: number } | null;
 
 export async function updateMatchResultAction(
   _prev: UpdateMatchState,
@@ -23,7 +23,7 @@ export async function updateMatchResultAction(
   if (awayScore !== null && isNaN(awayScore)) return { error: "Marcador visitante inválido." };
 
   const supabase = await createClient();
-  const { error } = await supabase.rpc("update_match_result", {
+  const { data: rpcData, error } = await supabase.rpc("update_match_result", {
     p_match_id:   matchId,
     p_status:     status,
     p_home_score: homeScore,
@@ -41,5 +41,6 @@ export async function updateMatchResultAction(
 
   revalidatePath("/admin");
   revalidatePath("/dashboard");
-  return { success: true };
+  const scored = (rpcData as { scored?: number } | null)?.scored ?? 0;
+  return { success: true, scored };
 }

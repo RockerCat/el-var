@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 import {
   formatKickoff,
-  isMatchOpen,
+  matchClosedReason,
   STAGE_LABELS,
   type MatchWithPrediction,
 } from "@/lib/matches";
@@ -18,7 +18,8 @@ export default function MatchPredictionCard({ match }: MatchPredictionCardProps)
     status === "finished" &&
     match.home_score !== null &&
     match.away_score !== null;
-  const open = isMatchOpen(match);
+  const closedReason = matchClosedReason(match);
+  const open = closedReason === null;
 
   return (
     <div
@@ -93,6 +94,7 @@ export default function MatchPredictionCard({ match }: MatchPredictionCardProps)
       <PredictionForm
         matchId={match.id}
         isOpen={open}
+        closedReason={closedReason}
         currentPrediction={match.prediction}
       />
     </div>

@@ -1,19 +1,26 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
-import { Check, AlertCircle, Pencil } from "lucide-react";
+import { Check, AlertCircle, Lock, Pencil } from "lucide-react";
 import { savePredictionAction } from "@/app/actions/predictions";
 import type { Prediction, PredictionActionState } from "@/lib/matches";
 
 interface PredictionFormProps {
   matchId: string;
   isOpen: boolean;
+  closedReason?: "match_not_scheduled" | "match_started" | null;
   currentPrediction: Prediction | null;
 }
+
+const CLOSED_LABELS: Record<string, string> = {
+  match_not_scheduled: "Predicciones cerradas",
+  match_started:       "El partido ya comenzó",
+};
 
 export default function PredictionForm({
   matchId,
   isOpen,
+  closedReason,
   currentPrediction,
 }: PredictionFormProps) {
   const [state, formAction, isPending] = useActionState<PredictionActionState, FormData>(
@@ -35,15 +42,24 @@ export default function PredictionForm({
 
   // ── Match closed ────────────────────────────────────────────────────
   if (!isOpen) {
+    const reasonLabel = closedReason ? CLOSED_LABELS[closedReason] : null;
     return (
-      <div className="mt-3 pt-3 border-t border-[#1e1e35] flex items-center justify-between">
-        <span className="text-xs text-[#475569]">Tu predicción</span>
-        {savedPrediction ? (
-          <span className="text-xs font-mono font-semibold text-[#64748b]">
-            {savedPrediction.home_score} – {savedPrediction.away_score}
-          </span>
-        ) : (
-          <span className="text-xs text-[#2a2a45] italic">Sin predicción</span>
+      <div className="mt-3 pt-3 border-t border-[#1e1e35] space-y-1.5">
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-[#475569]">Tu predicción</span>
+          {savedPrediction ? (
+            <span className="text-xs font-mono font-semibold text-[#64748b]">
+              {savedPrediction.home_score} – {savedPrediction.away_score}
+            </span>
+          ) : (
+            <span className="text-xs text-[#2a2a45] italic">Sin predicción</span>
+          )}
+        </div>
+        {reasonLabel && (
+          <div className="flex items-center gap-1">
+            <Lock size={10} className="text-[#2a2a45] shrink-0" />
+            <span className="text-[10px] text-[#2a2a45] font-mono">{reasonLabel}</span>
+          </div>
         )}
       </div>
     );

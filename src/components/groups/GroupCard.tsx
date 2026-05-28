@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Crown, Users } from "lucide-react";
 import CopyButton from "./CopyButton";
 import CopyInviteLinkButton from "./CopyInviteLinkButton";
@@ -39,6 +40,12 @@ export default function GroupCard({ group }: { group: GroupWithMeta }) {
       <div className="flex items-center gap-2 pt-3 border-t border-[#1e1e35]">
         <CopyButton text={group.invite_code} />
         <CopyInviteLinkButton inviteCode={group.invite_code} />
+        <Link
+          href={`/groups/${group.id}`}
+          className="ml-auto text-xs text-[#475569] hover:text-[#94a3b8] font-mono transition-colors shrink-0"
+        >
+          Ver tabla →
+        </Link>
       </div>
     </div>
   );

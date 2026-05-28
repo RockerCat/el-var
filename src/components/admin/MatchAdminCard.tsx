@@ -89,7 +89,11 @@ export default function MatchAdminCard({ match }: { match: Match }) {
         <p className="text-xs text-[#ef4444]">{state.error}</p>
       )}
       {state && "success" in state && (
-        <p className="text-xs text-[#00c85a]">✓ Guardado</p>
+        <p className="text-xs text-[#00c85a]">
+          {state.scored > 0
+            ? `✓ Guardado · Puntos recalculados correctamente (${state.scored} ${state.scored === 1 ? "predicción" : "predicciones"})`
+            : "✓ Guardado"}
+        </p>
       )}
 
       <Button type="submit" size="sm" loading={isPending} fullWidth>
