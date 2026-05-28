@@ -2,22 +2,40 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Mail, Lock } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Mail, Lock, AlertCircle } from "lucide-react";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import Card from "@/components/ui/Card";
+import { createClient } from "@/lib/supabase/client";
+import { getAuthErrorMessage } from "@/lib/auth-errors";
 
 export default function LoginPage() {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setError(null);
     setLoading(true);
-    // TODO: Supabase auth
-    await new Promise((r) => setTimeout(r, 1000));
-    setLoading(false);
+
+    const supabase = createClient();
+    const { error: authError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (authError) {
+      setError(getAuthErrorMessage(authError));
+      setLoading(false);
+      return;
+    }
+
+    router.push("/dashboard");
+    router.refresh();
   }
 
   return (
@@ -79,6 +97,14 @@ export default function LoginPage() {
             </button>
           </div>
 
+          {/* Error message */}
+          {error && (
+            <div className="flex items-start gap-2 bg-[#ef4444]/8 border border-[#ef4444]/20 rounded-xl px-3 py-2.5">
+              <AlertCircle size={14} className="text-[#ef4444] mt-0.5 shrink-0" />
+              <p className="text-xs text-[#ef4444] leading-relaxed">{error}</p>
+            </div>
+          )}
+
           <Button type="submit" size="lg" fullWidth loading={loading}>
             Ingresar
           </Button>
@@ -97,7 +123,6 @@ export default function LoginPage() {
         </div>
       </Card>
 
-      {/* VAR review label */}
       <div className="flex items-center justify-center gap-2 mt-6">
         <span className="w-1.5 h-1.5 rounded-full bg-[#3b82f6]" />
         <span className="text-xs font-mono text-[#3b82f6] uppercase tracking-widest">

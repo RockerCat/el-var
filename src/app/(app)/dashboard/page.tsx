@@ -1,8 +1,12 @@
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
 import MatchCard from "@/components/dashboard/MatchCard";
 import LeaderboardCard from "@/components/dashboard/LeaderboardCard";
+import LogoutButton from "@/components/auth/LogoutButton";
+import { Users, Plus } from "lucide-react";
 
-// Placeholder data — will be replaced with Supabase queries
-const UPCOMING_MATCHES = [
+// Placeholder match data — replaced with Supabase queries in Phase 2
+const SAMPLE_MATCHES = [
   {
     id: "1",
     homeTeam: { name: "Brasil", flag: "🇧🇷", code: "BRA" },
@@ -33,7 +37,7 @@ const UPCOMING_MATCHES = [
   },
 ];
 
-const LEADERBOARD_ENTRIES = [
+const SAMPLE_LEADERBOARD = [
   { rank: 1, username: "xavi_preds", points: 87, exactScores: 4 },
   { rank: 2, username: "goal_machine", points: 75, exactScores: 3, isCurrentUser: true },
   { rank: 3, username: "tiki_taka_fan", points: 71, exactScores: 2 },
@@ -41,48 +45,44 @@ const LEADERBOARD_ENTRIES = [
   { rank: 5, username: "offside_trap", points: 60, exactScores: 1 },
 ];
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  // Middleware protects this route, but this is a safety net
+  if (!user) redirect("/login");
+
+  const username = user.user_metadata?.username as string | undefined;
+  const displayName = username ?? user.email?.split("@")[0] ?? "jugador";
+
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 space-y-8">
-      {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
+
+      {/* User header */}
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
           <p className="text-xs text-[#475569] font-mono uppercase tracking-widest mb-1">
-            Grupo · La Trampa del Offside
+            Copa del Mundo 2026
           </p>
-          <h1 className="text-2xl font-black text-[#f1f5f9]">
-            Jornada 12
+          <h1 className="text-2xl font-black text-[#f1f5f9] truncate">
+            Hola, {displayName} 👋
           </h1>
-          <p className="text-sm text-[#64748b] mt-0.5">
-            2 partidos hoy · Estás en el 2° lugar
-          </p>
+          <p className="text-sm text-[#64748b] mt-0.5 truncate">{user.email}</p>
         </div>
-        <div className="bg-[#18182a] border border-[#2a2a45] rounded-xl p-3 text-right">
-          <p className="text-2xl font-black text-[#f1f5f9] tabular-nums">75</p>
-          <p className="text-xs text-[#475569]">tus pts</p>
-        </div>
+        <LogoutButton />
       </div>
+
+      {/* No group yet — placeholder CTA */}
+      <NoGroupBanner />
 
       {/* VAR status bar */}
       <VarStatusBar />
 
-      {/* Today's matches */}
+      {/* Hoy */}
       <section>
         <SectionHeader title="Hoy" count={2} />
         <div className="flex flex-col gap-3">
-          {UPCOMING_MATCHES.filter((m) =>
-            m.kickoff.startsWith("Hoy")
-          ).map((match) => (
-            <MatchCard key={match.id} {...match} />
-          ))}
-        </div>
-      </section>
-
-      {/* Recent results */}
-      <section>
-        <SectionHeader title="Resultados recientes" />
-        <div className="flex flex-col gap-3">
-          {UPCOMING_MATCHES.filter((m) => m.status === "finished").map(
+          {SAMPLE_MATCHES.filter((m) => m.kickoff.startsWith("Hoy")).map(
             (match) => (
               <MatchCard key={match.id} {...match} />
             )
@@ -90,28 +90,63 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      {/* Leaderboard */}
+      {/* Resultados recientes */}
+      <section>
+        <SectionHeader title="Resultados recientes" />
+        <div className="flex flex-col gap-3">
+          {SAMPLE_MATCHES.filter((m) => m.status === "finished").map(
+            (match) => (
+              <MatchCard key={match.id} {...match} />
+            )
+          )}
+        </div>
+      </section>
+
+      {/* Tabla de posiciones */}
       <section>
         <SectionHeader title="Tabla de posiciones" />
         <LeaderboardCard
           groupName="La Trampa del Offside"
-          entries={LEADERBOARD_ENTRIES}
+          entries={SAMPLE_LEADERBOARD}
         />
       </section>
 
-      {/* Bottom padding for mobile nav */}
       <div className="h-4" />
     </div>
   );
 }
 
-function SectionHeader({
-  title,
-  count,
-}: {
-  title: string;
-  count?: number;
-}) {
+function NoGroupBanner() {
+  return (
+    <div className="bg-[#18182a] border border-dashed border-[#2a2a45] rounded-2xl p-5">
+      <div className="flex items-start gap-4">
+        <div className="w-10 h-10 rounded-xl bg-[#00c85a]/10 flex items-center justify-center shrink-0">
+          <Users size={18} className="text-[#00c85a]" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-bold text-[#f1f5f9] mb-1">
+            Aún no tienes un grupo
+          </p>
+          <p className="text-xs text-[#64748b] leading-relaxed">
+            Crea tu propio grupo o pídele a un amigo que te comparta su enlace
+            de invitación.
+          </p>
+        </div>
+      </div>
+      <div className="flex gap-2 mt-4">
+        <button className="flex-1 flex items-center justify-center gap-1.5 h-9 bg-[#00c85a] text-[#0a0a12] text-xs font-bold rounded-xl hover:bg-[#00e87a] transition-colors">
+          <Plus size={14} />
+          Crear grupo
+        </button>
+        <button className="flex-1 h-9 bg-[#20203a] text-[#94a3b8] text-xs font-semibold rounded-xl border border-[#2a2a45] hover:border-[#3b3b60] hover:text-[#f1f5f9] transition-colors">
+          Tengo un enlace
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function SectionHeader({ title, count }: { title: string; count?: number }) {
   return (
     <div className="flex items-center gap-2 mb-3">
       <h2 className="text-sm font-bold text-[#94a3b8] uppercase tracking-wide">
