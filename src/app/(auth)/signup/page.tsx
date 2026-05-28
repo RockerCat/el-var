@@ -6,8 +6,9 @@ interface SignupPageProps {
 
 export default async function SignupPage({ searchParams }: SignupPageProps) {
   const params = await searchParams;
-  const inviteCode = params.invite ?? "WC2026";
-  const groupName = params.group ?? "La Trampa del Offside";
+  // null when no invite param — SignupForm shows a generic form without the invite banner
+  const inviteCode = params.invite ?? null;
+  const groupName = params.group ?? null;
 
   return <SignupForm inviteCode={inviteCode} groupName={groupName} />;
 }

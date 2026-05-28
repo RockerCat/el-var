@@ -12,8 +12,10 @@ import { createClient } from "@/lib/supabase/client";
 import { getAuthErrorMessage, validatePassword } from "@/lib/auth-errors";
 
 interface SignupFormProps {
-  inviteCode: string;
-  groupName: string;
+  /** Invite code from URL — null means direct signup with no pending invite */
+  inviteCode: string | null;
+  /** Group display name — null when no invite */
+  groupName: string | null;
 }
 
 export default function SignupForm({ inviteCode, groupName }: SignupFormProps) {
@@ -47,9 +49,7 @@ export default function SignupForm({ inviteCode, groupName }: SignupFormProps) {
     const { data, error: authError } = await supabase.auth.signUp({
       email,
       password,
-      options: {
-        data: { username },
-      },
+      options: { data: { username } },
     });
 
     if (authError) {
@@ -58,9 +58,14 @@ export default function SignupForm({ inviteCode, groupName }: SignupFormProps) {
       return;
     }
 
-    // Session present → email confirmation disabled, redirect immediately
+    // Session present → email confirmation disabled, auto-login
     if (data.session) {
-      router.push("/dashboard");
+      if (inviteCode) {
+        // Go to the invite page so the user can explicitly confirm joining
+        router.push(`/invite/${inviteCode}`);
+      } else {
+        router.push("/dashboard");
+      }
       router.refresh();
       return;
     }
@@ -76,7 +81,7 @@ export default function SignupForm({ inviteCode, groupName }: SignupFormProps) {
   }
 
   if (emailConfirmationNeeded) {
-    return <EmailConfirmationScreen email={email} />;
+    return <EmailConfirmationScreen email={email} inviteCode={inviteCode} />;
   }
 
   return (
@@ -99,23 +104,31 @@ export default function SignupForm({ inviteCode, groupName }: SignupFormProps) {
             El <span className="text-[#00c85a]">VAR</span>
           </span>
         </Link>
-        <h1 className="text-2xl font-black text-[#f1f5f9]">Únete al grupo</h1>
+        <h1 className="text-2xl font-black text-[#f1f5f9]">
+          {inviteCode ? "Únete al grupo" : "Crear cuenta"}
+        </h1>
         <p className="text-sm text-[#64748b] mt-1">
-          Crea tu cuenta y empieza a predecir
+          {inviteCode
+            ? "Crea tu cuenta y empieza a predecir"
+            : "Empieza a predecir el Mundial 2026"}
         </p>
       </div>
 
-      {/* Group invite banner */}
-      <div className="mb-4 flex items-center gap-3 bg-[#00c85a]/8 border border-[#00c85a]/20 rounded-xl p-3">
-        <div className="w-8 h-8 rounded-lg bg-[#00c85a]/15 flex items-center justify-center shrink-0">
-          <Hash size={14} className="text-[#00c85a]" />
+      {/* Invite banner — only shown when an invite code is present */}
+      {inviteCode && (
+        <div className="mb-4 flex items-center gap-3 bg-[#00c85a]/8 border border-[#00c85a]/20 rounded-xl p-3">
+          <div className="w-8 h-8 rounded-lg bg-[#00c85a]/15 flex items-center justify-center shrink-0">
+            <Hash size={14} className="text-[#00c85a]" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-xs text-[#64748b]">Te invitaron a</p>
+            <p className="text-sm font-bold text-[#f1f5f9] truncate">
+              {groupName ?? "un grupo de El VAR"}
+            </p>
+          </div>
+          <Badge variant="green">{inviteCode}</Badge>
         </div>
-        <div className="min-w-0 flex-1">
-          <p className="text-xs text-[#64748b]">Te invitaron a</p>
-          <p className="text-sm font-bold text-[#f1f5f9] truncate">{groupName}</p>
-        </div>
-        <Badge variant="green">{inviteCode}</Badge>
-      </div>
+      )}
 
       <Card variant="glow-green" className="p-6">
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -161,7 +174,7 @@ export default function SignupForm({ inviteCode, groupName }: SignupFormProps) {
           )}
 
           <Button type="submit" size="lg" fullWidth loading={loading}>
-            Crear cuenta y unirme
+            {inviteCode ? "Crear cuenta y unirme" : "Crear cuenta"}
           </Button>
         </form>
 
@@ -186,17 +199,25 @@ export default function SignupForm({ inviteCode, groupName }: SignupFormProps) {
         </div>
       </Card>
 
-      <div className="flex items-center justify-center gap-2 mt-6">
-        <span className="w-1.5 h-1.5 rounded-full bg-[#00c85a] animate-live-pulse" />
-        <span className="text-xs font-mono text-[#00c85a] uppercase tracking-widest">
-          Invitación validada
-        </span>
-      </div>
+      {inviteCode && (
+        <div className="flex items-center justify-center gap-2 mt-6">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#00c85a] animate-live-pulse" />
+          <span className="text-xs font-mono text-[#00c85a] uppercase tracking-widest">
+            Invitación validada
+          </span>
+        </div>
+      )}
     </div>
   );
 }
 
-function EmailConfirmationScreen({ email }: { email: string }) {
+function EmailConfirmationScreen({
+  email,
+  inviteCode,
+}: {
+  email: string;
+  inviteCode: string | null;
+}) {
   return (
     <div className="w-full max-w-sm animate-fade-in-up text-center">
       <div className="w-16 h-16 rounded-2xl bg-[#00c85a]/15 flex items-center justify-center mx-auto mb-6">
@@ -211,11 +232,26 @@ function EmailConfirmationScreen({ email }: { email: string }) {
       <p className="text-[#f1f5f9] font-semibold text-sm mb-6">{email}</p>
       <Card className="p-4 text-left">
         <p className="text-xs text-[#475569] leading-relaxed">
-          Confirma tu correo para activar tu cuenta y unirte al grupo. Si no lo
-          ves, revisa tu carpeta de spam.
+          Confirma tu correo para activar tu cuenta.
+          {inviteCode && (
+            <>
+              {" "}
+              Luego visita el enlace de invitación para unirte al grupo.
+            </>
+          )}
+          {" "}Si no lo ves, revisa tu carpeta de spam.
         </p>
       </Card>
-      <div className="mt-6">
+
+      <div className="mt-6 flex flex-col gap-3">
+        {inviteCode && (
+          <Link
+            href={`/invite/${inviteCode}`}
+            className="flex items-center justify-center h-11 w-full bg-[#18182a] text-[#94a3b8] text-sm font-medium rounded-xl border border-[#2a2a45] hover:border-[#3b3b60] hover:text-[#f1f5f9] transition-colors"
+          >
+            Ir al enlace de invitación
+          </Link>
+        )}
         <Link
           href="/login"
           className="text-sm text-[#00c85a] font-semibold hover:text-[#00e87a]"
