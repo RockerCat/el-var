@@ -11,8 +11,8 @@ function fmtError(ctx: string, err: { code?: string; message: string; details?: 
     `[${ctx}]`,
     `code=${err.code ?? "n/a"}`,
     `msg="${err.message}"`,
-    err.hint   ? `hint="${err.hint}"`    : null,
-    err.details? `details="${err.details}"` : null,
+    err.hint    ? `hint="${err.hint}"`       : null,
+    err.details ? `details="${err.details}"` : null,
   ]
     .filter(Boolean)
     .join(" · ");
@@ -40,19 +40,17 @@ export async function createGroupAction(
     return { error: "Debes iniciar sesión.", devMessage: isDev ? detail : undefined };
   }
 
-  console.log("[createGroup] user OK:", { id: user.id, email: user.email });
+  console.log("[createGroup] user:", user.id);
 
   const inviteCode = generateInviteCode();
-  console.log("[createGroup] calling create_group_for_user RPC:", { name, inviteCode });
-
-  const { data: rows, error: rpcError } = await supabase.rpc(
-    "create_group_for_user",
-    { p_name: name, p_invite_code: inviteCode }
-  );
+  const { data: rows, error: rpcError } = await supabase.rpc("create_group_for_user", {
+    p_name: name,
+    p_invite_code: inviteCode,
+  });
 
   if (rpcError) {
     const detail = fmtError("rpc.create_group_for_user", rpcError);
-    console.error("[createGroup] RPC FAILED:", detail);
+    console.error("[createGroup] RPC failed:", detail);
     return {
       error: "No se pudo crear el grupo. Intenta de nuevo.",
       devMessage: isDev ? detail : undefined,
@@ -60,7 +58,7 @@ export async function createGroupAction(
   }
 
   const group = (rows as { id: string; name: string; invite_code: string }[])[0];
-  console.log("[createGroup] group created via RPC — done ✓", group?.id);
+  console.log("[createGroup] ✓ created:", group?.id);
 
   revalidatePath("/dashboard");
   return { success: true, group };
@@ -69,26 +67,17 @@ export async function createGroupAction(
 // ──────────────────────────────────────────────────────────────────────
 // joinGroupAction
 //
-// Uses join_group_for_user() SECURITY DEFINER RPC.
-// Before calling the RPC, calls diagnose_auth_context() to log whether
-// auth.uid() is actually available in the PostgREST session — this is
-// the single most common failure point.
+// Calls join_group_for_user(p_invite_code) — a SECURITY DEFINER function
+// that bypasses RLS, validates auth.uid() internally, and inserts the
+// membership atomically.
+//
+// The function raises PostgreSQL exceptions for both error cases:
+//   RAISE EXCEPTION 'not_authenticated'   — auth.uid() is NULL
+//   RAISE EXCEPTION 'invalid_code'        — no group found
+//
+// These arrive as rpcError.message (not rpcData), so the action checks
+// rpcError.message directly — no JSON parsing, no mixed error formats.
 // ──────────────────────────────────────────────────────────────────────
-
-type JoinRpcResult = {
-  success?: boolean;
-  group_id?: string;
-  group_name?: string;
-  invite_code?: string;
-  error?: string;
-  message?: string;
-};
-
-type DiagnoseResult = {
-  uid: string | null;
-  role: string;
-  jwt_present: boolean;
-};
 
 export async function joinGroupAction(
   _prevState: GroupActionState,
@@ -98,104 +87,90 @@ export async function joinGroupAction(
     ?.trim()
     .toUpperCase() ?? "";
 
-  console.log("[joinGroup] ── START ──────────────────────────────────");
-  console.log("[joinGroup] invite_code from formData:", JSON.stringify(code));
+  // ── Step 1 ────────────────────────────────────────────────────────
+  console.log("[joinGroup] invite_code:", code);
 
-  if (code.length < 4) {
-    console.log("[joinGroup] code too short, aborting");
-    return { error: "Ingresa un código de invitación válido." };
-  }
+  if (code.length < 4) return { error: "Ingresa un código de invitación válido." };
 
   const supabase = await createClient();
 
-  // ── Step 1: Auth API check ──────────────────────────────────────────
+  // ── Step 2: Auth API check ────────────────────────────────────────
   const { data: { user }, error: authError } = await supabase.auth.getUser();
   console.log("[joinGroup] getUser →", {
     userId:    user?.id ?? null,
-    email:     user?.email ?? null,
     authError: authError?.message ?? null,
   });
 
   if (authError || !user) {
     const detail = authError ? fmtError("getUser", authError) : "getUser returned null user";
-    console.error("[joinGroup] ✗ auth check failed:", detail);
+    console.error("[joinGroup] auth failed:", detail);
     return { error: "Debes iniciar sesión.", devMessage: isDev ? detail : undefined };
   }
 
-  // ── Step 2: PostgREST JWT diagnostic ───────────────────────────────
-  // Determines whether auth.uid() is available at the database layer.
-  // If uid is null here, every RLS-dependent query will be empty and
-  // every SECURITY DEFINER function that checks auth.uid() will fail.
-  const { data: diagData, error: diagError } = await supabase.rpc("diagnose_auth_context");
-  const diag = diagData as DiagnoseResult | null;
-  console.log("[joinGroup] diagnose_auth_context →", {
-    uid:          diag?.uid ?? null,
-    role:         diag?.role ?? null,
-    jwt_present:  diag?.jwt_present ?? null,
-    diagError:    diagError?.message ?? null,
-  });
+  // ── Step 3: join_group_for_user RPC ──────────────────────────────
+  // Returns UUID on success, throws EXCEPTION on error.
+  console.log("[joinGroup] calling join_group_for_user, code:", code, "userId:", user.id);
 
-  if (!diag?.uid) {
-    const detail = `JWT not reaching PostgREST — diagnose: ${JSON.stringify(diag)} diagError: ${diagError?.message ?? "n/a"}`;
-    console.error("[joinGroup] ✗ auth.uid() is NULL in PostgREST context:", detail);
-    return {
-      error: "Problema de autenticación al unirse al grupo.",
-      devMessage: isDev ? `[CRITICAL] ${detail}` : undefined,
-    };
-  }
-
-  // ── Step 3: join_group_for_user RPC ────────────────────────────────
-  console.log("[joinGroup] calling join_group_for_user RPC with code:", code);
-
-  const { data: rpcData, error: rpcError } = await supabase.rpc(
+  const { data: groupId, error: rpcError } = await supabase.rpc(
     "join_group_for_user",
     { p_invite_code: code }
   );
 
-  console.log("[joinGroup] RPC raw response →", { rpcData, rpcError: rpcError?.message ?? null });
+  console.log("[joinGroup] RPC response →", {
+    groupId,
+    rpcErrorMsg:  rpcError?.message  ?? null,
+    rpcErrorCode: rpcError?.code     ?? null,
+    rpcErrorHint: rpcError?.hint     ?? null,
+  });
 
   if (rpcError) {
+    const msg = rpcError.message;
+
+    if (msg === "not_authenticated") {
+      const detail = "auth.uid() is NULL in the PostgREST session — JWT did not reach the database layer";
+      console.error("[joinGroup] ✗ not_authenticated:", detail);
+      return {
+        error: "Problema de autenticación. Cierra sesión, vuelve a ingresar e intenta de nuevo.",
+        devMessage: isDev ? `[not_authenticated] ${detail}` : undefined,
+      };
+    }
+
+    if (msg === "invalid_code") {
+      console.log("[joinGroup] ✗ invalid_code for:", code);
+      return { error: "Código inválido. Verifica que esté bien escrito." };
+    }
+
+    // Unexpected RPC error (function missing, syntax error, etc.)
     const detail = fmtError("rpc.join_group_for_user", rpcError);
-    console.error("[joinGroup] ✗ RPC call failed:", detail);
+    console.error("[joinGroup] ✗ unexpected RPC error:", detail);
     return {
       error: "No se pudo unir al grupo. Intenta de nuevo.",
       devMessage: isDev ? detail : undefined,
     };
   }
 
-  const result = rpcData as JoinRpcResult | null;
+  // ── Step 4: success ───────────────────────────────────────────────
+  console.log("[joinGroup] ✓ joined group_id:", groupId);
 
-  if (result?.error === "invalid_code") {
-    console.log("[joinGroup] ✗ invalid invite code:", code);
-    return { error: "Código inválido. Verifica que esté bien escrito." };
-  }
+  // Fetch name for the success card (user is now a member — RLS allows this)
+  const { data: group, error: selectError } = await supabase
+    .from("groups")
+    .select("id, name, invite_code")
+    .eq("id", groupId as string)
+    .single();
 
-  if (result?.error) {
-    const detail = `rpc returned error field: ${result.error} — ${result.message ?? ""}`;
-    console.error("[joinGroup] ✗ RPC returned error:", detail);
-    return {
-      error: result.message ?? "No se pudo unir al grupo. Intenta de nuevo.",
-      devMessage: isDev ? detail : undefined,
-    };
-  }
+  console.log("[joinGroup] group SELECT →", {
+    found:       !!group,
+    selectError: selectError?.message ?? null,
+  });
 
-  if (!result?.success) {
-    const detail = `unexpected rpc response: ${JSON.stringify(result)}`;
-    console.error("[joinGroup] ✗ unexpected response:", detail);
-    return {
-      error: "No se pudo unir al grupo. Intenta de nuevo.",
-      devMessage: isDev ? detail : undefined,
-    };
-  }
-
-  console.log("[joinGroup] ✓ joined group —", result.group_id, result.group_name);
   revalidatePath("/dashboard");
   return {
     success: true,
     group: {
-      id:          result.group_id!,
-      name:        result.group_name!,
-      invite_code: result.invite_code!,
+      id:          groupId as string,
+      name:        group?.name        ?? "Grupo",
+      invite_code: group?.invite_code ?? code,
     },
   };
 }
