@@ -6,7 +6,6 @@ import { generateInviteCode, type GroupActionState } from "@/lib/groups";
 
 const isDev = process.env.NODE_ENV !== "production";
 
-/** Formats a Supabase PostgREST error into a readable string for dev panels. */
 function fmtError(ctx: string, err: { code?: string; message: string; details?: string | null; hint?: string | null }): string {
   return [
     `[${ctx}]`,
@@ -21,6 +20,11 @@ function fmtError(ctx: string, err: { code?: string; message: string; details?: 
 
 // ──────────────────────────────────────────────────────────────────────
 // createGroupAction
+//
+// Uses the create_group_for_user() SECURITY DEFINER RPC instead of a
+// direct INSERT.  This bypasses the INSERT RLS policy that fails when
+// auth.uid() is NULL in the PostgREST session context, while still
+// enforcing the same security inside the function.
 // ──────────────────────────────────────────────────────────────────────
 
 export async function createGroupAction(
@@ -29,65 +33,48 @@ export async function createGroupAction(
 ): Promise<GroupActionState> {
   const name = (formData.get("name") as string | null)?.trim() ?? "";
 
-  // ── 1. Input validation ──────────────────────────────────────────
   if (name.length < 2) return { error: "El nombre debe tener al menos 2 caracteres." };
   if (name.length > 50) return { error: "El nombre no puede tener más de 50 caracteres." };
 
   const supabase = await createClient();
 
-  // ── 2. Auth check ────────────────────────────────────────────────
+  // Auth check via the Supabase Auth API (independent of PostgREST JWT)
   const { data: { user }, error: authError } = await supabase.auth.getUser();
 
   if (authError || !user) {
     const detail = authError ? fmtError("getUser", authError) : "getUser returned null user";
     console.error("[createGroup] auth failed:", detail);
-    return {
-      error: "Debes iniciar sesión.",
-      devMessage: isDev ? detail : undefined,
-    };
+    return { error: "Debes iniciar sesión.", devMessage: isDev ? detail : undefined };
   }
 
   console.log("[createGroup] user OK:", { id: user.id, email: user.email });
 
-  // ── 3. groups INSERT ─────────────────────────────────────────────
   const inviteCode = generateInviteCode();
 
-  console.log("[createGroup] inserting group:", { name, inviteCode, owner_id: user.id });
+  // ── RPC: create group + auto-join atomically ─────────────────────
+  // The SECURITY DEFINER function on the DB side:
+  //   1. Reads auth.uid() from the PostgreSQL session (set by PostgREST)
+  //   2. Raises not_authenticated if auth.uid() is still NULL
+  //   3. Inserts into groups + group_members in one transaction
+  //   4. Returns {id, name, invite_code}
+  console.log("[createGroup] calling create_group_for_user RPC:", { name, inviteCode });
 
-  const { data: group, error: groupError } = await supabase
-    .from("groups")
-    .insert({ name, invite_code: inviteCode, owner_id: user.id })
-    .select("id, name, invite_code")
-    .single();
+  const { data: rows, error: rpcError } = await supabase.rpc(
+    "create_group_for_user",
+    { p_name: name, p_invite_code: inviteCode }
+  );
 
-  if (groupError) {
-    const detail = fmtError("groups.insert", groupError);
-    console.error("[createGroup] groups insert FAILED:", detail);
+  if (rpcError) {
+    const detail = fmtError("rpc.create_group_for_user", rpcError);
+    console.error("[createGroup] RPC FAILED:", detail);
     return {
       error: "No se pudo crear el grupo. Intenta de nuevo.",
       devMessage: isDev ? detail : undefined,
     };
   }
 
-  console.log("[createGroup] group created:", group.id);
-
-  // ── 4. group_members INSERT (auto-join creator) ──────────────────
-  console.log("[createGroup] inserting membership:", { group_id: group.id, user_id: user.id });
-
-  const { error: memberError } = await supabase
-    .from("group_members")
-    .insert({ group_id: group.id, user_id: user.id });
-
-  if (memberError) {
-    const detail = fmtError("group_members.insert", memberError);
-    console.error("[createGroup] membership insert FAILED:", detail);
-    return {
-      error: "Grupo creado, pero no se pudo unir automáticamente.",
-      devMessage: isDev ? detail : undefined,
-    };
-  }
-
-  console.log("[createGroup] membership created — done ✓");
+  const group = (rows as { id: string; name: string; invite_code: string }[])[0];
+  console.log("[createGroup] group created via RPC — done ✓", group?.id);
 
   revalidatePath("/dashboard");
   return { success: true, group };
@@ -113,15 +100,12 @@ export async function joinGroupAction(
   if (authError || !user) {
     const detail = authError ? fmtError("getUser", authError) : "null user";
     console.error("[joinGroup] auth failed:", detail);
-    return {
-      error: "Debes iniciar sesión.",
-      devMessage: isDev ? detail : undefined,
-    };
+    return { error: "Debes iniciar sesión.", devMessage: isDev ? detail : undefined };
   }
 
   console.log("[joinGroup] user OK:", user.id, "code:", code);
 
-  // ── SECURITY DEFINER RPC — lookup before membership ──────────────
+  // Lookup via SECURITY DEFINER function (bypasses SELECT RLS before joining)
   const { data: groups, error: rpcError } = await supabase.rpc(
     "get_group_by_invite_code",
     { code }
