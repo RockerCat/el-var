@@ -44,6 +44,31 @@ CREATE INDEX IF NOT EXISTS idx_group_members_group_id
   ON group_members(group_id);
 
 -- ──────────────────────────────────────────────────────────────────────
+-- SECURITY DEFINER HELPER — membership lookup (must come before policies)
+--
+-- A direct subquery on group_members inside a group_members policy
+-- causes infinite recursion (42P17).  This SECURITY DEFINER function
+-- queries group_members WITHOUT applying RLS, breaking the cycle.
+-- Both SELECT policies below call this function instead of embedding
+-- a raw subquery on group_members.
+-- ──────────────────────────────────────────────────────────────────────
+
+CREATE OR REPLACE FUNCTION get_user_group_ids(uid UUID DEFAULT auth.uid())
+RETURNS SETOF UUID
+LANGUAGE sql
+SECURITY DEFINER
+STABLE
+SET search_path = public
+AS $$
+  SELECT group_id
+  FROM   group_members
+  WHERE  user_id = uid;
+$$;
+
+REVOKE ALL     ON FUNCTION get_user_group_ids(UUID) FROM PUBLIC;
+GRANT  EXECUTE ON FUNCTION get_user_group_ids(UUID) TO authenticated;
+
+-- ──────────────────────────────────────────────────────────────────────
 -- ROW LEVEL SECURITY
 -- ──────────────────────────────────────────────────────────────────────
 
@@ -51,11 +76,10 @@ ALTER TABLE groups        ENABLE ROW LEVEL SECURITY;
 ALTER TABLE group_members ENABLE ROW LEVEL SECURITY;
 
 -- groups: SELECT — user must be a member of the group
+-- Uses the SECURITY DEFINER helper to avoid cross-table recursion.
 CREATE POLICY "members_select_groups" ON groups
   FOR SELECT USING (
-    id IN (
-      SELECT group_id FROM group_members WHERE user_id = auth.uid()
-    )
+    id IN (SELECT get_user_group_ids(auth.uid()))
   );
 
 -- groups: INSERT — authenticated user sets themselves as owner
@@ -70,14 +94,11 @@ CREATE POLICY "owner_update_groups" ON groups
 CREATE POLICY "owner_delete_groups" ON groups
   FOR DELETE USING (auth.uid() = owner_id);
 
--- group_members: SELECT — users can see all members in groups they belong to
--- Note: self-referential policies in PostgreSQL do not cause recursion;
--- the inner subquery sees all rows without RLS applied.
+-- group_members: SELECT — users can see all memberships in their groups
+-- Uses the SECURITY DEFINER helper to avoid self-referential recursion.
 CREATE POLICY "members_select_memberships" ON group_members
   FOR SELECT USING (
-    group_id IN (
-      SELECT gm.group_id FROM group_members gm WHERE gm.user_id = auth.uid()
-    )
+    group_id IN (SELECT get_user_group_ids(auth.uid()))
   );
 
 -- group_members: INSERT — users can only add themselves
