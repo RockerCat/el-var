@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import MatchCard from "@/components/dashboard/MatchCard";
 import LeaderboardCard from "@/components/dashboard/LeaderboardCard";
-import LogoutButton from "@/components/auth/LogoutButton";
 import { Users, Plus } from "lucide-react";
 
 // Placeholder match data — replaced with Supabase queries in Phase 2
@@ -49,7 +48,6 @@ export default async function DashboardPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  // Middleware protects this route, but this is a safety net
   if (!user) redirect("/login");
 
   const username = user.user_metadata?.username as string | undefined;
@@ -58,18 +56,31 @@ export default async function DashboardPage() {
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 space-y-8">
 
-      {/* User header */}
+      {/* Page header */}
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <p className="text-xs text-[#475569] font-mono uppercase tracking-widest mb-1">
             Copa del Mundo 2026
           </p>
-          <h1 className="text-2xl font-black text-[#f1f5f9] truncate">
-            Hola, {displayName} 👋
+          <h1 className="text-2xl font-black text-[#f1f5f9]">
+            Jornada 12
           </h1>
-          <p className="text-sm text-[#64748b] mt-0.5 truncate">{user.email}</p>
+          <p className="text-sm text-[#64748b] mt-0.5">
+            2 partidos hoy · {displayName} — 2° lugar
+          </p>
         </div>
-        <LogoutButton />
+
+        {/* Points chip */}
+        <div className="bg-[#18182a] border border-[#2a2a45] rounded-xl p-3 text-right shrink-0">
+          <p className="text-2xl font-black text-[#f1f5f9] tabular-nums leading-none">75</p>
+          <p className="text-xs text-[#475569] mt-0.5">tus pts</p>
+        </div>
+      </div>
+
+      {/* Account info strip */}
+      <div className="flex items-center gap-2 bg-[#11111c] border border-[#1e1e35] rounded-xl px-4 py-2.5">
+        <span className="text-xs text-[#475569]">Cuenta:</span>
+        <span className="text-xs text-[#64748b] font-mono truncate">{user.email}</span>
       </div>
 
       {/* No group yet — placeholder CTA */}
@@ -128,8 +139,7 @@ function NoGroupBanner() {
             Aún no tienes un grupo
           </p>
           <p className="text-xs text-[#64748b] leading-relaxed">
-            Crea tu propio grupo o pídele a un amigo que te comparta su enlace
-            de invitación.
+            Crea tu propio grupo o pídele a un amigo que te comparta su enlace de invitación.
           </p>
         </div>
       </div>

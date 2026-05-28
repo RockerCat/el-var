@@ -1,76 +1,115 @@
-"use client";
-
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { cn } from "@/lib/utils";
+import { createClient } from "@/lib/supabase/server";
+import LogoutButton from "@/components/auth/LogoutButton";
+import NavActiveLinks from "./NavActiveLinks";
 
-export default function Navbar() {
-  const pathname = usePathname();
+export default async function Navbar() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  const isAuth = pathname?.startsWith("/(auth)") ||
-    pathname === "/login" ||
-    pathname === "/signup";
-
-  if (isAuth) return null;
+  const username = user?.user_metadata?.username as string | undefined;
+  const displayName = username ?? user?.email?.split("@")[0] ?? "jugador";
+  const initial = displayName.charAt(0).toUpperCase();
 
   return (
     <header className="sticky top-0 z-50 bg-[#0a0a12]/80 backdrop-blur-xl border-b border-[#1e1e35]">
-      <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2">
+      <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between gap-3">
+
+        {/* Logo */}
+        <Link href={user ? "/dashboard" : "/"} className="flex items-center gap-2 shrink-0">
           <VarLogo />
           <span className="font-bold text-lg tracking-tight text-[#f1f5f9]">
             El <span className="text-gradient-green">VAR</span>
           </span>
         </Link>
 
-        <nav className="hidden md:flex items-center gap-1">
-          <NavLink href="/dashboard" active={pathname === "/dashboard"}>
-            Inicio
-          </NavLink>
-        </nav>
-
-        <div className="flex items-center gap-2">
-          <Link
-            href="/login"
-            className="text-sm text-[#94a3b8] hover:text-[#f1f5f9] px-3 py-2 rounded-lg transition-colors"
-          >
-            Ingresar
-          </Link>
-          <Link
-            href="/signup"
-            className="text-sm font-semibold bg-[#00c85a] text-[#0a0a12] px-4 py-2 rounded-xl hover:bg-[#00e87a] transition-colors"
-          >
-            Unirse al grupo
-          </Link>
-        </div>
+        {user ? (
+          <AuthenticatedNav displayName={displayName} initial={initial} />
+        ) : (
+          <GuestNav />
+        )}
       </div>
     </header>
   );
 }
 
-function NavLink({
-  href,
-  active,
-  children,
+/* ── Authenticated nav ──────────────────────────────────────────────── */
+
+function AuthenticatedNav({
+  displayName,
+  initial,
 }: {
-  href: string;
-  active: boolean;
-  children: React.ReactNode;
+  displayName: string;
+  initial: string;
 }) {
   return (
-    <Link
-      href={href}
-      className={cn(
-        "text-sm px-3 py-2 rounded-lg transition-colors",
-        active
-          ? "text-[#f1f5f9] bg-[#18182a]"
-          : "text-[#94a3b8] hover:text-[#f1f5f9] hover:bg-[#18182a]/60"
-      )}
-    >
-      {children}
-    </Link>
+    <>
+      {/* Desktop center links */}
+      <nav className="hidden md:flex items-center gap-1 flex-1 justify-center">
+        <NavActiveLinks />
+      </nav>
+
+      {/* Right side */}
+      <div className="flex items-center gap-2">
+        {/* User chip — desktop only */}
+        <div className="hidden sm:flex items-center gap-2 bg-[#18182a] border border-[#2a2a45] rounded-xl px-3 py-1.5">
+          <div className="w-5 h-5 rounded-full bg-[#00c85a]/20 flex items-center justify-center shrink-0">
+            <span className="text-[10px] font-bold text-[#00c85a]">{initial}</span>
+          </div>
+          <span className="text-sm text-[#94a3b8] max-w-[110px] truncate">
+            {displayName}
+          </span>
+        </div>
+
+        {/* Crear grupo — primary CTA */}
+        <Link
+          href="/dashboard"
+          className="hidden sm:flex items-center gap-1.5 h-9 px-4 bg-[#00c85a] text-[#0a0a12] text-sm font-bold rounded-xl hover:bg-[#00e87a] transition-colors"
+        >
+          Crear grupo
+        </Link>
+
+        {/* Mobile: user initial avatar */}
+        <div className="sm:hidden w-8 h-8 rounded-full bg-[#18182a] border border-[#2a2a45] flex items-center justify-center">
+          <span className="text-xs font-bold text-[#00c85a]">{initial}</span>
+        </div>
+
+        {/* Desktop: text + icon; mobile: icon only */}
+        <div className="hidden sm:block">
+          <LogoutButton />
+        </div>
+        <div className="sm:hidden">
+          <LogoutButton compact />
+        </div>
+      </div>
+    </>
   );
 }
+
+/* ── Guest nav ──────────────────────────────────────────────────────── */
+
+function GuestNav() {
+  return (
+    <div className="flex items-center gap-2">
+      <Link
+        href="/login"
+        className="text-sm text-[#94a3b8] hover:text-[#f1f5f9] px-3 py-2 rounded-lg transition-colors"
+      >
+        Ingresar
+      </Link>
+      <Link
+        href="/signup"
+        className="text-sm font-semibold bg-[#00c85a] text-[#0a0a12] px-4 py-2 rounded-xl hover:bg-[#00e87a] transition-colors"
+      >
+        Unirse al grupo
+      </Link>
+    </div>
+  );
+}
+
+/* ── Shared ─────────────────────────────────────────────────────────── */
 
 function VarLogo() {
   return (
