@@ -44,7 +44,11 @@ export type GroupWithMeta = GroupRow & {
 // ──────────────────────────────────────────────────────────────────────
 
 export type GroupActionResult =
-  | { error: string }
+  | {
+      error: string;
+      /** Full Supabase error detail — only populated in development */
+      devMessage?: string;
+    }
   | { success: true; group: Pick<GroupRow, "id" | "name" | "invite_code"> };
 
 export type GroupActionState = GroupActionResult | null;

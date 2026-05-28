@@ -55,9 +55,21 @@ export default function JoinGroupModal({
           />
 
           {state && "error" in state && (
-            <div className="flex items-start gap-2 bg-[#ef4444]/8 border border-[#ef4444]/20 rounded-xl px-3 py-2.5">
-              <AlertCircle size={14} className="text-[#ef4444] mt-0.5 shrink-0" />
-              <p className="text-xs text-[#ef4444]">{state.error}</p>
+            <div className="flex flex-col gap-2">
+              <div className="flex items-start gap-2 bg-[#ef4444]/8 border border-[#ef4444]/20 rounded-xl px-3 py-2.5">
+                <AlertCircle size={14} className="text-[#ef4444] mt-0.5 shrink-0" />
+                <p className="text-xs text-[#ef4444]">{state.error}</p>
+              </div>
+              {state.devMessage && (
+                <div className="bg-[#0a0a12] border border-[#f59e0b]/30 rounded-xl px-3 py-2.5">
+                  <p className="text-[10px] text-[#f59e0b] font-mono uppercase tracking-widest mb-1">
+                    🔧 Error de desarrollo
+                  </p>
+                  <pre className="text-[10px] text-[#94a3b8] font-mono whitespace-pre-wrap break-all leading-relaxed">
+                    {state.devMessage}
+                  </pre>
+                </div>
+              )}
             </div>
           )}
 
