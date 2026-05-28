@@ -38,23 +38,37 @@ export async function getUserGroupsWithMeta(
     uid_matches: diag?.uid === userId,
   });
 
-  const { data, error } = await supabase
-    .from("groups")
-    .select(
-      `id, name, invite_code, owner_id, created_at, group_members(count)`
-    )
-    .order("created_at", { ascending: false });
+  // Run groups query and ranks RPC in parallel
+  const [groupsResult, ranksResult] = await Promise.all([
+    supabase
+      .from("groups")
+      .select(`id, name, invite_code, owner_id, created_at, group_members(count)`)
+      .order("created_at", { ascending: false }),
+    supabase.rpc("get_user_ranks_in_groups"),
+  ]);
 
-  if (error) {
+  if (groupsResult.error) {
     console.error("[getUserGroups] SELECT error:", {
-      code:    error.code,
-      message: error.message,
-      hint:    error.hint,
+      code:    groupsResult.error.code,
+      message: groupsResult.error.message,
+      hint:    groupsResult.error.hint,
     });
     return [];
   }
 
+  if (ranksResult.error) {
+    console.warn("[getUserGroups] get_user_ranks_in_groups error:", ranksResult.error.message);
+  }
+
+  const data = groupsResult.data;
   console.log("[getUserGroups] SELECT returned", data?.length ?? 0, "row(s)");
+
+  // Build a map of group_id → user_rank
+  type RankRow = { group_id: string; user_rank: number };
+  const rankMap = new Map<string, number>();
+  for (const row of ((ranksResult.data ?? []) as RankRow[])) {
+    rankMap.set(row.group_id, Number(row.user_rank));
+  }
 
   return (data as RawGroup[]).map((g) => ({
     id:           g.id,
@@ -64,5 +78,6 @@ export async function getUserGroupsWithMeta(
     created_at:   g.created_at,
     member_count: g.group_members?.[0]?.count ?? 0,
     is_owner:     g.owner_id === userId,
+    user_rank:    rankMap.get(g.id) ?? null,
   }));
 }

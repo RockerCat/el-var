@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import type { LeaderboardEntry } from "@/lib/groups";
+import type { LeaderboardEntry, ActivityEntry } from "@/lib/groups";
 
 type RawEntry = {
   user_id:      string;
@@ -31,4 +31,20 @@ export async function getGroupLeaderboard(groupId: string): Promise<LeaderboardE
     pred_count:   Number(row.pred_count),
     rank:         Number(row.rank),
   }));
+}
+
+export async function getGroupActivity(
+  groupId: string,
+  limit = 10
+): Promise<ActivityEntry[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("get_group_recent_activity", {
+    p_group_id: groupId,
+    p_limit: limit,
+  });
+  if (error) {
+    console.error("[leaderboard] getGroupActivity:", error.message);
+    return [];
+  }
+  return (data ?? []) as ActivityEntry[];
 }

@@ -37,6 +37,24 @@ export type GroupMemberRow = {
 export type GroupWithMeta = GroupRow & {
   member_count: number;
   is_owner: boolean;
+  user_rank: number | null;
+};
+
+export type ActivityEntry = {
+  user_id: string;
+  display_name: string;
+  pred_home: number;
+  pred_away: number;
+  points: number;
+  points_reason: string;
+  scored_at: string;
+  match_home_score: number;
+  match_away_score: number;
+  home_team_name: string;
+  home_team_flag: string | null;
+  away_team_name: string;
+  away_team_flag: string | null;
+  match_stage: string;
 };
 
 // ──────────────────────────────────────────────────────────────────────
@@ -77,8 +95,12 @@ export type LeaderboardEntry = {
 
 export function formatRelativeDate(isoDate: string): string {
   const diff = Date.now() - new Date(isoDate).getTime();
+  const mins = Math.floor(diff / 60_000);
+  const hours = Math.floor(diff / 3_600_000);
   const days = Math.floor(diff / 86_400_000);
-  if (days === 0) return "hoy";
+  if (mins < 1) return "ahora";
+  if (mins < 60) return `hace ${mins}m`;
+  if (hours < 24) return `hace ${hours}h`;
   if (days === 1) return "ayer";
   if (days < 7) return `hace ${days} días`;
   if (days < 30) return `hace ${Math.floor(days / 7)} sem.`;

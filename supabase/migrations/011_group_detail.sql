@@ -39,7 +39,8 @@ BEGIN
       gm.group_id,
       gm.user_id,
       COALESCE(SUM(p.points), 0)                                      AS total_points,
-      COUNT(*) FILTER (WHERE p.points_reason = 'Marcador exacto')     AS exact_count
+      COUNT(*) FILTER (WHERE p.points_reason = 'Marcador exacto')     AS exact_count,
+      COUNT(*) FILTER (WHERE p.points_reason = 'Resultado acertado')  AS result_count
     FROM group_members gm
     LEFT JOIN predictions p ON p.user_id = gm.user_id
     WHERE gm.group_id IN (SELECT group_id FROM my_group_ids)
@@ -51,7 +52,7 @@ BEGIN
       mp.user_id,
       RANK() OVER (
         PARTITION BY mp.group_id
-        ORDER BY mp.total_points DESC, mp.exact_count DESC
+        ORDER BY mp.total_points DESC, mp.exact_count DESC, mp.result_count DESC
       )::BIGINT                                       AS user_rank,
       COUNT(*) OVER (PARTITION BY mp.group_id)::BIGINT AS total_members
     FROM member_points mp

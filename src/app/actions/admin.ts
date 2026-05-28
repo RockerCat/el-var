@@ -41,6 +41,7 @@ export async function updateMatchResultAction(
 
   revalidatePath("/admin");
   revalidatePath("/dashboard");
+  revalidatePath("/groups", "layout");
   const scored = (rpcData as { scored?: number } | null)?.scored ?? 0;
   return { success: true, scored };
 }

@@ -221,7 +221,7 @@ BEGIN
     SELECT
       ms.*,
       RANK() OVER (
-        ORDER BY ms.total_points DESC, ms.exact_count DESC
+        ORDER BY ms.total_points DESC, ms.exact_count DESC, ms.result_count DESC
       )::BIGINT AS rank
     FROM member_scores ms
   )
