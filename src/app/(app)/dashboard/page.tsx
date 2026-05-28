@@ -1,10 +1,11 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { Suspense } from "react";
+import GroupsSection from "@/components/groups/GroupsSection";
 import MatchCard from "@/components/dashboard/MatchCard";
 import LeaderboardCard from "@/components/dashboard/LeaderboardCard";
-import { Users, Plus } from "lucide-react";
 
-// Placeholder match data — replaced with Supabase queries in Phase 2
+// Placeholder match data — replaced in Phase 3 (matches + predictions)
 const SAMPLE_MATCHES = [
   {
     id: "1",
@@ -47,7 +48,6 @@ const SAMPLE_LEADERBOARD = [
 export default async function DashboardPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-
   if (!user) redirect("/login");
 
   const username = user.user_metadata?.username as string | undefined;
@@ -66,25 +66,22 @@ export default async function DashboardPage() {
             Jornada 12
           </h1>
           <p className="text-sm text-[#64748b] mt-0.5">
-            2 partidos hoy · {displayName} — 2° lugar
+            {displayName} · {user.email}
           </p>
         </div>
-
-        {/* Points chip */}
         <div className="bg-[#18182a] border border-[#2a2a45] rounded-xl p-3 text-right shrink-0">
           <p className="text-2xl font-black text-[#f1f5f9] tabular-nums leading-none">75</p>
           <p className="text-xs text-[#475569] mt-0.5">tus pts</p>
         </div>
       </div>
 
-      {/* Account info strip */}
-      <div className="flex items-center gap-2 bg-[#11111c] border border-[#1e1e35] rounded-xl px-4 py-2.5">
-        <span className="text-xs text-[#475569]">Cuenta:</span>
-        <span className="text-xs text-[#64748b] font-mono truncate">{user.email}</span>
-      </div>
-
-      {/* No group yet — placeholder CTA */}
-      <NoGroupBanner />
+      {/* Real groups — fetches live from Supabase */}
+      <section>
+        <SectionHeader title="Mis grupos" />
+        <Suspense fallback={<GroupsSkeleton />}>
+          <GroupsSection userId={user.id} />
+        </Suspense>
+      </section>
 
       {/* VAR status bar */}
       <VarStatusBar />
@@ -94,9 +91,7 @@ export default async function DashboardPage() {
         <SectionHeader title="Hoy" count={2} />
         <div className="flex flex-col gap-3">
           {SAMPLE_MATCHES.filter((m) => m.kickoff.startsWith("Hoy")).map(
-            (match) => (
-              <MatchCard key={match.id} {...match} />
-            )
+            (match) => <MatchCard key={match.id} {...match} />
           )}
         </div>
       </section>
@@ -106,9 +101,7 @@ export default async function DashboardPage() {
         <SectionHeader title="Resultados recientes" />
         <div className="flex flex-col gap-3">
           {SAMPLE_MATCHES.filter((m) => m.status === "finished").map(
-            (match) => (
-              <MatchCard key={match.id} {...match} />
-            )
+            (match) => <MatchCard key={match.id} {...match} />
           )}
         </div>
       </section>
@@ -127,34 +120,7 @@ export default async function DashboardPage() {
   );
 }
 
-function NoGroupBanner() {
-  return (
-    <div className="bg-[#18182a] border border-dashed border-[#2a2a45] rounded-2xl p-5">
-      <div className="flex items-start gap-4">
-        <div className="w-10 h-10 rounded-xl bg-[#00c85a]/10 flex items-center justify-center shrink-0">
-          <Users size={18} className="text-[#00c85a]" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-bold text-[#f1f5f9] mb-1">
-            Aún no tienes un grupo
-          </p>
-          <p className="text-xs text-[#64748b] leading-relaxed">
-            Crea tu propio grupo o pídele a un amigo que te comparta su enlace de invitación.
-          </p>
-        </div>
-      </div>
-      <div className="flex gap-2 mt-4">
-        <button className="flex-1 flex items-center justify-center gap-1.5 h-9 bg-[#00c85a] text-[#0a0a12] text-xs font-bold rounded-xl hover:bg-[#00e87a] transition-colors">
-          <Plus size={14} />
-          Crear grupo
-        </button>
-        <button className="flex-1 h-9 bg-[#20203a] text-[#94a3b8] text-xs font-semibold rounded-xl border border-[#2a2a45] hover:border-[#3b3b60] hover:text-[#f1f5f9] transition-colors">
-          Tengo un enlace
-        </button>
-      </div>
-    </div>
-  );
-}
+/* ── Shared helpers ─────────────────────────────────────────────────── */
 
 function SectionHeader({ title, count }: { title: string; count?: number }) {
   return (
@@ -183,6 +149,15 @@ function VarStatusBar() {
           Brasil vs Argentina · 67&apos; · Tu predicción: 2–1
         </p>
       </div>
+    </div>
+  );
+}
+
+function GroupsSkeleton() {
+  return (
+    <div className="bg-[#18182a] border border-[#2a2a45] rounded-2xl p-4 animate-pulse">
+      <div className="h-4 w-32 bg-[#2a2a45] rounded mb-2" />
+      <div className="h-3 w-20 bg-[#1e1e35] rounded" />
     </div>
   );
 }
