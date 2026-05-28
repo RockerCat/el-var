@@ -22,12 +22,12 @@ export default function LeaderboardCard({
       <div className="px-4 py-3 border-b border-[#1e1e35] flex items-center justify-between">
         <div>
           <p className="text-xs text-[#475569] uppercase tracking-wide font-mono mb-0.5">
-            Leaderboard
+            Tabla de posiciones
           </p>
           <p className="text-sm font-bold text-[#f1f5f9]">{groupName}</p>
         </div>
         <button className="text-xs text-[#00c85a] font-semibold hover:text-[#00e87a]">
-          View all
+          Ver todos
         </button>
       </div>
 
@@ -73,11 +73,11 @@ function LeaderboardRow({
           {username}
           {isCurrentUser && (
             <span className="text-xs text-[#475569] ml-1 font-normal">
-              (you)
+              (tú)
             </span>
           )}
         </p>
-        <p className="text-xs text-[#475569]">{exactScores} exact scores</p>
+        <p className="text-xs text-[#475569]">{exactScores} exactos</p>
       </div>
 
       <div className="text-right shrink-0">

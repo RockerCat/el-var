@@ -40,18 +40,18 @@ export default function LoginPage() {
             El <span className="text-[#00c85a]">VAR</span>
           </span>
         </Link>
-        <h1 className="text-2xl font-black text-[#f1f5f9]">Welcome back</h1>
+        <h1 className="text-2xl font-black text-[#f1f5f9]">Bienvenido de nuevo</h1>
         <p className="text-sm text-[#64748b] mt-1">
-          Sign in to your prediction group
+          Ingresa a tu grupo de predicciones
         </p>
       </div>
 
       <Card variant="glow-green" className="p-6">
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <Input
-            label="Email"
+            label="Correo electrónico"
             type="email"
-            placeholder="you@example.com"
+            placeholder="tú@ejemplo.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             leftIcon={<Mail size={16} />}
@@ -60,7 +60,7 @@ export default function LoginPage() {
             autoFocus
           />
           <Input
-            label="Password"
+            label="Contraseña"
             type="password"
             placeholder="••••••••"
             value={password}
@@ -75,23 +75,23 @@ export default function LoginPage() {
               type="button"
               className="text-xs text-[#64748b] hover:text-[#00c85a] transition-colors"
             >
-              Forgot password?
+              ¿Olvidaste tu contraseña?
             </button>
           </div>
 
           <Button type="submit" size="lg" fullWidth loading={loading}>
-            Sign in
+            Ingresar
           </Button>
         </form>
 
         <div className="mt-4 pt-4 border-t border-[#1e1e35] text-center">
           <p className="text-sm text-[#64748b]">
-            Don&apos;t have an account?{" "}
+            ¿No tienes cuenta?{" "}
             <Link
               href="/signup"
               className="text-[#00c85a] font-semibold hover:text-[#00e87a]"
             >
-              Join via invite
+              Únete por invitación
             </Link>
           </p>
         </div>
@@ -101,7 +101,7 @@ export default function LoginPage() {
       <div className="flex items-center justify-center gap-2 mt-6">
         <span className="w-1.5 h-1.5 rounded-full bg-[#3b82f6]" />
         <span className="text-xs font-mono text-[#3b82f6] uppercase tracking-widest">
-          Identity check in progress
+          Verificando tu identidad
         </span>
       </div>
     </div>

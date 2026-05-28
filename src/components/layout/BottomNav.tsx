@@ -6,10 +6,10 @@ import { cn } from "@/lib/utils";
 import { Home, Trophy, Users, User } from "lucide-react";
 
 const navItems = [
-  { href: "/dashboard", label: "Home", icon: Home },
-  { href: "/dashboard/leaderboard", label: "Rankings", icon: Trophy },
-  { href: "/dashboard/groups", label: "Groups", icon: Users },
-  { href: "/dashboard/profile", label: "Profile", icon: User },
+  { href: "/dashboard", label: "Inicio", icon: Home },
+  { href: "/dashboard/leaderboard", label: "Tabla", icon: Trophy },
+  { href: "/dashboard/groups", label: "Grupos", icon: Users },
+  { href: "/dashboard/profile", label: "Perfil", icon: User },
 ];
 
 export default function BottomNav() {

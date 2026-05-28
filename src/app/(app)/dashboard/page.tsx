@@ -5,9 +5,9 @@ import LeaderboardCard from "@/components/dashboard/LeaderboardCard";
 const UPCOMING_MATCHES = [
   {
     id: "1",
-    homeTeam: { name: "Brazil", flag: "🇧🇷", code: "BRA" },
+    homeTeam: { name: "Brasil", flag: "🇧🇷", code: "BRA" },
     awayTeam: { name: "Argentina", flag: "🇦🇷", code: "ARG" },
-    kickoff: "Today · 18:00",
+    kickoff: "Hoy · 18:00",
     status: "live" as const,
     homeScore: 1,
     awayScore: 1,
@@ -15,17 +15,17 @@ const UPCOMING_MATCHES = [
   },
   {
     id: "2",
-    homeTeam: { name: "France", flag: "🇫🇷", code: "FRA" },
-    awayTeam: { name: "England", flag: "🏴󠁧󠁢󠁥󠁮󠁧󠁿", code: "ENG" },
-    kickoff: "Today · 21:00",
+    homeTeam: { name: "Francia", flag: "🇫🇷", code: "FRA" },
+    awayTeam: { name: "Inglaterra", flag: "🏴󠁧󠁢󠁥󠁮󠁧󠁿", code: "ENG" },
+    kickoff: "Hoy · 21:00",
     status: "upcoming" as const,
     prediction: { home: 1, away: 0, result: "pending" as const },
   },
   {
     id: "3",
-    homeTeam: { name: "Spain", flag: "🇪🇸", code: "ESP" },
-    awayTeam: { name: "Germany", flag: "🇩🇪", code: "GER" },
-    kickoff: "Yesterday · 20:00",
+    homeTeam: { name: "España", flag: "🇪🇸", code: "ESP" },
+    awayTeam: { name: "Alemania", flag: "🇩🇪", code: "GER" },
+    kickoff: "Ayer · 20:00",
     status: "finished" as const,
     homeScore: 2,
     awayScore: 1,
@@ -48,18 +48,18 @@ export default function DashboardPage() {
       <div className="flex items-start justify-between">
         <div>
           <p className="text-xs text-[#475569] font-mono uppercase tracking-widest mb-1">
-            Group · The Offside Trap
+            Grupo · La Trampa del Offside
           </p>
           <h1 className="text-2xl font-black text-[#f1f5f9]">
-            Match Day 12
+            Jornada 12
           </h1>
           <p className="text-sm text-[#64748b] mt-0.5">
-            2 matches today · You&apos;re ranked 2nd
+            2 partidos hoy · Estás en el 2° lugar
           </p>
         </div>
         <div className="bg-[#18182a] border border-[#2a2a45] rounded-xl p-3 text-right">
           <p className="text-2xl font-black text-[#f1f5f9] tabular-nums">75</p>
-          <p className="text-xs text-[#475569]">your pts</p>
+          <p className="text-xs text-[#475569]">tus pts</p>
         </div>
       </div>
 
@@ -68,10 +68,10 @@ export default function DashboardPage() {
 
       {/* Today's matches */}
       <section>
-        <SectionHeader title="Today" count={2} />
+        <SectionHeader title="Hoy" count={2} />
         <div className="flex flex-col gap-3">
           {UPCOMING_MATCHES.filter((m) =>
-            m.kickoff.startsWith("Today")
+            m.kickoff.startsWith("Hoy")
           ).map((match) => (
             <MatchCard key={match.id} {...match} />
           ))}
@@ -80,7 +80,7 @@ export default function DashboardPage() {
 
       {/* Recent results */}
       <section>
-        <SectionHeader title="Recent results" />
+        <SectionHeader title="Resultados recientes" />
         <div className="flex flex-col gap-3">
           {UPCOMING_MATCHES.filter((m) => m.status === "finished").map(
             (match) => (
@@ -92,9 +92,9 @@ export default function DashboardPage() {
 
       {/* Leaderboard */}
       <section>
-        <SectionHeader title="Standings" />
+        <SectionHeader title="Tabla de posiciones" />
         <LeaderboardCard
-          groupName="The Offside Trap"
+          groupName="La Trampa del Offside"
           entries={LEADERBOARD_ENTRIES}
         />
       </section>
@@ -132,10 +132,10 @@ function VarStatusBar() {
       <div className="w-2 h-2 rounded-full bg-[#3b82f6] animate-live-pulse shrink-0" />
       <div className="flex-1 min-w-0">
         <p className="text-xs font-mono text-[#3b82f6] uppercase tracking-widest">
-          VAR is reviewing
+          El VAR está revisando
         </p>
         <p className="text-sm text-[#94a3b8] truncate">
-          Brazil vs Argentina · 67&apos; · Your prediction: 2–1
+          Brasil vs Argentina · 67&apos; · Tu predicción: 2–1
         </p>
       </div>
     </div>

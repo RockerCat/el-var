@@ -25,7 +25,7 @@ export default function Navbar() {
 
         <nav className="hidden md:flex items-center gap-1">
           <NavLink href="/dashboard" active={pathname === "/dashboard"}>
-            Dashboard
+            Inicio
           </NavLink>
         </nav>
 
@@ -34,13 +34,13 @@ export default function Navbar() {
             href="/login"
             className="text-sm text-[#94a3b8] hover:text-[#f1f5f9] px-3 py-2 rounded-lg transition-colors"
           >
-            Sign in
+            Ingresar
           </Link>
           <Link
             href="/signup"
             className="text-sm font-semibold bg-[#00c85a] text-[#0a0a12] px-4 py-2 rounded-xl hover:bg-[#00e87a] transition-colors"
           >
-            Join group
+            Unirse al grupo
           </Link>
         </div>
       </div>

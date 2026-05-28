@@ -14,13 +14,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "El VAR — World Cup 2026 Predictions",
+  title: "El VAR — Predicciones Copa del Mundo 2026",
   description:
-    "Create private prediction groups with friends for FIFA World Cup 2026. Predict scores, compete on leaderboards.",
-  keywords: ["world cup 2026", "predictions", "football", "soccer", "FIFA"],
+    "Crea grupos privados de predicciones con tus amigos para el Mundial 2026. Predice marcadores, compite en la tabla de posiciones.",
+  keywords: ["copa del mundo 2026", "predicciones", "fútbol", "mundial", "FIFA", "grupos"],
   openGraph: {
-    title: "El VAR — World Cup 2026 Predictions",
-    description: "Predict. Compete. Dominate. Private groups for World Cup 2026.",
+    title: "El VAR — Predicciones Copa del Mundo 2026",
+    description: "Predice. Compite. Domina. Grupos privados para el Mundial 2026.",
     type: "website",
   },
 };
@@ -38,7 +38,7 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="en"
+      lang="es"
       className={`${geistSans.variable} ${geistMono.variable} antialiased`}
     >
       <body className="min-h-dvh bg-[#0a0a12] text-[#f1f5f9]">

@@ -15,7 +15,7 @@ export default function Hero() {
         {/* VAR Review label */}
         <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#18182a] border border-[#2a2a45] text-xs text-[#94a3b8] font-medium">
           <span className="w-1.5 h-1.5 rounded-full bg-[#00c85a] animate-live-pulse" />
-          FIFA World Cup 2026 · Prediction Groups
+          Copa del Mundo 2026 · Grupos de predicciones
         </div>
 
         {/* Main headline */}
@@ -28,15 +28,15 @@ export default function Hero() {
             </span>
           </h1>
           <p className="text-xl md:text-2xl text-[#94a3b8] font-light">
-            Predict. Compete. Dominate.
+            Predice. Compite. Domina.
           </p>
         </div>
 
         {/* Description */}
         <p className="text-[#64748b] text-base md:text-lg max-w-md leading-relaxed">
-          Create private prediction groups with your friends and compete across
-          every match of the{" "}
-          <span className="text-[#94a3b8]">2026 World Cup</span>.
+          Arma grupos privados de predicciones con tus amigos y compite en
+          cada partido del{" "}
+          <span className="text-[#94a3b8]">Mundial 2026</span>.
         </p>
 
         {/* VAR review box */}
@@ -46,24 +46,24 @@ export default function Hero() {
         <div className="flex flex-col sm:flex-row gap-3 w-full max-w-xs">
           <Link href="/signup" className="flex-1">
             <Button size="lg" fullWidth>
-              Create a group
+              Crear grupo
             </Button>
           </Link>
           <Link href="/login" className="flex-1">
             <Button size="lg" variant="secondary" fullWidth>
-              Sign in
+              Ingresar
             </Button>
           </Link>
         </div>
 
         <p className="text-xs text-[#475569]">
-          Join via invite link · No betting · Just bragging rights
+          Únete por invitación · Sin apuestas · Solo el orgullo futbolero
         </p>
       </div>
 
       {/* Scroll hint */}
       <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-[#475569]">
-        <span className="text-xs">Scroll to explore</span>
+        <span className="text-xs">Desliza para explorar</span>
         <div className="w-5 h-8 rounded-full border border-[#2a2a45] flex items-start justify-center p-1">
           <div className="w-1 h-2 rounded-full bg-[#475569] animate-bounce" />
         </div>
@@ -97,15 +97,15 @@ function VarReviewBox() {
       <div className="flex items-center gap-2 mb-3">
         <div className="w-2 h-2 rounded-full bg-[#3b82f6] animate-live-pulse" />
         <span className="text-xs font-mono text-[#3b82f6] uppercase tracking-widest">
-          VAR Review
+          Revisión VAR
         </span>
       </div>
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-3">
           <span className="text-2xl">🇧🇷</span>
           <div>
-            <p className="text-sm font-bold text-[#f1f5f9]">Brazil</p>
-            <p className="text-xs text-[#475569]">Your pick: 2–1</p>
+            <p className="text-sm font-bold text-[#f1f5f9]">Brasil</p>
+            <p className="text-xs text-[#475569]">Tu predicción: 2–1</p>
           </div>
         </div>
         <div className="text-center">
@@ -120,14 +120,14 @@ function VarReviewBox() {
           <span className="text-2xl">🇦🇷</span>
           <div className="text-right">
             <p className="text-sm font-bold text-[#f1f5f9]">Argentina</p>
-            <p className="text-xs text-[#475569]">Final score</p>
+            <p className="text-xs text-[#475569]">Marcador final</p>
           </div>
         </div>
       </div>
       <div className="flex items-center justify-between pt-3 border-t border-[#1e1e35]">
-        <span className="text-xs text-[#475569]">Prediction result</span>
+        <span className="text-xs text-[#475569]">Resultado de tu predicción</span>
         <span className="text-xs font-bold text-[#fbbf24] bg-[#fbbf24]/10 px-2 py-0.5 rounded-full">
-          ⚡ Exact score · +10 pts
+          ⚡ Resultado exacto · +10 pts
         </span>
       </div>
     </div>

@@ -5,30 +5,30 @@ const features = [
   {
     icon: Users,
     color: "#00c85a",
-    title: "Private Groups",
+    title: "Grupos Privados",
     description:
-      "Create closed groups and invite your friends via a unique link. Your predictions stay among your crew.",
+      "Arma tu grupo cerrado e invita a tus amigos con un enlace único. Tus predicciones son solo entre ustedes.",
   },
   {
     icon: Target,
     color: "#3b82f6",
-    title: "Score Predictions",
+    title: "Predicciones de Marcador",
     description:
-      "Predict the exact score of every match. Exact scores earn more points — precision is rewarded.",
+      "Predice el marcador exacto de cada partido. Adivinar el resultado exacto vale más puntos — la precisión tiene recompensa.",
   },
   {
     icon: Trophy,
     color: "#f59e0b",
-    title: "Live Leaderboards",
+    title: "Tabla de Posiciones en Vivo",
     description:
-      "Watch the rankings shift in real time as match results come in. Every goal changes everything.",
+      "Mira cómo cambia el ranking en tiempo real con cada resultado. Un gol puede cambiarlo todo.",
   },
   {
     icon: Zap,
     color: "#ef4444",
-    title: "VAR Moments",
+    title: "Momentos VAR",
     description:
-      'Controversial calls, dramatic reversals — El VAR tracks them all. "Under review" never felt this fun.',
+      '"El VAR está revisando" — los cobros polémicos, los giros dramáticos, todo queda registrado. Nunca fue tan divertido.',
   },
 ];
 
@@ -37,14 +37,13 @@ export default function Features() {
     <section className="px-4 py-20 max-w-5xl mx-auto">
       <div className="text-center mb-12">
         <p className="text-xs font-mono text-[#00c85a] uppercase tracking-widest mb-3">
-          How it works
+          ¿Cómo funciona?
         </p>
         <h2 className="text-3xl md:text-4xl font-black text-[#f1f5f9] mb-3">
-          Built for the 90 minutes
+          Hecho para los 90 minutos
         </h2>
         <p className="text-[#64748b] max-w-md mx-auto">
-          Everything you need to run a World Cup prediction group — nothing you
-          don&apos;t.
+          Todo lo que necesitas para armar tu grupo del Mundial — sin nada que sobre.
         </p>
       </div>
 
@@ -85,37 +84,37 @@ function FeatureCard({
 function ScoringBreakdown() {
   const tiers = [
     {
-      label: "Exact score",
+      label: "Resultado exacto",
       points: "+10",
-      example: "Predicted 2–1, result 2–1",
+      example: "Predijiste 2–1, salió 2–1",
       color: "#fbbf24",
       badge: "⚡",
     },
     {
-      label: "Correct winner + goal diff",
+      label: "Ganador correcto + diferencia de goles",
       points: "+7",
-      example: "Predicted 3–1, result 2–0",
+      example: "Predijiste 3–1, salió 2–0",
       color: "#00c85a",
       badge: "✓",
     },
     {
-      label: "Correct winner",
+      label: "Ganador correcto",
       points: "+5",
-      example: "Predicted 1–0, result 3–1",
+      example: "Predijiste 1–0, salió 3–1",
       color: "#3b82f6",
       badge: "→",
     },
     {
-      label: "Correct draw",
+      label: "Empate correcto",
       points: "+5",
-      example: "Predicted 1–1, result 0–0",
+      example: "Predijiste 1–1, salió 0–0",
       color: "#94a3b8",
       badge: "≈",
     },
     {
-      label: "Wrong prediction",
+      label: "Predicción incorrecta",
       points: "+0",
-      example: "Predicted win, result loss",
+      example: "Predijiste victoria, salió derrota",
       color: "#475569",
       badge: "✗",
     },
@@ -125,7 +124,7 @@ function ScoringBreakdown() {
     <div className="bg-[#11111c] border border-[#1e1e35] rounded-2xl p-6">
       <div className="flex items-center gap-2 mb-5">
         <span className="text-xs font-mono text-[#3b82f6] uppercase tracking-widest">
-          Scoring system
+          Sistema de puntuación
         </span>
       </div>
       <div className="flex flex-col gap-2">

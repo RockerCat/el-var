@@ -35,7 +35,7 @@ export default function MatchCard({
       {/* Status + time row */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          {status === "live" && <Badge variant="live">LIVE</Badge>}
+          {status === "live" && <Badge variant="live">EN VIVO</Badge>}
           {status === "upcoming" && (
             <span className="text-xs text-[#64748b]">{kickoff}</span>
           )}
@@ -97,7 +97,7 @@ export default function MatchCard({
       {/* Your prediction */}
       {prediction && (
         <div className="mt-3 pt-3 border-t border-[#1e1e35] flex items-center justify-between">
-          <span className="text-xs text-[#475569]">Your prediction</span>
+          <span className="text-xs text-[#475569]">Tu predicción</span>
           <span className="text-xs font-mono font-semibold text-[#94a3b8]">
             {prediction.home} – {prediction.away}
           </span>
@@ -111,12 +111,12 @@ function PredictionBadge({ result }: { result: string }) {
   if (result === "exact")
     return (
       <Badge variant="gold">
-        ⚡ Exact
+        ⚡ Exacto
       </Badge>
     );
   if (result === "correct_winner")
-    return <Badge variant="green">✓ Correct</Badge>;
+    return <Badge variant="green">✓ Correcto</Badge>;
   if (result === "wrong")
-    return <Badge variant="gray">✗ Wrong</Badge>;
-  return <Badge variant="blue">· Pending</Badge>;
+    return <Badge variant="gray">✗ Incorrecto</Badge>;
+  return <Badge variant="blue">· Pendiente</Badge>;
 }

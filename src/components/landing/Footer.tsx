@@ -19,10 +19,10 @@ export default function Footer() {
           </span>
         </div>
         <p className="text-xs text-[#475569] text-center">
-          Not affiliated with FIFA. For entertainment only. World Cup 2026.
+          No afiliado a la FIFA. Solo para entretenimiento. Copa del Mundo 2026.
         </p>
         <p className="text-xs text-[#475569]">
-          Built for football fans ⚽
+          Hecho para los fanáticos del fútbol ⚽
         </p>
       </div>
     </footer>
