@@ -10,6 +10,7 @@ import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import { createClient } from "@/lib/supabase/client";
 import { getAuthErrorMessage, validatePassword } from "@/lib/auth-errors";
+import { joinGroupAction } from "@/app/actions/groups";
 
 interface SignupFormProps {
   /** Invite code from URL — null means direct signup with no pending invite */
@@ -60,12 +61,21 @@ export default function SignupForm({ inviteCode, groupName }: SignupFormProps) {
 
     // Session present → email confirmation disabled, auto-login
     if (data.session) {
+      // Auto-join the group if an invite code was present
       if (inviteCode) {
-        // Go to the invite page so the user can explicitly confirm joining
-        router.push(`/invite/${inviteCode}`);
-      } else {
-        router.push("/dashboard");
+        console.log("[SignupForm] auto-joining group:", inviteCode);
+        const fd = new FormData();
+        fd.set("invite_code", inviteCode);
+        const joinResult = await joinGroupAction(null, fd);
+        if (joinResult && "error" in joinResult) {
+          // Non-blocking: log but don't interrupt signup
+          // "Ya eres miembro" is fine (idempotent), other errors surface below
+          console.warn("[SignupForm] auto-join result:", joinResult.error);
+        } else {
+          console.log("[SignupForm] auto-join successful ✓");
+        }
       }
+      router.push("/dashboard");
       router.refresh();
       return;
     }

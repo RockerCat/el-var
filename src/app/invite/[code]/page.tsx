@@ -60,7 +60,7 @@ export default async function InvitePage({ params }: InvitePageProps) {
               Crear cuenta y unirme
             </Link>
             <Link
-              href={`/login`}
+              href={`/login?invite=${group.invite_code}`}
               className="flex items-center justify-center h-11 w-full bg-[#18182a] text-[#94a3b8] text-sm font-medium rounded-xl border border-[#2a2a45] hover:border-[#3b3b60] hover:text-[#f1f5f9] transition-colors"
             >
               Ya tengo cuenta — Ingresar

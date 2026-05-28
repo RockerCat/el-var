@@ -82,7 +82,20 @@ export async function createGroupAction(
 
 // ──────────────────────────────────────────────────────────────────────
 // joinGroupAction
+//
+// Uses join_group_for_user() SECURITY DEFINER RPC — handles lookup +
+// group_members INSERT in one atomic call, bypassing the auth.uid()
+// RLS issue that affects direct table inserts from Server Actions.
 // ──────────────────────────────────────────────────────────────────────
+
+type JoinRpcResult = {
+  success?: boolean;
+  group_id?: string;
+  group_name?: string;
+  invite_code?: string;
+  error?: string;
+  message?: string;
+};
 
 export async function joinGroupAction(
   _prevState: GroupActionState,
@@ -105,46 +118,50 @@ export async function joinGroupAction(
 
   console.log("[joinGroup] user OK:", user.id, "code:", code);
 
-  // Lookup via SECURITY DEFINER function (bypasses SELECT RLS before joining)
-  const { data: groups, error: rpcError } = await supabase.rpc(
-    "get_group_by_invite_code",
-    { code }
+  // Single SECURITY DEFINER RPC: lookup + insert, idempotent
+  const { data: rpcData, error: rpcError } = await supabase.rpc(
+    "join_group_for_user",
+    { p_invite_code: code }
   );
 
   if (rpcError) {
-    const detail = fmtError("rpc.get_group_by_invite_code", rpcError);
+    const detail = fmtError("rpc.join_group_for_user", rpcError);
     console.error("[joinGroup] RPC FAILED:", detail);
-    return {
-      error: "No se pudo verificar el código. Intenta de nuevo.",
-      devMessage: isDev ? detail : undefined,
-    };
-  }
-
-  if (!groups || groups.length === 0) {
-    console.log("[joinGroup] no group found for code:", code);
-    return { error: "Código inválido. Verifica que esté bien escrito." };
-  }
-
-  const group = groups[0] as { id: string; name: string; invite_code: string };
-  console.log("[joinGroup] found group:", group.id, group.name);
-
-  const { error: memberError } = await supabase
-    .from("group_members")
-    .insert({ group_id: group.id, user_id: user.id });
-
-  if (memberError) {
-    const detail = fmtError("group_members.insert", memberError);
-    console.error("[joinGroup] membership insert FAILED:", detail);
-    if (memberError.code === "23505") {
-      return { error: "Ya eres miembro de este grupo." };
-    }
     return {
       error: "No se pudo unir al grupo. Intenta de nuevo.",
       devMessage: isDev ? detail : undefined,
     };
   }
 
-  console.log("[joinGroup] joined group — done ✓");
+  const result = rpcData as JoinRpcResult | null;
+  console.log("[joinGroup] RPC result:", result);
+
+  if (result?.error === "invalid_code") {
+    return { error: "Código inválido. Verifica que esté bien escrito." };
+  }
+
+  if (result?.error) {
+    return {
+      error: result.message ?? "No se pudo unir al grupo. Intenta de nuevo.",
+      devMessage: isDev ? `rpc returned error: ${result.error}` : undefined,
+    };
+  }
+
+  if (!result?.success) {
+    return {
+      error: "No se pudo unir al grupo. Intenta de nuevo.",
+      devMessage: isDev ? `unexpected rpc response: ${JSON.stringify(result)}` : undefined,
+    };
+  }
+
+  console.log("[joinGroup] joined group — done ✓", result.group_id);
   revalidatePath("/dashboard");
-  return { success: true, group };
+  return {
+    success: true,
+    group: {
+      id: result.group_id!,
+      name: result.group_name!,
+      invite_code: result.invite_code!,
+    },
+  };
 }
