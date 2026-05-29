@@ -40,6 +40,13 @@ export type GroupWithMeta = GroupRow & {
   user_rank: number | null;
 };
 
+export type MemberDetail = {
+  user_id: string;
+  display_name: string;
+  is_owner: boolean;
+  joined_at: string;
+};
+
 export type ActivityEntry = {
   user_id: string;
   display_name: string;

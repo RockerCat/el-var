@@ -4,10 +4,16 @@ import { Crown, Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getGroupLeaderboard, getGroupActivity } from "@/lib/db/leaderboard";
 import Leaderboard from "@/components/groups/Leaderboard";
+import MemberList from "@/components/groups/MemberList";
+import GroupStats from "@/components/groups/GroupStats";
 import ActivityFeed from "@/components/groups/ActivityFeed";
 import CopyButton from "@/components/groups/CopyButton";
 import CopyInviteLinkButton from "@/components/groups/CopyInviteLinkButton";
-import { formatMemberCount, formatRelativeDate } from "@/lib/groups";
+import {
+  formatMemberCount,
+  formatRelativeDate,
+  type MemberDetail,
+} from "@/lib/groups";
 
 type RawGroup = {
   id: string;
@@ -44,14 +50,39 @@ export default async function GroupPage({
   const memberCount = group.group_members?.[0]?.count ?? 0;
   const isOwner = group.owner_id === user.id;
 
-  // Parallel fetch: leaderboard + activity
-  const [leaderboard, activity] = await Promise.all([
+  // Parallel fetch: leaderboard, activity, member join dates, match counts
+  const [leaderboard, activity, membersResult, matchesResult] = await Promise.all([
     getGroupLeaderboard(groupId),
     getGroupActivity(groupId),
+    supabase
+      .from("group_members")
+      .select("user_id, joined_at")
+      .eq("group_id", groupId)
+      .order("joined_at", { ascending: true }),
+    supabase.from("matches").select("status"),
   ]);
 
-  const userEntry = leaderboard.find((e) => e.user_id === user.id);
-  const isLeading =
+  // Derive members: names come from leaderboard, join dates from group_members
+  const nameMap = new Map(leaderboard.map((e) => [e.user_id, e.display_name]));
+  const members: MemberDetail[] = (membersResult.data ?? []).map((r) => ({
+    user_id:      r.user_id as string,
+    display_name: nameMap.get(r.user_id as string) ?? "Usuario",
+    is_owner:     (r.user_id as string) === group.owner_id,
+    joined_at:    r.joined_at as string,
+  }));
+
+  // Match stats
+  const allMatches     = matchesResult.data ?? [];
+  const scoredMatches  = allMatches.filter((m) => m.status === "finished").length;
+  const pendingMatches = allMatches.filter((m) => m.status !== "finished").length;
+
+  // Group stats
+  const totalPredictions = leaderboard.reduce((sum, e) => sum + e.pred_count, 0);
+  const leader           = leaderboard.find((e) => e.total_points > 0);
+
+  // Current user context
+  const userEntry  = leaderboard.find((e) => e.user_id === user.id);
+  const isLeading  =
     !!userEntry &&
     userEntry.rank === 1 &&
     leaderboard.length > 1 &&
@@ -92,7 +123,7 @@ export default async function GroupPage({
         </div>
       </div>
 
-      {/* Invite code card */}
+      {/* Invite code */}
       <div className="bg-[#18182a] border border-[#2a2a45] rounded-2xl p-4">
         <p className="text-[10px] text-[#475569] font-mono uppercase tracking-widest mb-3">
           Código de invitación
@@ -108,36 +139,61 @@ export default async function GroupPage({
         </div>
       </div>
 
+      {/* Group stats */}
+      <section>
+        <SectionHeader title="Resumen" />
+        <GroupStats
+          memberCount={memberCount}
+          totalPredictions={Number(totalPredictions)}
+          scoredMatches={scoredMatches}
+          pendingMatches={pendingMatches}
+          leaderName={leader?.display_name ?? null}
+        />
+      </section>
+
       {/* Leaderboard */}
       <section>
-        <div className="flex items-center gap-2 mb-3">
-          <h2 className="text-sm font-bold text-[#94a3b8] uppercase tracking-wide">
-            Tabla de posiciones
-          </h2>
-          <span className="text-xs bg-[#18182a] border border-[#2a2a45] text-[#64748b] px-1.5 py-0.5 rounded-full">
-            {leaderboard.length}
-          </span>
-        </div>
+        <SectionHeader title="Tabla de posiciones" count={leaderboard.length} />
         <Leaderboard entries={leaderboard} currentUserId={user.id} />
       </section>
 
-      {/* Activity feed */}
+      {/* Members */}
       <section>
-        <div className="flex items-center gap-2 mb-3">
-          <h2 className="text-sm font-bold text-[#94a3b8] uppercase tracking-wide">
-            Actividad reciente
-          </h2>
-          {activity.length > 0 && (
-            <span className="text-xs bg-[#18182a] border border-[#2a2a45] text-[#64748b] px-1.5 py-0.5 rounded-full">
-              {activity.length}
-            </span>
-          )}
-        </div>
+        <SectionHeader title="Miembros" count={members.length} />
+        <MemberList members={members} currentUserId={user.id} />
+      </section>
+
+      {/* Activity */}
+      <section>
+        <SectionHeader
+          title="Actividad reciente"
+          count={activity.length > 0 ? activity.length : undefined}
+        />
         <ActivityFeed entries={activity} currentUserId={user.id} />
       </section>
 
-      {/* Bottom spacer */}
       <div className="h-4" />
+    </div>
+  );
+}
+
+function SectionHeader({
+  title,
+  count,
+}: {
+  title: string;
+  count?: number;
+}) {
+  return (
+    <div className="flex items-center gap-2 mb-3">
+      <h2 className="text-sm font-bold text-[#94a3b8] uppercase tracking-wide">
+        {title}
+      </h2>
+      {count !== undefined && (
+        <span className="text-xs bg-[#18182a] border border-[#2a2a45] text-[#64748b] px-1.5 py-0.5 rounded-full">
+          {count}
+        </span>
+      )}
     </div>
   );
 }

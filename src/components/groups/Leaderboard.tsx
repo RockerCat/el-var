@@ -15,17 +15,15 @@ const TOP_ACCENT = {
 export default function Leaderboard({ entries, currentUserId }: LeaderboardProps) {
   if (entries.length === 0) {
     return (
-      <div className="bg-[#18182a] border border-dashed border-[#2a2a45] rounded-2xl p-6 text-center">
-        <p className="text-2xl mb-2">🏆</p>
-        <p className="text-sm font-bold text-[#f1f5f9] mb-1">
-          Aún no hay puntos
-        </p>
-        <p className="text-xs text-[#64748b]">
-          Los puntos aparecen cuando el admin confirma resultados de partidos.
+      <div className="bg-[#18182a] border border-dashed border-[#2a2a45] rounded-2xl p-5 text-center">
+        <p className="text-xs text-[#475569]">
+          No se pudieron cargar los participantes.
         </p>
       </div>
     );
   }
+
+  const allZero = entries.every((e) => e.total_points === 0);
 
   return (
     <div className="flex flex-col gap-2">
@@ -36,6 +34,11 @@ export default function Leaderboard({ entries, currentUserId }: LeaderboardProps
           isCurrentUser={entry.user_id === currentUserId}
         />
       ))}
+      {allZero && (
+        <p className="text-[11px] text-[#475569] text-center pt-2 font-mono">
+          Los puntos aparecerán cuando se confirmen resultados de partidos.
+        </p>
+      )}
     </div>
   );
 }
