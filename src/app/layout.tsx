@@ -13,13 +13,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "El VAR — Predicciones Copa del Mundo 2026",
+  title: "La Penúltima — Predicciones Copa del Mundo 2026",
   description:
     "Crea grupos privados de predicciones con tus amigos para el Mundial 2026. Predice marcadores, compite en la tabla de posiciones.",
   keywords: ["copa del mundo 2026", "predicciones", "fútbol", "mundial", "FIFA", "grupos"],
   openGraph: {
-    title: "El VAR — Predicciones Copa del Mundo 2026",
-    description: "Predice. Compite. Domina. Grupos privados para el Mundial 2026.",
+    title: "La Penúltima — Predicciones Copa del Mundo 2026",
+    description: "Predice. Compite. Reclama que te robaron puntos. Grupos privados para el Mundial 2026.",
     type: "website",
   },
 };

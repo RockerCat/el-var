@@ -23,6 +23,7 @@ export type Match = {
   away_team_id: string;
   starts_at: string;
   stage: MatchStage;
+  group_code: string | null;
   status: MatchStatus;
   home_score: number | null;
   away_score: number | null;

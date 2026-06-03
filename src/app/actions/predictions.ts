@@ -4,6 +4,67 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import type { Prediction, PredictionActionState } from "@/lib/matches";
 
+// ── Group save ────────────────────────────────────────────────────────
+// Saves predictions for every open match in a group with one submission.
+// Inputs are keyed home_{matchId} / away_{matchId}.
+// Empty inputs are skipped (don't overwrite an existing prediction with blank).
+
+export type GroupSaveState = {
+  success: boolean;
+  errors: Record<string, string>;
+} | null;
+
+export async function saveGroupPredictionsAction(
+  _prev: GroupSaveState,
+  formData: FormData
+): Promise<GroupSaveState> {
+  const supabase = await createClient();
+  const matchIds = formData.getAll("match_id") as string[];
+
+  if (matchIds.length === 0) return { success: false, errors: {} };
+
+  const errors: Record<string, string> = {};
+  let saved = 0;
+
+  for (const matchId of matchIds) {
+    const homeRaw = (formData.get(`home_${matchId}`) as string | null) ?? "";
+    const awayRaw = (formData.get(`away_${matchId}`) as string | null) ?? "";
+
+    if (homeRaw === "" || awayRaw === "") continue; // skip unfilled rows
+
+    const homeScore = parseInt(homeRaw, 10);
+    const awayScore = parseInt(awayRaw, 10);
+
+    if (isNaN(homeScore) || isNaN(awayScore)) {
+      errors[matchId] = "Marcador inválido.";
+      continue;
+    }
+
+    const { data: rpcData, error: rpcError } = await supabase.rpc(
+      "save_prediction_for_user",
+      { p_match_id: matchId, p_home_score: homeScore, p_away_score: awayScore }
+    );
+
+    if (rpcError) {
+      const msg = rpcError.message;
+      errors[matchId] =
+        msg === "match_closed" || msg === "match_not_scheduled" || msg === "match_started"
+          ? "Predicciones cerradas para este partido."
+          : "No se pudo guardar.";
+    } else {
+      console.log("[saveGroup] ✓ matchId:", matchId, rpcData);
+      saved++;
+    }
+  }
+
+  if (saved > 0) revalidatePath("/dashboard");
+
+  return {
+    success: saved > 0 && Object.keys(errors).length === 0,
+    errors,
+  };
+}
+
 const isDev = process.env.NODE_ENV !== "production";
 
 export async function savePredictionAction(

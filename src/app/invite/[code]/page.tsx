@@ -48,8 +48,7 @@ export default async function InvitePage({ params }: InvitePageProps) {
         <Navbar />
         <InviteLayout groupName={group.name}>
           <p className="text-sm text-[#64748b] text-center mb-5">
-            Crea tu cuenta para unirte a este grupo y predecir los partidos del
-            Mundial 2026.
+            Crea tu cuenta, únete al grupo y demuestra que sabes más fútbol que tus amigos.
           </p>
 
           <div className="flex flex-col gap-2 w-full">
@@ -148,9 +147,9 @@ function InviteLayout({
         <div className="text-center mb-6">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#18182a] border border-[#2a2a45] text-xs text-[#94a3b8] mb-4">
             <span className="w-1.5 h-1.5 rounded-full bg-[#00c85a] animate-live-pulse" />
-            Invitación al grupo
+            Te invitaron a jugar La Penúltima
           </div>
-          <p className="text-sm text-[#64748b] mb-2">Te invitaron a unirte a</p>
+          <p className="text-sm text-[#64748b] mb-2">Únete al grupo y demuestra que sabes más fútbol que tus amigos.</p>
           <h1 className="text-2xl font-black text-[#f1f5f9]">{groupName}</h1>
         </div>
 

@@ -44,7 +44,7 @@ export default function PredictionForm({
   if (!isOpen) {
     const reasonLabel = closedReason ? CLOSED_LABELS[closedReason] : null;
     return (
-      <div className="mt-3 pt-3 border-t border-[#1e1e35] space-y-1.5">
+      <div className="mt-2 pt-2 border-t border-[#1e1e35] space-y-1.5">
         <div className="flex items-center justify-between">
           <span className="text-xs text-[#475569]">Tu predicción</span>
           {savedPrediction ? (
@@ -68,7 +68,7 @@ export default function PredictionForm({
   // ── Saved state — show scores + edit button ──────────────────────────
   if (savedPrediction && !isEditing) {
     return (
-      <div className="mt-3 pt-3 border-t border-[#1e1e35]">
+      <div className="mt-2 pt-2 border-t border-[#1e1e35]">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Check size={13} className="text-[#00c85a]" />

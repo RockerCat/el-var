@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Mail, Lock, AlertCircle, Hash, CheckCircle2, ArrowRight, Loader2 } from "lucide-react";
 import Button from "@/components/ui/Button";
@@ -10,6 +10,13 @@ import Card from "@/components/ui/Card";
 import { createClient } from "@/lib/supabase/client";
 import { getAuthErrorMessage } from "@/lib/auth-errors";
 import { joinGroupAction } from "@/app/actions/groups";
+
+const STATUS_MESSAGES = [
+  "Revisando la jugada...",
+  "Consultando la mesa arbitral...",
+  "Buscando culpables...",
+  "Confirmando tu versión de los hechos...",
+];
 
 interface LoginFormProps {
   inviteCode: string | null;
@@ -27,6 +34,12 @@ export default function LoginForm({ inviteCode }: LoginFormProps) {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [joinStatus, setJoinStatus] = useState<JoinStatus | null>(null);
+  const [statusIdx, setStatusIdx] = useState(0);
+
+  useEffect(() => {
+    const id = setInterval(() => setStatusIdx(i => (i + 1) % STATUS_MESSAGES.length), 3000);
+    return () => clearInterval(id);
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -104,20 +117,18 @@ export default function LoginForm({ inviteCode }: LoginFormProps) {
   return (
     <div className="w-full max-w-sm animate-fade-in-up">
       <div className="text-center mb-8">
-        <Link href="/" className="inline-flex items-center gap-2 mb-6">
+        <Link href="/login" className="inline-flex items-center gap-2 mb-6">
           <div className="w-9 h-9 rounded-xl bg-[#00c85a] flex items-center justify-center">
             <svg width="20" height="16" viewBox="0 0 18 14" fill="none">
               <path d="M1 1L5.5 12L9 5L12.5 12L17 1" stroke="#0a0a12" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </div>
           <span className="font-bold text-xl text-[#f1f5f9]">
-            El <span className="text-[#00c85a]">VAR</span>
+            La <span className="text-[#00c85a]">Penúltima</span>
           </span>
         </Link>
-        <h1 className="text-2xl font-black text-[#f1f5f9]">Bienvenido de nuevo</h1>
-        <p className="text-sm text-[#64748b] mt-1">
-          {inviteCode ? "Ingresa para unirte al grupo" : "Ingresa a tu grupo de predicciones"}
-        </p>
+        <h1 className="text-2xl font-black text-[#f1f5f9]">La Penúltima</h1>
+        <p className="text-sm text-[#64748b] mt-1">El lugar donde se sufre pero se gana</p>
       </div>
 
       {inviteCode && (
@@ -169,9 +180,9 @@ export default function LoginForm({ inviteCode }: LoginFormProps) {
       </Card>
 
       <div className="flex items-center justify-center gap-2 mt-6">
-        <span className="w-1.5 h-1.5 rounded-full bg-[#3b82f6]" />
+        <span className="w-1.5 h-1.5 rounded-full bg-[#3b82f6] animate-live-pulse" />
         <span className="text-xs font-mono text-[#3b82f6] uppercase tracking-widest">
-          Verificando tu identidad
+          {STATUS_MESSAGES[statusIdx]}
         </span>
       </div>
     </div>

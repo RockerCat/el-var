@@ -155,21 +155,21 @@ export default function SignupForm({ inviteCode, groupName }: SignupFormProps) {
   return (
     <div className="w-full max-w-sm animate-fade-in-up">
       <div className="text-center mb-8">
-        <Link href="/" className="inline-flex items-center gap-2 mb-6">
+        <Link href="/login" className="inline-flex items-center gap-2 mb-6">
           <div className="w-9 h-9 rounded-xl bg-[#00c85a] flex items-center justify-center">
             <svg width="20" height="16" viewBox="0 0 18 14" fill="none">
               <path d="M1 1L5.5 12L9 5L12.5 12L17 1" stroke="#0a0a12" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </div>
           <span className="font-bold text-xl text-[#f1f5f9]">
-            El <span className="text-[#00c85a]">VAR</span>
+            La <span className="text-[#00c85a]">Penúltima</span>
           </span>
         </Link>
-        <h1 className="text-2xl font-black text-[#f1f5f9]">
-          {inviteCode ? "Únete al grupo" : "Crear cuenta"}
-        </h1>
+        <h1 className="text-2xl font-black text-[#f1f5f9]">Únete a La Penúltima</h1>
         <p className="text-sm text-[#64748b] mt-1">
-          {inviteCode ? "Crea tu cuenta y empieza a predecir" : "Empieza a predecir el Mundial 2026"}
+          {inviteCode
+            ? "Únete al grupo y deja tu penúltima palabra."
+            : "Demuestra que sabes más fútbol que tus amigos."}
         </p>
       </div>
 
@@ -179,9 +179,9 @@ export default function SignupForm({ inviteCode, groupName }: SignupFormProps) {
             <Hash size={14} className="text-[#00c85a]" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-xs text-[#64748b]">Te invitaron a</p>
+            <p className="text-xs text-[#64748b]">Te invitaron a jugar</p>
             <p className="text-sm font-bold text-[#f1f5f9] truncate">
-              {groupName ?? "un grupo de El VAR"}
+              {groupName ?? "un grupo de La Penúltima"}
             </p>
           </div>
           <Badge variant="green">{inviteCode}</Badge>

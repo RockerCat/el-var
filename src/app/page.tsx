@@ -1,17 +1,11 @@
-import Navbar from "@/components/layout/Navbar";
-import Hero from "@/components/landing/Hero";
-import Features from "@/components/landing/Features";
-import Footer from "@/components/landing/Footer";
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
 
-export default function LandingPage() {
-  return (
-    <>
-      <Navbar />
-      <main>
-        <Hero />
-        <Features />
-        <Footer />
-      </main>
-    </>
-  );
+export default async function RootPage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  redirect(user ? "/dashboard" : "/login");
 }

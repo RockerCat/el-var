@@ -26,9 +26,9 @@ const features = [
   {
     icon: Zap,
     color: "#ef4444",
-    title: "Momentos VAR",
+    title: "La Polémica del Partido",
     description:
-      '"El VAR está revisando" — los cobros polémicos, los giros dramáticos, todo queda registrado. Nunca fue tan divertido.',
+      "Los cobros dudosos, los giros dramáticos, la predicción que \"casi\" salía — todo queda registrado. Nunca fue tan divertido reclamar.",
   },
 ];
 

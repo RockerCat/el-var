@@ -41,8 +41,8 @@ export const es = {
   // ─── Auth ─────────────────────────────────────────────────────────────────
   auth: {
     login: {
-      title: "Bienvenido de nuevo",
-      subtitle: "Ingresa a tu grupo de predicciones",
+      title: "La Penúltima",
+      subtitle: "El lugar donde se sufre pero se gana",
       emailLabel: "Correo electrónico",
       emailPlaceholder: "tú@ejemplo.com",
       passwordLabel: "Contraseña",
@@ -51,12 +51,17 @@ export const es = {
       submitButton: "Ingresar",
       noAccount: "¿No tienes cuenta?",
       joinViaInvite: "Únete por invitación",
-      statusLabel: "Verificando tu identidad",
+      statusMessages: [
+        "Revisando la jugada...",
+        "Consultando la mesa arbitral...",
+        "Buscando culpables...",
+        "Confirmando tu versión de los hechos...",
+      ],
     },
     signup: {
-      title: "Únete al grupo",
-      subtitle: "Crea tu cuenta y empieza a predecir",
-      invitedTo: "Te invitaron a",
+      title: "Únete a La Penúltima",
+      subtitle: "Demuestra que sabes más fútbol que tus amigos.",
+      invitedTo: "Te invitaron a jugar",
       usernameLabel: "Nombre de usuario",
       usernamePlaceholder: "ej. goleador_9",
       usernameHint: "Así te van a ver tus amigos",
@@ -76,14 +81,14 @@ export const es = {
   // ─── Landing page ─────────────────────────────────────────────────────────
   landing: {
     pill: "Copa del Mundo 2026 · Grupos de predicciones",
-    tagline: "Predice. Compite. Domina.",
+    tagline: "El lugar donde se sufre pero se gana",
     description:
       "Arma grupos privados de predicciones con tus amigos y compite en cada partido del Mundial 2026.",
     ctaCreate: "Crear grupo",
     ctaSignIn: "Ingresar",
     disclaimer: "Únete por invitación · Sin apuestas · Solo el orgullo futbolero",
     scrollHint: "Desliza para explorar",
-    varReview: "Revisión VAR",
+    varReview: "La Penúltima",
     yourPick: "Tu predicción",
     finalScore: "Marcador final",
     predictionResult: "Resultado de tu predicción",
@@ -112,9 +117,9 @@ export const es = {
           "Mira cómo cambia el ranking en tiempo real con cada resultado. Un gol puede cambiarlo todo.",
       },
       var: {
-        title: "Momentos VAR",
+        title: "La Polémica del Partido",
         description:
-          '"El VAR está revisando" — los cobros polémicos, los giros dramáticos, todo queda registrado. Nunca fue tan divertido.',
+          "Los cobros dudosos, los giros dramáticos, la predicción que \"casi\" salía — todo queda registrado. Nunca fue tan divertido reclamar.",
       },
     },
     scoring: {
@@ -144,7 +149,7 @@ export const es = {
     groupLabel: "Grupo",
     matchDay: "Jornada",
     yourPoints: "tus pts",
-    varReviewing: "El VAR está revisando",
+    varReviewing: "Consultando la mesa arbitral...",
     sections: {
       today: "Hoy",
       recentResults: "Resultados recientes",
@@ -187,10 +192,10 @@ export const es = {
 
   // ─── Metadata ─────────────────────────────────────────────────────────────
   meta: {
-    title: "El VAR — Predicciones Copa del Mundo 2026",
+    title: "La Penúltima — Predicciones Copa del Mundo 2026",
     description:
       "Crea grupos privados de predicciones con tus amigos para el Mundial 2026. Predice marcadores, compite en la tabla de posiciones.",
-    ogDescription: "Predice. Compite. Domina. Grupos privados para el Mundial 2026.",
+    ogDescription: "Predice. Compite. Reclama que te robaron puntos. Grupos privados para el Mundial 2026.",
   },
 } as const;
 

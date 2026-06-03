@@ -8,7 +8,7 @@ import { Home, Trophy, Users, User } from "lucide-react";
 const navItems = [
   { href: "/dashboard", label: "Inicio", icon: Home },
   { href: "/dashboard/leaderboard", label: "Tabla", icon: Trophy },
-  { href: "/dashboard/groups", label: "Grupos", icon: Users },
+  { href: "/community", label: "Comunidad", icon: Users },
   { href: "/dashboard/profile", label: "Perfil", icon: User },
 ];
 
@@ -19,7 +19,9 @@ export default function BottomNav() {
     <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-[#0a0a12]/90 backdrop-blur-xl border-t border-[#1e1e35] safe-area-pb">
       <div className="flex items-stretch h-16">
         {navItems.map(({ href, label, icon: Icon }) => {
-          const active = pathname === href;
+          const active =
+            pathname === href ||
+            (href === "/community" && pathname.startsWith("/groups"));
           return (
             <Link
               key={href}

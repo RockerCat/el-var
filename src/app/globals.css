@@ -140,3 +140,31 @@ button {
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
+
+/* Live match card glow — pulses the border shadow */
+@keyframes live-glow {
+  0%, 100% {
+    box-shadow:
+      0 0 0 1px rgba(239, 68, 68, 0.40),
+      0 0 16px rgba(239, 68, 68, 0.20),
+      0 0 36px rgba(239, 68, 68, 0.09);
+  }
+  50% {
+    box-shadow:
+      0 0 0 1px rgba(239, 68, 68, 0.70),
+      0 0 28px rgba(239, 68, 68, 0.38),
+      0 0 56px rgba(239, 68, 68, 0.16);
+  }
+}
+.animate-live-glow {
+  animation: live-glow 1.8s ease-in-out infinite;
+}
+
+/* Hide scrollbar while preserving scroll behaviour */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}

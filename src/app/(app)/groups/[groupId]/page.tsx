@@ -96,7 +96,7 @@ export default async function GroupPage({
         href="/dashboard"
         className="text-xs text-[#475569] hover:text-[#94a3b8] transition-colors inline-flex items-center gap-1"
       >
-        ← Mis grupos
+        ← Inicio
       </Link>
 
       {/* Header */}
@@ -123,21 +123,23 @@ export default async function GroupPage({
         </div>
       </div>
 
-      {/* Invite code */}
-      <div className="bg-[#18182a] border border-[#2a2a45] rounded-2xl p-4">
-        <p className="text-[10px] text-[#475569] font-mono uppercase tracking-widest mb-3">
-          Código de invitación
-        </p>
-        <div className="flex items-center gap-3">
-          <span className="font-mono text-xl font-black text-[#f1f5f9] tracking-[0.2em]">
-            {group.invite_code}
-          </span>
-          <div className="ml-auto flex items-center gap-2">
-            <CopyButton text={group.invite_code} />
-            <CopyInviteLinkButton inviteCode={group.invite_code} />
+      {/* Invite link — admin only */}
+      {isOwner && (
+        <div className="bg-[#18182a] border border-[#2a2a45] rounded-2xl p-4">
+          <p className="text-[10px] text-[#475569] font-mono uppercase tracking-widest mb-3">
+            Invitar miembros
+          </p>
+          <div className="flex items-center gap-3">
+            <span className="font-mono text-xl font-black text-[#f1f5f9] tracking-[0.2em]">
+              {group.invite_code}
+            </span>
+            <div className="ml-auto flex items-center gap-2">
+              <CopyButton text={group.invite_code} />
+              <CopyInviteLinkButton inviteCode={group.invite_code} />
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Group stats */}
       <section>

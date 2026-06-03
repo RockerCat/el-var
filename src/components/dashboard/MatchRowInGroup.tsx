@@ -1,0 +1,356 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { cn } from "@/lib/utils";
+import {
+  formatKickoff,
+  matchClosedReason,
+  type MatchWithPrediction,
+  type Team,
+} from "@/lib/matches";
+import { Check, Lock } from "lucide-react";
+
+function computeLiveMinute(startsAt: string): string {
+  const elapsed = Math.floor((Date.now() - new Date(startsAt).getTime()) / 60_000);
+  if (elapsed <= 0)  return "1'";
+  if (elapsed <= 45) return `${elapsed}'`;
+  if (elapsed <= 58) return "HT";
+  if (elapsed <= 90) return `${elapsed - 13}'`;
+  if (elapsed <= 97) return `90+${elapsed - 90}'`;
+  return "67'";
+}
+
+interface MatchRowInGroupProps {
+  match: MatchWithPrediction;
+  error?: string;
+  onDirty?: () => void;
+}
+
+export default function MatchRowInGroup({ match, error, onDirty }: MatchRowInGroupProps) {
+  const { home_team, away_team, status } = match;
+
+  const [liveMinute, setLiveMinute] = useState("67'");
+  useEffect(() => {
+    if (status !== "live") return;
+    setLiveMinute(computeLiveMinute(match.starts_at));
+    const id = setInterval(() => setLiveMinute(computeLiveMinute(match.starts_at)), 30_000);
+    return () => clearInterval(id);
+  }, [status, match.starts_at]);
+
+  const [localDirty, setLocalDirty] = useState(false);
+  function handleInputChange() {
+    if (!localDirty) { setLocalDirty(true); onDirty?.(); }
+  }
+
+  const saved      = match.prediction;
+  const isOpen     = matchClosedReason(match) === null;
+  const isLive     = status === "live";
+  const isFinished = status === "finished";
+  const hasScore   = match.home_score !== null && match.away_score !== null;
+
+  // ──────────────────────────────────────────────────────────────────
+  // 🔴  EN VIVO — most prominent card state
+  // ──────────────────────────────────────────────────────────────────
+  if (isLive) {
+    return (
+      <div className="rounded-xl border border-[#ef4444]/35 bg-gradient-to-br from-[#ef4444]/[0.12] to-[#18182a] animate-live-glow">
+        <div className="px-4 py-4">
+
+          {/* Badge row — pill background makes it unmistakable */}
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-[#ef4444]/15 border border-[#ef4444]/20">
+              <span className="relative flex h-2.5 w-2.5 shrink-0">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#ef4444] opacity-60" />
+                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-[#ef4444]" />
+              </span>
+              <span className="text-xs font-black text-[#ef4444] uppercase tracking-wide">EN VIVO</span>
+              <span className="text-[#ef4444]/50 select-none text-[10px]">·</span>
+              {/* Minute counter — same prominence as the badge text */}
+              <span className="text-sm font-black text-[#ef4444] font-mono tabular-nums leading-none">
+                {liveMinute}
+              </span>
+            </div>
+            <span className="text-[10px] text-[#64748b]">{formatKickoff(match.starts_at)}</span>
+          </div>
+
+          {/* Teams + live score */}
+          <div className="flex items-center gap-3 mb-3">
+            <TeamSide team={home_team} side="home" large />
+            <div className="shrink-0 text-center px-2">
+              {hasScore ? (
+                <span className="text-2xl font-black text-[#ef4444] tabular-nums animate-live-pulse">
+                  {match.home_score}
+                  <span className="text-[#ef4444]/40 mx-1.5 font-light">–</span>
+                  {match.away_score}
+                </span>
+              ) : (
+                <span className="text-xl font-black text-[#ef4444] animate-live-pulse">–</span>
+              )}
+            </div>
+            <TeamSide team={away_team} side="away" large />
+          </div>
+
+          {/* Mi pronóstico — same visual weight as live score for instant comparison */}
+          <div className="pt-2.5 border-t border-[#ef4444]/15">
+            <div className="flex items-center justify-between">
+              {saved ? (
+                <div>
+                  <p className="text-[10px] text-[#64748b] mb-0.5">Mi pronóstico</p>
+                  <p className="text-xl font-black font-mono text-[#f1f5f9] tabular-nums leading-none">
+                    {saved.home_score}
+                    <span className="text-[#64748b] mx-1.5 font-light text-lg">–</span>
+                    {saved.away_score}
+                  </p>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs leading-none text-[#f59e0b]">⚠</span>
+                  <span className="text-xs text-[#f59e0b]/90">No ingresaste pronóstico</span>
+                </div>
+              )}
+              <span className="flex items-center gap-1 text-[10px] text-[#64748b]">
+                <Lock size={9} className="shrink-0" />Cerrado
+              </span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    );
+  }
+
+  // ──────────────────────────────────────────────────────────────────
+  // ⚪  FINALIZADO
+  // ──────────────────────────────────────────────────────────────────
+  if (isFinished && hasScore) {
+    const hasPred   = !!saved;
+    const isScored  = hasPred && saved.scored_at !== null;
+    const gotPoints = isScored && saved.points > 0;
+    const gotZero   = isScored && saved.points === 0;
+
+    const borderClass =
+      gotPoints ? "border-[#00c85a]/40" :
+      gotZero   ? "border-[#ef4444]/30" :
+                  "border-[#2a2a45]";
+    const bgClass =
+      gotPoints ? "bg-[#00c85a]/[0.06]" :
+      gotZero   ? "bg-[#ef4444]/[0.05]" :
+                  "bg-[#18182a]";
+    const glowStyle =
+      gotPoints ? { boxShadow: "0 0 0 1px rgba(0,200,90,0.20), 0 0 24px rgba(0,200,90,0.09)" } :
+      gotZero   ? { boxShadow: "0 0 0 1px rgba(239,68,68,0.18), 0 0 20px rgba(239,68,68,0.07)" } :
+                  {};
+
+    return (
+      <div className={cn("rounded-xl border", borderClass, bgClass)} style={glowStyle}>
+        <div className="px-3 py-3">
+
+          {/* Status row */}
+          <div className="flex items-center justify-between mb-2.5">
+            <span className="text-[10px] font-semibold text-[#64748b] uppercase tracking-widest">
+              FINALIZADO
+            </span>
+            {!isScored && (
+              <span className="text-[10px] text-[#64748b]">{formatKickoff(match.starts_at)}</span>
+            )}
+          </div>
+
+          {/* Teams + final score */}
+          <div className="flex items-center gap-2 mb-3">
+            <TeamSide team={home_team} side="home" />
+            <div className="shrink-0 w-14 text-center">
+              <span className="text-base font-black text-[#f1f5f9] tabular-nums">
+                {match.home_score}–{match.away_score}
+              </span>
+            </div>
+            <TeamSide team={away_team} side="away" />
+          </div>
+
+          {/* Mi pronóstico + points badge */}
+          <div className="flex items-center justify-between pt-2.5 border-t border-[#1e1e35]">
+            {hasPred ? (
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-[#64748b]">Mi pronóstico</span>
+                <span className="font-mono font-bold text-xs text-[#94a3b8]">
+                  {saved.home_score}–{saved.away_score}
+                </span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs leading-none text-[#f59e0b]">⚠</span>
+                <span className="text-xs text-[#f59e0b]/90">No ingresaste pronóstico</span>
+              </div>
+            )}
+
+            {isScored ? (
+              <div className={cn(
+                "flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-black border shrink-0",
+                gotPoints
+                  ? "bg-[#00c85a]/15 text-[#00c85a] border-[#00c85a]/30"
+                  : "bg-[#ef4444]/12 text-[#ef4444] border-[#ef4444]/25"
+              )}>
+                <span>{gotPoints ? "✓" : "✕"}</span>
+                <span className="font-mono">{gotPoints ? `+${saved.points}` : "0"} pts</span>
+              </div>
+            ) : !hasPred ? (
+              <div className="flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-black border shrink-0 bg-[#1e1e35] text-[#64748b] border-[#2a2a45]">
+                <span>✕</span>
+                <span className="font-mono">0 pts</span>
+              </div>
+            ) : null}
+          </div>
+
+          {/* Points reason — clearly readable */}
+          {isScored && saved.points_reason && (
+            <p className={cn(
+              "text-[10px] font-mono uppercase tracking-widest mt-1.5 text-right",
+              gotPoints ? "text-[#00c85a]/80" : "text-[#64748b]"
+            )}>
+              {saved.points_reason}
+            </p>
+          )}
+
+        </div>
+      </div>
+    );
+  }
+
+  // ──────────────────────────────────────────────────────────────────
+  // 🟢  PROGRAMADO + ABIERTO
+  // ──────────────────────────────────────────────────────────────────
+  if (isOpen) {
+    const isPending = !saved && !localDirty;
+    const isSaved   =  saved && !localDirty;
+
+    return (
+      <div className={cn(
+        "rounded-xl border transition-colors",
+        isPending ? "border-[#f59e0b]/30 bg-[#f59e0b]/[0.04]" : "border-[#2a2a45] bg-[#18182a]"
+      )}>
+        <div className="px-3 py-2.5">
+
+          {/* Status badge + optional amber alert */}
+          <div className="flex items-center gap-3 mb-2">
+            <div className="flex items-center gap-1.5 shrink-0">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#00c85a] shrink-0" />
+              <span className="text-[10px] font-bold text-[#00c85a] uppercase tracking-widest">
+                PRONOSTICAR
+              </span>
+            </div>
+            {isPending && (
+              <div className="flex items-center gap-1">
+                <span className="text-[#f59e0b] text-xs leading-none">⚠</span>
+                <span className="text-[10px] font-semibold text-[#f59e0b]">Pronóstico requerido</span>
+              </div>
+            )}
+          </div>
+
+          {/* Teams + inputs in one horizontal row */}
+          <input type="hidden" name="match_id" value={match.id} />
+          <div className="flex items-center gap-2 mb-2">
+
+            <div className="flex items-center gap-1.5 flex-1 min-w-0">
+              <span className="text-xl leading-none shrink-0">{home_team.flag_emoji ?? "🏴"}</span>
+              <span className="text-sm font-semibold text-[#f1f5f9] truncate">{home_team.name}</span>
+            </div>
+
+            <div className="shrink-0 flex items-center gap-1.5">
+              <ScoreInput name={`home_${match.id}`} defaultValue={saved?.home_score} onChange={handleInputChange} />
+              <span className="text-[#64748b] text-sm font-light select-none">–</span>
+              <ScoreInput name={`away_${match.id}`} defaultValue={saved?.away_score} onChange={handleInputChange} />
+            </div>
+
+            <div className="flex items-center gap-1.5 flex-1 flex-row-reverse min-w-0">
+              <span className="text-xl leading-none shrink-0">{away_team.flag_emoji ?? "🏴"}</span>
+              <span className="text-sm font-semibold text-[#f1f5f9] truncate text-right">{away_team.name}</span>
+            </div>
+
+          </div>
+
+          {/* Date + saved indicator */}
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] text-[#64748b]">{formatKickoff(match.starts_at)}</span>
+            {isSaved && (
+              <div className="flex items-center gap-1">
+                <Check size={9} className="text-[#00c85a] shrink-0" />
+                {/* Full green — confirmation should be clearly visible */}
+                <span className="text-[10px] text-[#00c85a]">Guardado</span>
+              </div>
+            )}
+          </div>
+
+          {error && <p className="text-[10px] text-[#ef4444] mt-1.5">{error}</p>}
+
+        </div>
+      </div>
+    );
+  }
+
+  // ──────────────────────────────────────────────────────────────────
+  // 🔒  CERRADO
+  // ──────────────────────────────────────────────────────────────────
+  return (
+    <div className="rounded-xl border border-[#2a2a45] bg-[#18182a]">
+      <div className="px-3 py-3">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-1.5">
+            <Lock size={9} className="text-[#64748b] shrink-0" />
+            <span className="text-[10px] font-semibold text-[#64748b] uppercase tracking-widest">CERRADO</span>
+          </div>
+          <span className="text-[10px] text-[#64748b]">{formatKickoff(match.starts_at)}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <TeamSide team={home_team} side="home" />
+          {/* "vs" raised from near-invisible to readable */}
+          <span className="shrink-0 text-[10px] text-[#475569] w-14 text-center">vs</span>
+          <TeamSide team={away_team} side="away" />
+        </div>
+        <div className="mt-2">
+          {saved ? (
+            <span className="text-xs text-[#64748b]">
+              Tu pronóstico:{" "}
+              <span className="font-mono font-bold text-[#94a3b8]">{saved.home_score}–{saved.away_score}</span>
+            </span>
+          ) : (
+            // Raised from near-invisible #2a2a45 to readable #475569
+            <span className="text-xs text-[#475569]">Sin predicción</span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TeamSide({ team, side, large = false }: { team: Team; side: "home" | "away"; large?: boolean }) {
+  return (
+    <div className={cn("flex items-center gap-1.5 flex-1 min-w-0", side === "away" && "flex-row-reverse")}>
+      <span className={cn("leading-none shrink-0", large ? "text-2xl" : "text-lg")}>
+        {team.flag_emoji ?? "🏴"}
+      </span>
+      <span className={cn(
+        "font-semibold text-[#f1f5f9] truncate",
+        large ? "text-sm" : "text-xs",
+        side === "away" && "text-right"
+      )}>
+        {team.name}
+      </span>
+    </div>
+  );
+}
+
+function ScoreInput({ name, defaultValue, onChange }: { name: string; defaultValue?: number; onChange?: () => void }) {
+  return (
+    <input
+      type="number"
+      name={name}
+      min={0}
+      max={30}
+      step={1}
+      defaultValue={defaultValue ?? ""}
+      placeholder="0"
+      onChange={onChange}
+      className="w-12 h-9 text-center text-sm font-black rounded-xl bg-[#2a2a50] border-2 border-[#5252a0] text-[#f1f5f9] placeholder:text-[#5252a0] hover:border-[#6a6ac0] focus:border-[#00c85a] focus:ring-2 focus:ring-[#00c85a]/20 focus:bg-[#00c85a]/[0.05] tabular-nums transition-colors outline-none"
+      style={{ MozAppearance: "textfield" } as React.CSSProperties}
+    />
+  );
+}

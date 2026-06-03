@@ -18,10 +18,10 @@ export default async function Navbar() {
       <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between gap-3">
 
         {/* Logo */}
-        <Link href={user ? "/dashboard" : "/"} className="flex items-center gap-2 shrink-0">
+        <Link href={user ? "/dashboard" : "/login"} className="flex items-center gap-2 shrink-0">
           <VarLogo />
           <span className="font-bold text-lg tracking-tight text-[#f1f5f9]">
-            El <span className="text-gradient-green">VAR</span>
+            La <span className="text-gradient-green">Penúltima</span>
           </span>
         </Link>
 
@@ -63,14 +63,6 @@ function AuthenticatedNav({
           </span>
         </div>
 
-        {/* Crear grupo — primary CTA */}
-        <Link
-          href="/dashboard"
-          className="hidden sm:flex items-center gap-1.5 h-9 px-4 bg-[#00c85a] text-[#0a0a12] text-sm font-bold rounded-xl hover:bg-[#00e87a] transition-colors"
-        >
-          Crear grupo
-        </Link>
-
         {/* Mobile: user initial avatar */}
         <div className="sm:hidden w-8 h-8 rounded-full bg-[#18182a] border border-[#2a2a45] flex items-center justify-center">
           <span className="text-xs font-bold text-[#00c85a]">{initial}</span>
@@ -92,20 +84,12 @@ function AuthenticatedNav({
 
 function GuestNav() {
   return (
-    <div className="flex items-center gap-2">
-      <Link
-        href="/login"
-        className="text-sm text-[#94a3b8] hover:text-[#f1f5f9] px-3 py-2 rounded-lg transition-colors"
-      >
-        Ingresar
-      </Link>
-      <Link
-        href="/signup"
-        className="text-sm font-semibold bg-[#00c85a] text-[#0a0a12] px-4 py-2 rounded-xl hover:bg-[#00e87a] transition-colors"
-      >
-        Unirse al grupo
-      </Link>
-    </div>
+    <Link
+      href="/login"
+      className="text-sm font-semibold bg-[#00c85a] text-[#0a0a12] px-4 py-2 rounded-xl hover:bg-[#00e87a] transition-colors"
+    >
+      Ingresar
+    </Link>
   );
 }
 

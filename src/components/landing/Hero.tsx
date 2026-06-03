@@ -21,14 +21,14 @@ export default function Hero() {
         {/* Main headline */}
         <div className="flex flex-col gap-2">
           <h1 className="text-5xl md:text-7xl font-black tracking-tight leading-none text-[#f1f5f9]">
-            El{" "}
+            La{" "}
             <span className="text-gradient-green relative">
-              VAR
+              Penúltima
               <VarUnderline />
             </span>
           </h1>
           <p className="text-xl md:text-2xl text-[#94a3b8] font-light">
-            Predice. Compite. Domina.
+            El lugar donde se sufre pero se gana
           </p>
         </div>
 
@@ -97,7 +97,7 @@ function VarReviewBox() {
       <div className="flex items-center gap-2 mb-3">
         <div className="w-2 h-2 rounded-full bg-[#3b82f6] animate-live-pulse" />
         <span className="text-xs font-mono text-[#3b82f6] uppercase tracking-widest">
-          Revisión VAR
+          La Penúltima
         </span>
       </div>
       <div className="flex items-center justify-between mb-3">

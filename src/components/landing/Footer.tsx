@@ -15,7 +15,7 @@ export default function Footer() {
             </svg>
           </div>
           <span className="text-sm font-bold text-[#f1f5f9]">
-            El <span className="text-[#00c85a]">VAR</span>
+            La <span className="text-[#00c85a]">Penúltima</span>
           </span>
         </div>
         <p className="text-xs text-[#475569] text-center">
