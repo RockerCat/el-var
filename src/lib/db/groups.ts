@@ -1,6 +1,18 @@
 import { createClient } from "@/lib/supabase/server";
 import type { GroupWithMeta } from "@/lib/groups";
 
+/** Fast membership check — a single row lookup, no joins. */
+export async function isGroupMember(userId: string): Promise<boolean> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("group_members")
+    .select("id")
+    .eq("user_id", userId)
+    .limit(1)
+    .maybeSingle();
+  return !!data;
+}
+
 type RawGroup = {
   id: string;
   name: string;

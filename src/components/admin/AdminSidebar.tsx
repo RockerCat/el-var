@@ -1,0 +1,112 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { cn } from "@/lib/utils";
+import {
+  LayoutDashboard,
+  CalendarDays,
+  Users,
+  Trophy,
+  Link2,
+  Activity,
+  LogOut,
+} from "lucide-react";
+
+const NAV = [
+  { href: "/admin",             label: "Dashboard",    icon: LayoutDashboard },
+  { href: "/admin/matches",     label: "Partidos",     icon: CalendarDays    },
+  { href: "/admin/users",       label: "Usuarios",     icon: Users           },
+  { href: "/admin/ranking",     label: "Ranking",      icon: Trophy          },
+  { href: "/admin/invitations", label: "Invitaciones", icon: Link2           },
+  { href: "/admin/activity",    label: "Actividad",    icon: Activity        },
+];
+
+export default function AdminSidebar() {
+  const pathname = usePathname();
+
+  function isActive(href: string) {
+    return href === "/admin" ? pathname === "/admin" : pathname.startsWith(href);
+  }
+
+  return (
+    <>
+      {/* ── Desktop sidebar ──────────────────────────────────────────── */}
+      <aside className="hidden md:flex flex-col w-52 min-h-dvh bg-[#080810] border-r border-[#1e1e35] shrink-0">
+
+        {/* Brand */}
+        <div className="px-5 py-5 border-b border-[#1e1e35]">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-[#00c85a] flex items-center justify-center">
+              <svg width="14" height="11" viewBox="0 0 18 14" fill="none">
+                <path d="M1 1L5.5 12L9 5L12.5 12L17 1"
+                  stroke="#0a0a12" strokeWidth="2.2"
+                  strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+            <div>
+              <p className="text-xs font-black text-[#f1f5f9] leading-none">La Penúltima</p>
+              <p className="text-[9px] text-[#475569] font-mono mt-0.5">Admin</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Nav */}
+        <nav className="flex-1 px-3 py-4 flex flex-col gap-0.5">
+          {NAV.map(({ href, label, icon: Icon }) => (
+            <Link
+              key={href}
+              href={href}
+              className={cn(
+                "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors",
+                isActive(href)
+                  ? "bg-[#00c85a]/10 text-[#00c85a]"
+                  : "text-[#64748b] hover:text-[#94a3b8] hover:bg-[#18182a]"
+              )}
+            >
+              <Icon size={16} strokeWidth={isActive(href) ? 2.2 : 1.8} />
+              {label}
+            </Link>
+          ))}
+        </nav>
+
+        {/* Footer */}
+        <div className="px-3 pb-5 border-t border-[#1e1e35] pt-3">
+          <Link
+            href="/dashboard"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-[#475569] hover:text-[#64748b] hover:bg-[#18182a] transition-colors"
+          >
+            <LogOut size={15} strokeWidth={1.8} />
+            Ver como jugador
+          </Link>
+        </div>
+      </aside>
+
+      {/* ── Mobile top bar ───────────────────────────────────────────── */}
+      <header className="md:hidden sticky top-0 z-50 bg-[#080810]/90 backdrop-blur border-b border-[#1e1e35]">
+        <div className="flex items-center justify-between px-4 h-12">
+          <span className="text-xs font-black text-[#f1f5f9]">
+            La <span className="text-[#00c85a]">Penúltima</span>
+            <span className="text-[#475569] font-mono font-normal ml-1.5">Admin</span>
+          </span>
+          <nav className="flex items-center gap-0.5">
+            {NAV.map(({ href, icon: Icon }) => (
+              <Link
+                key={href}
+                href={href}
+                className={cn(
+                  "w-9 h-9 flex items-center justify-center rounded-lg transition-colors",
+                  isActive(href)
+                    ? "text-[#00c85a] bg-[#00c85a]/10"
+                    : "text-[#475569] hover:text-[#94a3b8]"
+                )}
+              >
+                <Icon size={16} strokeWidth={isActive(href) ? 2.2 : 1.8} />
+              </Link>
+            ))}
+          </nav>
+        </div>
+      </header>
+    </>
+  );
+}

@@ -48,7 +48,13 @@ export async function saveGroupPredictionsAction(
     if (rpcError) {
       const msg = rpcError.message;
       errors[matchId] =
-        msg === "match_closed" || msg === "match_not_scheduled" || msg === "match_started"
+        msg === "admin_cannot_predict"
+          ? "El administrador no participa en la competencia."
+          : msg === "not_group_member"
+          ? "No perteneces a ningún grupo activo."
+          : msg === "user_disabled"
+          ? "Tu cuenta está deshabilitada."
+          : msg === "match_closed" || msg === "match_not_scheduled" || msg === "match_started"
           ? "Predicciones cerradas para este partido."
           : "No se pudo guardar.";
     } else {
@@ -123,6 +129,15 @@ export async function savePredictionAction(
         error: "Problema de autenticación. Cierra sesión y vuelve a ingresar.",
         devMessage: isDev ? "[not_authenticated] auth.uid() is NULL in PostgREST" : undefined,
       };
+    }
+    if (msg === "admin_cannot_predict") {
+      return { error: "El administrador no participa en la competencia." };
+    }
+    if (msg === "not_group_member") {
+      return { error: "No perteneces a ningún grupo activo." };
+    }
+    if (msg === "user_disabled") {
+      return { error: "Tu cuenta está deshabilitada." };
     }
     if (msg === "match_not_scheduled") {
       return { error: "Predicciones cerradas para este partido." };

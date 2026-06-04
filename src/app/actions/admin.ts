@@ -2,27 +2,188 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { isAdmin } from "@/lib/db/admin";
 
-export type UpdateMatchState = { error: string } | { success: true; scored: number } | null;
+// ── Types ─────────────────────────────────────────────────────────────
+
+export type ToggleUserState    = { error: string } | { success: true } | null;
+export type UpdateMatchState   = { error: string } | { success: true; scored: number } | null;
+export type UpdateFixtureState = { error: string } | { success: true } | null;
+export type RecalculateState   =
+  | { error: string }
+  | { success: true; matches_processed: number; predictions_scored: number }
+  | null;
+
+export type MatchPrediction = {
+  user_id:       string;
+  display_name:  string;
+  home_score:    number;
+  away_score:    number;
+  points:        number | null;
+  points_reason: string | null;
+  submitted_at:  string;
+  updated_at:    string;
+};
+
+// ── Helpers ───────────────────────────────────────────────────────────
+
+type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
+
+/** Write to admin_match_audit (match-specific legacy audit) */
+async function writeMatchAudit(
+  supabase: SupabaseClient,
+  payload: {
+    match_id:   string;
+    admin_id:   string;
+    action:     "update_result" | "update_fixture";
+    old_values: Record<string, unknown> | null;
+    new_values: Record<string, unknown>;
+  }
+) {
+  void supabase.from("admin_match_audit").insert(payload);
+}
+
+/** Write to admin_activity_log (general audit, any entity) */
+async function writeActivity(
+  supabase: SupabaseClient,
+  payload: {
+    admin_id:     string;
+    action:       string;
+    entity_type:  string;
+    entity_id:    string;
+    entity_label?: string;
+    old_values?:  Record<string, unknown> | null;
+    new_values?:  Record<string, unknown>;
+  }
+) {
+  void supabase.from("admin_activity_log").insert(payload);
+}
+
+// ── getMatchPredictionsAction ─────────────────────────────────────────
+// Read-only: returns all predictions for a single match for admin view.
+
+export async function getMatchPredictionsAction(
+  matchId: string
+): Promise<{ predictions?: MatchPrediction[]; error?: string }> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("get_match_predictions", {
+    p_match_id: matchId,
+  });
+  if (error) return { error: error.message };
+  return { predictions: (data ?? []) as MatchPrediction[] };
+}
+
+// ── recalculateAllScoresAction ────────────────────────────────────────
+// Re-runs scoring for every finished match. Idempotent.
+
+export async function recalculateAllScoresAction(
+  _prev: RecalculateState
+): Promise<RecalculateState> {
+  const supabase = await createClient();
+  const { data: { user }, error: authErr } = await supabase.auth.getUser();
+  if (authErr || !user) return { error: "No autenticado." };
+  if (!(await isAdmin(user.id))) return { error: "Sin permisos de administrador." };
+
+  const { data, error } = await supabase.rpc("recalculate_all_scores");
+  if (error) {
+    const msg = error.message;
+    if (msg === "not_admin") return { error: "Sin permisos de administrador." };
+    return { error: `Error al recalcular: ${msg}` };
+  }
+
+  const result = data as { matches_processed: number; predictions_scored: number };
+
+  void writeActivity(supabase, {
+    admin_id:     user.id,
+    action:       "recalculate_scores",
+    entity_type:  "system",
+    entity_id:    user.id,
+    entity_label: `${result.matches_processed} partidos · ${result.predictions_scored} predicciones`,
+    new_values:   result,
+  });
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/ranking");
+  revalidatePath("/dashboard");
+  return { success: true, ...result };
+}
+
+// ── toggleUserStatusAction ────────────────────────────────────────────
+// Soft-disables or re-enables a user. Never deletes auth records.
+
+export async function toggleUserStatusAction(
+  _prev: ToggleUserState,
+  formData: FormData
+): Promise<ToggleUserState> {
+  const targetId   = (formData.get("user_id")    as string | null)?.trim() ?? "";
+  const action     = (formData.get("action")     as string | null)?.trim() ?? "";
+  const targetName = (formData.get("user_name")  as string | null)?.trim() ?? targetId;
+
+  if (!targetId || !["disable", "enable"].includes(action)) {
+    return { error: "Datos incompletos." };
+  }
+
+  const supabase = await createClient();
+  const { data: { user }, error: authErr } = await supabase.auth.getUser();
+  if (authErr || !user) return { error: "No autenticado." };
+  if (!(await isAdmin(user.id))) return { error: "Sin permisos de administrador." };
+  if (targetId === user.id) return { error: "No puedes modificar tu propio estado." };
+
+  const isDisabled = action === "disable";
+  const { error: upsertErr } = await supabase
+    .from("user_profiles")
+    .upsert({
+      user_id:     targetId,
+      is_disabled: isDisabled,
+      disabled_at: isDisabled ? new Date().toISOString() : null,
+      disabled_by: isDisabled ? user.id : null,
+      updated_at:  new Date().toISOString(),
+    });
+
+  if (upsertErr) return { error: upsertErr.message };
+
+  void writeActivity(supabase, {
+    admin_id:     user.id,
+    action:       isDisabled ? "user_disable" : "user_enable",
+    entity_type:  "user",
+    entity_id:    targetId,
+    entity_label: targetName,
+    new_values:   { is_disabled: isDisabled },
+  });
+
+  revalidatePath("/admin/users");
+  return { success: true };
+}
+
+// ── updateMatchResultAction ───────────────────────────────────────────
+// Calls update_match_result RPC — enforces admin check in PostgreSQL,
+// updates status + scores, and triggers calculate_match_points on finish.
 
 export async function updateMatchResultAction(
   _prev: UpdateMatchState,
   formData: FormData
 ): Promise<UpdateMatchState> {
-  const matchId = (formData.get("match_id")   as string | null) ?? "";
-  const status  = (formData.get("status")     as string | null) ?? "";
-  const homeRaw = (formData.get("home_score") as string | null) ?? "";
-  const awayRaw = (formData.get("away_score") as string | null) ?? "";
+  const matchId    = (formData.get("match_id")    as string | null) ?? "";
+  const status     = (formData.get("status")      as string | null) ?? "";
+  const homeRaw    = (formData.get("home_score")  as string | null) ?? "";
+  const awayRaw    = (formData.get("away_score")  as string | null) ?? "";
+  const matchLabel = (formData.get("match_label") as string | null) ?? "";
 
   if (!matchId || !status) return { error: "Datos incompletos." };
 
   const homeScore = homeRaw !== "" ? parseInt(homeRaw, 10) : null;
   const awayScore = awayRaw !== "" ? parseInt(awayRaw, 10) : null;
-
   if (homeScore !== null && isNaN(homeScore)) return { error: "Marcador local inválido." };
   if (awayScore !== null && isNaN(awayScore)) return { error: "Marcador visitante inválido." };
 
   const supabase = await createClient();
+
+  const { data: oldMatch } = await supabase
+    .from("matches")
+    .select("status, home_score, away_score")
+    .eq("id", matchId)
+    .single();
+
   const { data: rpcData, error } = await supabase.rpc("update_match_result", {
     p_match_id:   matchId,
     p_status:     status,
@@ -39,9 +200,85 @@ export async function updateMatchResultAction(
     return { error: `Error: ${msg}` };
   }
 
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user) {
+    const newValues = { status, home_score: homeScore, away_score: awayScore };
+    void writeMatchAudit(supabase, {
+      match_id: matchId, admin_id: user.id,
+      action: "update_result", old_values: oldMatch ?? null, new_values: newValues,
+    });
+    void writeActivity(supabase, {
+      admin_id: user.id, action: "match_result",
+      entity_type: "match", entity_id: matchId,
+      entity_label: matchLabel || matchId,
+      old_values: oldMatch ?? null, new_values: newValues,
+    });
+  }
+
   revalidatePath("/admin");
+  revalidatePath("/admin/matches");
   revalidatePath("/dashboard");
   revalidatePath("/groups", "layout");
+
   const scored = (rpcData as { scored?: number } | null)?.scored ?? 0;
   return { success: true, scored };
+}
+
+// ── updateMatchFixtureAction ──────────────────────────────────────────
+// Edits fixture metadata (starts_at, group_code). No scoring side-effects.
+
+export async function updateMatchFixtureAction(
+  _prev: UpdateFixtureState,
+  formData: FormData
+): Promise<UpdateFixtureState> {
+  const matchId     = (formData.get("match_id")    as string | null)?.trim() ?? "";
+  const startsAtRaw = (formData.get("starts_at")   as string | null)?.trim() ?? "";
+  const groupCode   = (formData.get("group_code")  as string | null)?.trim() || null;
+  const matchLabel  = (formData.get("match_label") as string | null)?.trim() ?? "";
+
+  if (!matchId)     return { error: "match_id requerido." };
+  if (!startsAtRaw) return { error: "Kickoff requerido." };
+
+  let startsAt: string;
+  try {
+    const date = new Date(startsAtRaw.includes("Z") ? startsAtRaw : startsAtRaw + "Z");
+    if (isNaN(date.getTime())) throw new Error("invalid");
+    startsAt = date.toISOString();
+  } catch {
+    return { error: "Fecha/hora inválida. Usa el formato AAAA-MM-DDTHH:mm." };
+  }
+
+  const supabase = await createClient();
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) return { error: "No autenticado." };
+  if (!(await isAdmin(user.id))) return { error: "Sin permisos de administrador." };
+
+  const { data: oldMatch } = await supabase
+    .from("matches")
+    .select("starts_at, group_code")
+    .eq("id", matchId)
+    .single();
+
+  const { error: updateError } = await supabase
+    .from("matches")
+    .update({ starts_at: startsAt, group_code: groupCode })
+    .eq("id", matchId);
+
+  if (updateError) return { error: updateError.message };
+
+  const newValues = { starts_at: startsAt, group_code: groupCode };
+  void writeMatchAudit(supabase, {
+    match_id: matchId, admin_id: user.id,
+    action: "update_fixture", old_values: oldMatch ?? null, new_values: newValues,
+  });
+  void writeActivity(supabase, {
+    admin_id: user.id, action: "match_fixture",
+    entity_type: "match", entity_id: matchId,
+    entity_label: matchLabel || matchId,
+    old_values: oldMatch ?? null, new_values: newValues,
+  });
+
+  revalidatePath("/admin/matches");
+  revalidatePath("/dashboard");
+  return { success: true };
 }

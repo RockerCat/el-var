@@ -5,6 +5,8 @@ import PhaseMatchView from "@/components/dashboard/PhaseMatchView";
 import { getMatchesWithPredictions } from "@/lib/db/matches";
 import { getUserGroupsWithMeta } from "@/lib/db/groups";
 import { getGroupLeaderboard } from "@/lib/db/leaderboard";
+import { isAdmin } from "@/lib/db/admin";
+import { isGroupMember } from "@/lib/db/groups";
 import { matchClosedReason, formatKickoff, type MatchWithPrediction } from "@/lib/matches";
 import type { LeaderboardEntry } from "@/lib/groups";
 import { Check } from "lucide-react";
@@ -13,6 +15,12 @@ export default async function DashboardPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+
+  // Admins have their own panel — they never see the player dashboard
+  if (await isAdmin(user.id)) redirect("/admin");
+
+  // Non-members (accounts created without an invite) cannot access the game
+  if (!(await isGroupMember(user.id))) redirect("/no-access");
 
   const username = user.user_metadata?.username as string | undefined;
   const displayName = username ?? user.email?.split("@")[0] ?? "jugador";

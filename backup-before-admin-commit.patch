@@ -1,0 +1,833 @@
+diff --git a/src/app/(admin)/admin/page.tsx b/src/app/(admin)/admin/page.tsx
+index 8a0fa35..3d60a37 100644
+--- a/src/app/(admin)/admin/page.tsx
++++ b/src/app/(admin)/admin/page.tsx
+@@ -1,39 +1,198 @@
+ import Link from "next/link";
+-import { getMatchesForAdmin } from "@/lib/db/admin";
+-import MatchAdminCard from "@/components/admin/MatchAdminCard";
++import { getAdminDashboardStats, getAdminCommunityGroup } from "@/lib/db/admin";
++import CopyInviteLinkButton from "@/components/groups/CopyInviteLinkButton";
++import { CalendarDays, Users, Trophy, Link2, Activity } from "lucide-react";
+ 
+ export default async function AdminPage() {
+-  const matches = await getMatchesForAdmin();
++  const [stats, group] = await Promise.all([
++    getAdminDashboardStats(),
++    getAdminCommunityGroup(),
++  ]);
+ 
+   return (
+-    <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
++    <div className="max-w-4xl mx-auto px-6 py-8 space-y-8">
+ 
+-      <div className="flex items-center justify-between">
+-        <div>
+-          <p className="text-xs text-[#475569] font-mono uppercase tracking-widest mb-1">
+-            Admin
+-          </p>
+-          <h1 className="text-2xl font-black text-[#f1f5f9]">Gestión de partidos</h1>
+-        </div>
+-        <Link
+-          href="/dashboard"
+-          className="text-xs text-[#64748b] hover:text-[#94a3b8] transition-colors"
+-        >
+-          ← Dashboard
+-        </Link>
++      {/* Header */}
++      <div>
++        <p className="text-[10px] text-[#475569] font-mono uppercase tracking-widest mb-1">
++          Admin · La Penúltima
++        </p>
++        <h1 className="text-2xl font-black text-[#f1f5f9]">Dashboard</h1>
+       </div>
+ 
+-      {matches.length === 0 ? (
+-        <p className="text-sm text-[#64748b]">No hay partidos registrados.</p>
+-      ) : (
+-        <div className="flex flex-col gap-3">
+-          {matches.map((match) => (
+-            <MatchAdminCard key={match.id} match={match} />
+-          ))}
+-        </div>
++      {/* Summary cards */}
++      {stats && (
++        <>
++          {/* Users row */}
++          <section>
++            <p className="text-[10px] text-[#475569] font-mono uppercase tracking-widest mb-3">
++              Usuarios
++            </p>
++            <div className="grid grid-cols-3 gap-3">
++              <StatCard
++                label="Total"
++                value={stats.total_users}
++                icon={<Users size={14} />}
++              />
++              <StatCard
++                label="Activos"
++                value={stats.active_users}
++                icon={<Activity size={14} />}
++                accent="green"
++              />
++              <StatCard
++                label="Deshabilitados"
++                value={stats.disabled_users}
++                icon={<Users size={14} />}
++                accent={stats.disabled_users > 0 ? "red" : undefined}
++              />
++            </div>
++          </section>
++
++          {/* Matches row */}
++          <section>
++            <p className="text-[10px] text-[#475569] font-mono uppercase tracking-widest mb-3">
++              Partidos
++            </p>
++            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
++              <StatCard
++                label="Predicciones"
++                value={stats.total_predictions}
++                icon={<Trophy size={14} />}
++              />
++              <StatCard
++                label="Programados"
++                value={stats.matches_scheduled}
++                icon={<CalendarDays size={14} />}
++              />
++              <StatCard
++                label="En vivo"
++                value={stats.matches_live}
++                icon={<Activity size={14} />}
++                accent={stats.matches_live > 0 ? "red" : undefined}
++              />
++              <StatCard
++                label="Finalizados"
++                value={stats.matches_finished}
++                icon={<CalendarDays size={14} />}
++                accent="green"
++              />
++            </div>
++          </section>
++        </>
+       )}
+ 
+-      <div className="h-4" />
++      {/* Invite card */}
++      {group && (
++        <section>
++          <p className="text-[10px] text-[#475569] font-mono uppercase tracking-widest mb-3">
++            Invitaciones
++          </p>
++          <div className="bg-[#11111c] border border-[#1e1e35] rounded-2xl p-5">
++            <div className="flex items-center gap-2 mb-3">
++              <Link2 size={14} className="text-[#00c85a]" />
++              <p className="text-sm font-bold text-[#f1f5f9]">{group.name}</p>
++            </div>
++            <div className="flex items-center gap-3 flex-wrap">
++              <span className="font-mono text-lg font-black text-[#f1f5f9] tracking-[0.15em]">
++                {group.invite_code}
++              </span>
++              <CopyInviteLinkButton inviteCode={group.invite_code} />
++            </div>
++            <p className="text-[10px] text-[#475569] mt-3">
++              Solo el administrador puede compartir este enlace. Los usuarios regulares no ven este código.
++            </p>
++          </div>
++        </section>
++      )}
++
++      {/* Quick links */}
++      <section>
++        <p className="text-[10px] text-[#475569] font-mono uppercase tracking-widest mb-3">
++          Accesos rápidos
++        </p>
++        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
++          <QuickLink
++            href="/admin/matches"
++            icon={<CalendarDays size={16} />}
++            label="Gestionar partidos"
++            description="Estado, marcador y horario"
++          />
++          <QuickLink
++            href="/admin/users"
++            icon={<Users size={16} />}
++            label="Gestionar usuarios"
++            description="Ver, habilitar y deshabilitar"
++          />
++          <QuickLink
++            href="/admin/ranking"
++            icon={<Trophy size={16} />}
++            label="Ver ranking"
++            description="Tabla de posiciones en tiempo real"
++          />
++        </div>
++      </section>
++
++    </div>
++  );
++}
++
++// ── Sub-components ────────────────────────────────────────────────────
++
++function StatCard({
++  label,
++  value,
++  icon,
++  accent,
++}: {
++  label: string;
++  value: number;
++  icon: React.ReactNode;
++  accent?: "green" | "red";
++}) {
++  const valueColor =
++    accent === "green" ? "text-[#00c85a]" :
++    accent === "red"   ? "text-[#ef4444]" :
++                         "text-[#f1f5f9]";
++
++  return (
++    <div className="bg-[#11111c] border border-[#1e1e35] rounded-xl p-4">
++      <div className="flex items-center justify-between mb-2">
++        <span className="text-[#475569]">{icon}</span>
++        <p className={`text-2xl font-black tabular-nums leading-none ${valueColor}`}>
++          {value}
++        </p>
++      </div>
++      <p className="text-[10px] text-[#475569] uppercase tracking-wide">{label}</p>
+     </div>
+   );
+ }
++
++function QuickLink({
++  href,
++  icon,
++  label,
++  description,
++}: {
++  href: string;
++  icon: React.ReactNode;
++  label: string;
++  description: string;
++}) {
++  return (
++    <Link
++      href={href}
++      className="flex items-start gap-3 bg-[#11111c] border border-[#1e1e35] rounded-xl p-4 hover:border-[#00c85a]/30 transition-colors group"
++    >
++      <span className="text-[#475569] group-hover:text-[#00c85a] transition-colors mt-0.5">
++        {icon}
++      </span>
++      <div>
++        <p className="text-sm font-semibold text-[#f1f5f9] group-hover:text-[#00c85a] transition-colors">
++          {label}
++        </p>
++        <p className="text-[10px] text-[#475569] mt-0.5">{description}</p>
++      </div>
++    </Link>
++  );
++}
+diff --git a/src/app/(admin)/layout.tsx b/src/app/(admin)/layout.tsx
+index 8797590..29e1dbe 100644
+--- a/src/app/(admin)/layout.tsx
++++ b/src/app/(admin)/layout.tsx
+@@ -1,15 +1,21 @@
+ import { redirect } from "next/navigation";
+ import { createClient } from "@/lib/supabase/server";
+ import { isAdmin } from "@/lib/db/admin";
++import AdminSidebar from "@/components/admin/AdminSidebar";
+ 
+ export default async function AdminLayout({ children }: { children: React.ReactNode }) {
+   const supabase = await createClient();
+   const { data: { user } } = await supabase.auth.getUser();
+ 
+   if (!user) redirect("/login");
++  if (!(await isAdmin(user.id))) redirect("/dashboard");
+ 
+-  const admin = await isAdmin(user.id);
+-  if (!admin) redirect("/dashboard");
+-
+-  return <>{children}</>;
++  return (
++    <div className="min-h-dvh bg-[#0a0a12] text-[#f1f5f9] md:flex">
++      <AdminSidebar />
++      <main className="flex-1 min-w-0 overflow-x-hidden">
++        {children}
++      </main>
++    </div>
++  );
+ }
+diff --git a/src/app/(app)/dashboard/page.tsx b/src/app/(app)/dashboard/page.tsx
+index b82b588..01dd3e6 100644
+--- a/src/app/(app)/dashboard/page.tsx
++++ b/src/app/(app)/dashboard/page.tsx
+@@ -5,6 +5,8 @@ import PhaseMatchView from "@/components/dashboard/PhaseMatchView";
+ import { getMatchesWithPredictions } from "@/lib/db/matches";
+ import { getUserGroupsWithMeta } from "@/lib/db/groups";
+ import { getGroupLeaderboard } from "@/lib/db/leaderboard";
++import { isAdmin } from "@/lib/db/admin";
++import { isGroupMember } from "@/lib/db/groups";
+ import { matchClosedReason, formatKickoff, type MatchWithPrediction } from "@/lib/matches";
+ import type { LeaderboardEntry } from "@/lib/groups";
+ import { Check } from "lucide-react";
+@@ -14,6 +16,12 @@ export default async function DashboardPage() {
+   const { data: { user } } = await supabase.auth.getUser();
+   if (!user) redirect("/login");
+ 
++  // Admins have their own panel — they never see the player dashboard
++  if (await isAdmin(user.id)) redirect("/admin");
++
++  // Non-members (accounts created without an invite) cannot access the game
++  if (!(await isGroupMember(user.id))) redirect("/no-access");
++
+   const username = user.user_metadata?.username as string | undefined;
+   const displayName = username ?? user.email?.split("@")[0] ?? "jugador";
+ 
+diff --git a/src/app/(auth)/signup/page.tsx b/src/app/(auth)/signup/page.tsx
+index 4eb5491..c30ac4e 100644
+--- a/src/app/(auth)/signup/page.tsx
++++ b/src/app/(auth)/signup/page.tsx
+@@ -1,3 +1,4 @@
++import Link from "next/link";
+ import SignupForm from "@/components/auth/SignupForm";
+ 
+ interface SignupPageProps {
+@@ -6,9 +7,40 @@ interface SignupPageProps {
+ 
+ export default async function SignupPage({ searchParams }: SignupPageProps) {
+   const params = await searchParams;
+-  // null when no invite param — SignupForm shows a generic form without the invite banner
+   const inviteCode = params.invite ?? null;
+-  const groupName = params.group ?? null;
++  const groupName  = params.group  ?? null;
++
++  // Direct access without an invite code is not allowed.
++  // Users must arrive via /invite/:code which sets the ?invite= param.
++  if (!inviteCode) {
++    return (
++      <div className="w-full max-w-sm animate-fade-in-up text-center">
++        <div className="mb-6">
++          <div className="w-14 h-14 rounded-2xl bg-[#1e1e35] flex items-center justify-center mx-auto mb-4">
++            <span className="text-2xl">🔒</span>
++          </div>
++          <h1 className="text-xl font-black text-[#f1f5f9] mb-2">
++            Acceso solo por invitación
++          </h1>
++          <p className="text-sm text-[#64748b] leading-relaxed">
++            La Penúltima es un grupo privado.
++            <br />
++            Solicita el enlace de invitación al administrador.
++          </p>
++        </div>
++
++        <div className="bg-[#11111c] border border-[#1e1e35] rounded-2xl p-5 text-left mb-4">
++          <p className="text-xs text-[#475569] leading-relaxed">
++            Si ya tienes una cuenta,{" "}
++            <Link href="/login" className="text-[#00c85a] font-semibold hover:text-[#00e87a]">
++              inicia sesión aquí
++            </Link>
++            . Si recibiste un enlace de invitación, úsalo directamente.
++          </p>
++        </div>
++      </div>
++    );
++  }
+ 
+   return <SignupForm inviteCode={inviteCode} groupName={groupName} />;
+ }
+diff --git a/src/app/actions/admin.ts b/src/app/actions/admin.ts
+index d88a227..a5bbb68 100644
+--- a/src/app/actions/admin.ts
++++ b/src/app/actions/admin.ts
+@@ -2,27 +2,188 @@
+ 
+ import { revalidatePath } from "next/cache";
+ import { createClient } from "@/lib/supabase/server";
++import { isAdmin } from "@/lib/db/admin";
+ 
+-export type UpdateMatchState = { error: string } | { success: true; scored: number } | null;
++// ── Types ─────────────────────────────────────────────────────────────
++
++export type ToggleUserState    = { error: string } | { success: true } | null;
++export type UpdateMatchState   = { error: string } | { success: true; scored: number } | null;
++export type UpdateFixtureState = { error: string } | { success: true } | null;
++export type RecalculateState   =
++  | { error: string }
++  | { success: true; matches_processed: number; predictions_scored: number }
++  | null;
++
++export type MatchPrediction = {
++  user_id:       string;
++  display_name:  string;
++  home_score:    number;
++  away_score:    number;
++  points:        number | null;
++  points_reason: string | null;
++  submitted_at:  string;
++  updated_at:    string;
++};
++
++// ── Helpers ───────────────────────────────────────────────────────────
++
++type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
++
++/** Write to admin_match_audit (match-specific legacy audit) */
++async function writeMatchAudit(
++  supabase: SupabaseClient,
++  payload: {
++    match_id:   string;
++    admin_id:   string;
++    action:     "update_result" | "update_fixture";
++    old_values: Record<string, unknown> | null;
++    new_values: Record<string, unknown>;
++  }
++) {
++  void supabase.from("admin_match_audit").insert(payload);
++}
++
++/** Write to admin_activity_log (general audit, any entity) */
++async function writeActivity(
++  supabase: SupabaseClient,
++  payload: {
++    admin_id:     string;
++    action:       string;
++    entity_type:  string;
++    entity_id:    string;
++    entity_label?: string;
++    old_values?:  Record<string, unknown> | null;
++    new_values?:  Record<string, unknown>;
++  }
++) {
++  void supabase.from("admin_activity_log").insert(payload);
++}
++
++// ── getMatchPredictionsAction ─────────────────────────────────────────
++// Read-only: returns all predictions for a single match for admin view.
++
++export async function getMatchPredictionsAction(
++  matchId: string
++): Promise<{ predictions?: MatchPrediction[]; error?: string }> {
++  const supabase = await createClient();
++  const { data, error } = await supabase.rpc("get_match_predictions", {
++    p_match_id: matchId,
++  });
++  if (error) return { error: error.message };
++  return { predictions: (data ?? []) as MatchPrediction[] };
++}
++
++// ── recalculateAllScoresAction ────────────────────────────────────────
++// Re-runs scoring for every finished match. Idempotent.
++
++export async function recalculateAllScoresAction(
++  _prev: RecalculateState
++): Promise<RecalculateState> {
++  const supabase = await createClient();
++  const { data: { user }, error: authErr } = await supabase.auth.getUser();
++  if (authErr || !user) return { error: "No autenticado." };
++  if (!(await isAdmin(user.id))) return { error: "Sin permisos de administrador." };
++
++  const { data, error } = await supabase.rpc("recalculate_all_scores");
++  if (error) {
++    const msg = error.message;
++    if (msg === "not_admin") return { error: "Sin permisos de administrador." };
++    return { error: `Error al recalcular: ${msg}` };
++  }
++
++  const result = data as { matches_processed: number; predictions_scored: number };
++
++  void writeActivity(supabase, {
++    admin_id:     user.id,
++    action:       "recalculate_scores",
++    entity_type:  "system",
++    entity_id:    user.id,
++    entity_label: `${result.matches_processed} partidos · ${result.predictions_scored} predicciones`,
++    new_values:   result,
++  });
++
++  revalidatePath("/admin");
++  revalidatePath("/admin/ranking");
++  revalidatePath("/dashboard");
++  return { success: true, ...result };
++}
++
++// ── toggleUserStatusAction ────────────────────────────────────────────
++// Soft-disables or re-enables a user. Never deletes auth records.
++
++export async function toggleUserStatusAction(
++  _prev: ToggleUserState,
++  formData: FormData
++): Promise<ToggleUserState> {
++  const targetId   = (formData.get("user_id")    as string | null)?.trim() ?? "";
++  const action     = (formData.get("action")     as string | null)?.trim() ?? "";
++  const targetName = (formData.get("user_name")  as string | null)?.trim() ?? targetId;
++
++  if (!targetId || !["disable", "enable"].includes(action)) {
++    return { error: "Datos incompletos." };
++  }
++
++  const supabase = await createClient();
++  const { data: { user }, error: authErr } = await supabase.auth.getUser();
++  if (authErr || !user) return { error: "No autenticado." };
++  if (!(await isAdmin(user.id))) return { error: "Sin permisos de administrador." };
++  if (targetId === user.id) return { error: "No puedes modificar tu propio estado." };
++
++  const isDisabled = action === "disable";
++  const { error: upsertErr } = await supabase
++    .from("user_profiles")
++    .upsert({
++      user_id:     targetId,
++      is_disabled: isDisabled,
++      disabled_at: isDisabled ? new Date().toISOString() : null,
++      disabled_by: isDisabled ? user.id : null,
++      updated_at:  new Date().toISOString(),
++    });
++
++  if (upsertErr) return { error: upsertErr.message };
++
++  void writeActivity(supabase, {
++    admin_id:     user.id,
++    action:       isDisabled ? "user_disable" : "user_enable",
++    entity_type:  "user",
++    entity_id:    targetId,
++    entity_label: targetName,
++    new_values:   { is_disabled: isDisabled },
++  });
++
++  revalidatePath("/admin/users");
++  return { success: true };
++}
++
++// ── updateMatchResultAction ───────────────────────────────────────────
++// Calls update_match_result RPC — enforces admin check in PostgreSQL,
++// updates status + scores, and triggers calculate_match_points on finish.
+ 
+ export async function updateMatchResultAction(
+   _prev: UpdateMatchState,
+   formData: FormData
+ ): Promise<UpdateMatchState> {
+-  const matchId = (formData.get("match_id")   as string | null) ?? "";
+-  const status  = (formData.get("status")     as string | null) ?? "";
+-  const homeRaw = (formData.get("home_score") as string | null) ?? "";
+-  const awayRaw = (formData.get("away_score") as string | null) ?? "";
++  const matchId    = (formData.get("match_id")    as string | null) ?? "";
++  const status     = (formData.get("status")      as string | null) ?? "";
++  const homeRaw    = (formData.get("home_score")  as string | null) ?? "";
++  const awayRaw    = (formData.get("away_score")  as string | null) ?? "";
++  const matchLabel = (formData.get("match_label") as string | null) ?? "";
+ 
+   if (!matchId || !status) return { error: "Datos incompletos." };
+ 
+   const homeScore = homeRaw !== "" ? parseInt(homeRaw, 10) : null;
+   const awayScore = awayRaw !== "" ? parseInt(awayRaw, 10) : null;
+-
+   if (homeScore !== null && isNaN(homeScore)) return { error: "Marcador local inválido." };
+   if (awayScore !== null && isNaN(awayScore)) return { error: "Marcador visitante inválido." };
+ 
+   const supabase = await createClient();
++
++  const { data: oldMatch } = await supabase
++    .from("matches")
++    .select("status, home_score, away_score")
++    .eq("id", matchId)
++    .single();
++
+   const { data: rpcData, error } = await supabase.rpc("update_match_result", {
+     p_match_id:   matchId,
+     p_status:     status,
+@@ -39,9 +200,85 @@ export async function updateMatchResultAction(
+     return { error: `Error: ${msg}` };
+   }
+ 
++  const { data: { user } } = await supabase.auth.getUser();
++  if (user) {
++    const newValues = { status, home_score: homeScore, away_score: awayScore };
++    void writeMatchAudit(supabase, {
++      match_id: matchId, admin_id: user.id,
++      action: "update_result", old_values: oldMatch ?? null, new_values: newValues,
++    });
++    void writeActivity(supabase, {
++      admin_id: user.id, action: "match_result",
++      entity_type: "match", entity_id: matchId,
++      entity_label: matchLabel || matchId,
++      old_values: oldMatch ?? null, new_values: newValues,
++    });
++  }
++
+   revalidatePath("/admin");
++  revalidatePath("/admin/matches");
+   revalidatePath("/dashboard");
+   revalidatePath("/groups", "layout");
++
+   const scored = (rpcData as { scored?: number } | null)?.scored ?? 0;
+   return { success: true, scored };
+ }
++
++// ── updateMatchFixtureAction ──────────────────────────────────────────
++// Edits fixture metadata (starts_at, group_code). No scoring side-effects.
++
++export async function updateMatchFixtureAction(
++  _prev: UpdateFixtureState,
++  formData: FormData
++): Promise<UpdateFixtureState> {
++  const matchId     = (formData.get("match_id")    as string | null)?.trim() ?? "";
++  const startsAtRaw = (formData.get("starts_at")   as string | null)?.trim() ?? "";
++  const groupCode   = (formData.get("group_code")  as string | null)?.trim() || null;
++  const matchLabel  = (formData.get("match_label") as string | null)?.trim() ?? "";
++
++  if (!matchId)     return { error: "match_id requerido." };
++  if (!startsAtRaw) return { error: "Kickoff requerido." };
++
++  let startsAt: string;
++  try {
++    const date = new Date(startsAtRaw.includes("Z") ? startsAtRaw : startsAtRaw + "Z");
++    if (isNaN(date.getTime())) throw new Error("invalid");
++    startsAt = date.toISOString();
++  } catch {
++    return { error: "Fecha/hora inválida. Usa el formato AAAA-MM-DDTHH:mm." };
++  }
++
++  const supabase = await createClient();
++  const { data: { user }, error: authError } = await supabase.auth.getUser();
++  if (authError || !user) return { error: "No autenticado." };
++  if (!(await isAdmin(user.id))) return { error: "Sin permisos de administrador." };
++
++  const { data: oldMatch } = await supabase
++    .from("matches")
++    .select("starts_at, group_code")
++    .eq("id", matchId)
++    .single();
++
++  const { error: updateError } = await supabase
++    .from("matches")
++    .update({ starts_at: startsAt, group_code: groupCode })
++    .eq("id", matchId);
++
++  if (updateError) return { error: updateError.message };
++
++  const newValues = { starts_at: startsAt, group_code: groupCode };
++  void writeMatchAudit(supabase, {
++    match_id: matchId, admin_id: user.id,
++    action: "update_fixture", old_values: oldMatch ?? null, new_values: newValues,
++  });
++  void writeActivity(supabase, {
++    admin_id: user.id, action: "match_fixture",
++    entity_type: "match", entity_id: matchId,
++    entity_label: matchLabel || matchId,
++    old_values: oldMatch ?? null, new_values: newValues,
++  });
++
++  revalidatePath("/admin/matches");
++  revalidatePath("/dashboard");
++  return { success: true };
++}
+diff --git a/src/app/actions/predictions.ts b/src/app/actions/predictions.ts
+index 959234c..b39c6e6 100644
+--- a/src/app/actions/predictions.ts
++++ b/src/app/actions/predictions.ts
+@@ -48,7 +48,13 @@ export async function saveGroupPredictionsAction(
+     if (rpcError) {
+       const msg = rpcError.message;
+       errors[matchId] =
+-        msg === "match_closed" || msg === "match_not_scheduled" || msg === "match_started"
++        msg === "admin_cannot_predict"
++          ? "El administrador no participa en la competencia."
++          : msg === "not_group_member"
++          ? "No perteneces a ningún grupo activo."
++          : msg === "user_disabled"
++          ? "Tu cuenta está deshabilitada."
++          : msg === "match_closed" || msg === "match_not_scheduled" || msg === "match_started"
+           ? "Predicciones cerradas para este partido."
+           : "No se pudo guardar.";
+     } else {
+@@ -124,6 +130,15 @@ export async function savePredictionAction(
+         devMessage: isDev ? "[not_authenticated] auth.uid() is NULL in PostgREST" : undefined,
+       };
+     }
++    if (msg === "admin_cannot_predict") {
++      return { error: "El administrador no participa en la competencia." };
++    }
++    if (msg === "not_group_member") {
++      return { error: "No perteneces a ningún grupo activo." };
++    }
++    if (msg === "user_disabled") {
++      return { error: "Tu cuenta está deshabilitada." };
++    }
+     if (msg === "match_not_scheduled") {
+       return { error: "Predicciones cerradas para este partido." };
+     }
+diff --git a/src/app/page.tsx b/src/app/page.tsx
+index 55a6565..0800eb7 100644
+--- a/src/app/page.tsx
++++ b/src/app/page.tsx
+@@ -1,11 +1,20 @@
+ import { redirect } from "next/navigation";
+ import { createClient } from "@/lib/supabase/server";
++import { isAdmin } from "@/lib/db/admin";
++import { isGroupMember } from "@/lib/db/groups";
+ 
+ export default async function RootPage() {
+   const supabase = await createClient();
+-  const {
+-    data: { user },
+-  } = await supabase.auth.getUser();
++  const { data: { user } } = await supabase.auth.getUser();
+ 
+-  redirect(user ? "/dashboard" : "/login");
++  if (!user) redirect("/login");
++
++  // Admins go directly to the operations panel
++  if (await isAdmin(user.id)) redirect("/admin");
++
++  // Invited group members go to the player dashboard
++  if (await isGroupMember(user.id)) redirect("/dashboard");
++
++  // Everyone else (accounts created without an invite) sees the access wall
++  redirect("/no-access");
+ }
+diff --git a/src/lib/db/admin.ts b/src/lib/db/admin.ts
+index ce2419f..91f0a5b 100644
+--- a/src/lib/db/admin.ts
++++ b/src/lib/db/admin.ts
+@@ -1,6 +1,8 @@
+ import { createClient } from "@/lib/supabase/server";
+ import type { Match } from "@/lib/matches";
+ 
++// ── Auth ──────────────────────────────────────────────────────────────
++
+ export async function isAdmin(userId: string): Promise<boolean> {
+   const supabase = await createClient();
+   const { data } = await supabase
+@@ -11,17 +13,107 @@ export async function isAdmin(userId: string): Promise<boolean> {
+   return !!data;
+ }
+ 
+-export async function getMatchesForAdmin(): Promise<Match[]> {
++// ── Match queries ─────────────────────────────────────────────────────
++
++export async function getMatchesForAdmin(opts?: {
++  group?: string;
++  status?: string;
++}): Promise<Match[]> {
+   const supabase = await createClient();
+-  const { data, error } = await supabase
++
++  let query = supabase
+     .from("matches")
+     .select(`*, home_team:home_team_id(*), away_team:away_team_id(*)`)
+     .order("starts_at", { ascending: true });
+ 
++  if (opts?.group)  query = query.eq("group_code", opts.group);
++  if (opts?.status) query = query.eq("status",     opts.status);
++
++  const { data, error } = await query;
+   if (error) {
+     console.error("[admin] getMatchesForAdmin:", error.message);
+     return [];
+   }
+-
+   return (data ?? []) as Match[];
+ }
++
++// ── Dashboard stats ───────────────────────────────────────────────────
++
++export type AdminStats = {
++  total_users:       number;
++  active_users:      number;
++  disabled_users:    number;
++  total_predictions: number;
++  matches_scheduled: number;
++  matches_live:      number;
++  matches_finished:  number;
++};
++
++export async function getAdminDashboardStats(): Promise<AdminStats | null> {
++  const supabase = await createClient();
++  const { data, error } = await supabase.rpc("get_admin_dashboard_stats");
++  if (error) {
++    console.error("[admin] getAdminDashboardStats:", error.message);
++    return null;
++  }
++  return data as AdminStats;
++}
++
++// ── User list ─────────────────────────────────────────────────────────
++
++export type AdminUser = {
++  user_id:      string;
++  display_name: string;
++  email:        string;
++  joined_at:    string;
++  is_disabled:  boolean;
++  total_points: number;
++  pred_count:   number;
++  exact_count:  number;
++  result_count: number;
++};
++
++export async function getAdminUsers(): Promise<AdminUser[]> {
++  const supabase = await createClient();
++  const { data, error } = await supabase.rpc("get_admin_user_list");
++  if (error) {
++    console.error("[admin] getAdminUsers:", error.message);
++    return [];
++  }
++  return (data ?? []) as AdminUser[];
++}
++
++// ── Activity log ─────────────────────────────────────────────────────
++
++export type ActivityEntry = {
++  id:           string;
++  admin_name:   string;
++  action:       string;
++  entity_type:  string;
++  entity_label: string;
++  old_values:   Record<string, unknown> | null;
++  new_values:   Record<string, unknown> | null;
++  created_at:   string;
++};
++
++export async function getAdminActivityLog(limit = 100): Promise<ActivityEntry[]> {
++  const supabase = await createClient();
++  const { data, error } = await supabase.rpc("get_admin_activity_log", { p_limit: limit });
++  if (error) {
++    console.error("[admin] getAdminActivityLog:", error.message);
++    return [];
++  }
++  return (data ?? []) as ActivityEntry[];
++}
++
++// ── Community group (invite link) ─────────────────────────────────────
++
++export async function getAdminCommunityGroup() {
++  const supabase = await createClient();
++  const { data } = await supabase
++    .from("groups")
++    .select("id, name, invite_code")
++    .limit(1)
++    .maybeSingle();
++  return data ?? null;
++}
+diff --git a/src/lib/db/groups.ts b/src/lib/db/groups.ts
+index 69454f6..b54e6ef 100644
+--- a/src/lib/db/groups.ts
++++ b/src/lib/db/groups.ts
+@@ -1,6 +1,18 @@
+ import { createClient } from "@/lib/supabase/server";
+ import type { GroupWithMeta } from "@/lib/groups";
+ 
++/** Fast membership check — a single row lookup, no joins. */
++export async function isGroupMember(userId: string): Promise<boolean> {
++  const supabase = await createClient();
++  const { data } = await supabase
++    .from("group_members")
++    .select("id")
++    .eq("user_id", userId)
++    .limit(1)
++    .maybeSingle();
++  return !!data;
++}
++
+ type RawGroup = {
+   id: string;
+   name: string;
