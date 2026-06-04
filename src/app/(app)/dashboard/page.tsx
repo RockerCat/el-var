@@ -5,7 +5,7 @@ import PhaseMatchView from "@/components/dashboard/PhaseMatchView";
 import { getMatchesWithPredictions } from "@/lib/db/matches";
 import { getUserGroupsWithMeta } from "@/lib/db/groups";
 import { getGroupLeaderboard } from "@/lib/db/leaderboard";
-import { isAdmin } from "@/lib/db/admin";
+import { isAdmin, isUserDisabled } from "@/lib/db/admin";
 import { isGroupMember } from "@/lib/db/groups";
 import { matchClosedReason, formatKickoff, type MatchWithPrediction } from "@/lib/matches";
 import type { LeaderboardEntry } from "@/lib/groups";
@@ -18,6 +18,9 @@ export default async function DashboardPage() {
 
   // Admins have their own panel — they never see the player dashboard
   if (await isAdmin(user.id)) redirect("/admin");
+
+  // Disabled accounts are blocked from all app pages
+  if (await isUserDisabled(user.id)) redirect("/disabled");
 
   // Non-members (accounts created without an invite) cannot access the game
   if (!(await isGroupMember(user.id))) redirect("/no-access");

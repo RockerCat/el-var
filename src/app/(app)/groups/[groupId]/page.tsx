@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Crown, Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getGroupLeaderboard, getGroupActivity } from "@/lib/db/leaderboard";
+import { isUserDisabled } from "@/lib/db/admin";
 import Leaderboard from "@/components/groups/Leaderboard";
 import MemberList from "@/components/groups/MemberList";
 import GroupStats from "@/components/groups/GroupStats";
@@ -36,6 +37,7 @@ export default async function GroupPage({
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+  if (await isUserDisabled(user.id)) redirect("/disabled");
 
   // RLS enforces membership — returns null if user is not a member
   const { data: rawGroup } = await supabase

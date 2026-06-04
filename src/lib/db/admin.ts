@@ -13,6 +13,16 @@ export async function isAdmin(userId: string): Promise<boolean> {
   return !!data;
 }
 
+export async function isUserDisabled(userId: string): Promise<boolean> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("user_profiles")
+    .select("is_disabled")
+    .eq("user_id", userId)
+    .maybeSingle();
+  return data?.is_disabled === true;
+}
+
 // ── Match queries ─────────────────────────────────────────────────────
 
 export async function getMatchesForAdmin(opts?: {

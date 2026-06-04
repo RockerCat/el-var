@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getUserGroupsWithMeta, isGroupMember } from "@/lib/db/groups";
 import { getGroupLeaderboard } from "@/lib/db/leaderboard";
-import { isAdmin } from "@/lib/db/admin";
+import { isAdmin, isUserDisabled } from "@/lib/db/admin";
 import { cn } from "@/lib/utils";
 import type { LeaderboardEntry } from "@/lib/groups";
 
@@ -11,6 +11,7 @@ export default async function LeaderboardPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
   if (await isAdmin(user.id)) redirect("/admin");
+  if (await isUserDisabled(user.id)) redirect("/disabled");
   if (!(await isGroupMember(user.id))) redirect("/no-access");
 
   const groups = await getUserGroupsWithMeta(user.id);

@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getUserGroupsWithMeta, isGroupMember } from "@/lib/db/groups";
 import { getGroupLeaderboard } from "@/lib/db/leaderboard";
 import { getMatchesWithPredictions } from "@/lib/db/matches";
-import { isAdmin } from "@/lib/db/admin";
+import { isAdmin, isUserDisabled } from "@/lib/db/admin";
 import { matchClosedReason } from "@/lib/matches";
 import { cn } from "@/lib/utils";
 
@@ -12,6 +12,7 @@ export default async function ProfilePage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
   if (await isAdmin(user.id)) redirect("/admin");
+  if (await isUserDisabled(user.id)) redirect("/disabled");
   if (!(await isGroupMember(user.id))) redirect("/no-access");
 
   const username = user.user_metadata?.username as string | undefined;
