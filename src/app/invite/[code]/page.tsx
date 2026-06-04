@@ -28,10 +28,9 @@ export async function generateMetadata({ params }: InvitePageProps): Promise<Met
   const groupName = (groups?.[0] as { name?: string } | null)?.name;
 
   const title = groupName
-    ? `Únete a ${groupName} en La Penúltima`
-    : "Únete a La Penúltima — Predicciones Mundial 2026";
-  const description =
-    "Predice los marcadores del Mundial 2026 con tus amigos. ¡Demuestra quién sabe más de fútbol!";
+    ? `Únete a ${groupName} - Polla Mundialista Interna`
+    : "La Penúltima - Polla Mundialista Interna";
+  const description = "Predice, compite y pelea por la bolsa del Mundial. Solo para amigos.";
 
   return {
     title,
@@ -206,7 +205,7 @@ function InviteLayout({
               <p className="text-sm font-bold text-[#f1f5f9]">{groupName}</p>
               <div className="flex items-center gap-1.5 text-xs text-[#64748b] mt-0.5">
                 <Users size={11} strokeWidth={1.8} />
-                <span>Copa del Mundo 2026</span>
+                <span>Polla Mundialista · Mundial 2026</span>
               </div>
             </div>
           </div>

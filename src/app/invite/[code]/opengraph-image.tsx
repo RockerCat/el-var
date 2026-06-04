@@ -100,7 +100,7 @@ function StaticCard({ code }: { code: string }) {
       </div>
 
       <p style={{ fontSize: 26, fontWeight: 700, color: "#94a3b8", margin: "0 0 10px 0", textAlign: "center" }}>
-        Te invitaron a predecir el Mundial 2026
+        Te invitan a la Polla Mundialista
       </p>
       <p style={{ fontSize: 20, color: "#64748b", margin: "0 0 28px 0", textAlign: "center" }}>
         Demuestra que sabes más fútbol que tus amigos
@@ -165,7 +165,7 @@ function StaticCard({ code }: { code: string }) {
 //         {groupName}
 //       </p>
 //       <p style={{ fontSize: 22, color: "#94a3b8", margin: "0 0 28px 0", textAlign: "center" }}>
-//         Te invitan a La Penúltima · Mundial 2026
+//         Únete a la Polla Mundialista Interna
 //       </p>
 //
 //       {/* Stats row */}

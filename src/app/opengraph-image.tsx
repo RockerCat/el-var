@@ -2,7 +2,7 @@ import { ImageResponse } from "next/og";
 
 export const size        = { width: 1200, height: 630 };
 export const contentType = "image/png";
-export const alt         = "La Penúltima — Predicciones del Mundial 2026";
+export const alt         = "La Penúltima - Polla Mundialista Interna";
 
 export default function OgImage() {
   return new ImageResponse(
@@ -71,7 +71,7 @@ export default function OgImage() {
         margin:       "0 0 12px 0",
         textAlign:    "center",
       }}>
-        Predicciones del Mundial 2026
+        Polla Mundialista Interna
       </p>
 
       {/* Tagline 2 */}
@@ -83,7 +83,7 @@ export default function OgImage() {
         textAlign:    "center",
         maxWidth:     700,
       }}>
-        Demuestra que sabes más fútbol que tus amigos
+        Predice, compite y pelea por la bolsa del Mundial
       </p>
 
       {/* Bottom accent bar */}

@@ -13,20 +13,19 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "La Penúltima — Predicciones Copa del Mundo 2026",
-  description:
-    "Crea grupos privados de predicciones con tus amigos para el Mundial 2026. Predice marcadores, compite en la tabla de posiciones.",
-  keywords: ["copa del mundo 2026", "predicciones", "fútbol", "mundial", "FIFA", "grupos"],
+  title: "La Penúltima - Polla Mundialista Interna",
+  description: "Predice, compite y pelea por la bolsa del Mundial. Solo para amigos.",
+  keywords: ["polla mundialista", "predicciones", "fútbol", "mundial 2026", "grupos privados"],
   openGraph: {
-    title: "La Penúltima — Predicciones Copa del Mundo 2026",
-    description: "Predice. Compite. Reclama que te robaron puntos. Grupos privados para el Mundial 2026.",
-    type: "website",
-    images: [{ url: "/opengraph-image.png", width: 1200, height: 630 }],
+    title:       "La Penúltima - Polla Mundialista Interna",
+    description: "Predice, compite y pelea por la bolsa del Mundial. Solo para amigos.",
+    type:        "website",
+    images:      [{ url: "/opengraph-image.png", width: 1200, height: 630 }],
   },
   twitter: {
     card:        "summary_large_image",
-    title:       "La Penúltima — Predicciones Copa del Mundo 2026",
-    description: "Predice. Compite. Reclama que te robaron puntos. Grupos privados para el Mundial 2026.",
+    title:       "La Penúltima - Polla Mundialista Interna",
+    description: "Predice, compite y pelea por la bolsa del Mundial. Solo para amigos.",
     images:      ["/opengraph-image.png"],
   },
 };
