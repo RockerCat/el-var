@@ -5,9 +5,52 @@ import { createClient } from "@/lib/supabase/server";
 import Navbar from "@/components/layout/Navbar";
 import InviteJoinForm from "@/components/invite/InviteJoinForm";
 import Card from "@/components/ui/Card";
+import type { Metadata } from "next";
 
 interface InvitePageProps {
   params: Promise<{ code: string }>;
+}
+
+// ── Open Graph metadata for invite links ─────────────────────────────
+// Phase 1: static image + group name in title.
+// Phase 2: swap opengraph-image.tsx to render the dynamic card with
+//          group stats and prize pool (see that file for the scaffold).
+
+export async function generateMetadata({ params }: InvitePageProps): Promise<Metadata> {
+  const { code } = await params;
+  const upperCode = code.toUpperCase();
+
+  // Fetch just the group name so the title is personalised.
+  const supabase = await createClient();
+  const { data: groups } = await supabase.rpc("get_group_by_invite_code", {
+    code: upperCode,
+  });
+  const groupName = (groups?.[0] as { name?: string } | null)?.name;
+
+  const title = groupName
+    ? `Únete a ${groupName} en La Penúltima`
+    : "Únete a La Penúltima — Predicciones Mundial 2026";
+  const description =
+    "Predice los marcadores del Mundial 2026 con tus amigos. ¡Demuestra quién sabe más de fútbol!";
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      type:   "website",
+      // Next.js serves opengraph-image.tsx from this route automatically.
+      // Explicit image entry ensures crawlers that ignore the convention also pick it up.
+      images: [{ url: `/invite/${upperCode}/opengraph-image`, width: 1200, height: 630 }],
+    },
+    twitter: {
+      card:        "summary_large_image",
+      title,
+      description,
+      images:      [`/invite/${upperCode}/opengraph-image`],
+    },
+  };
 }
 
 export default async function InvitePage({ params }: InvitePageProps) {

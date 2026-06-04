@@ -24,6 +24,7 @@ export const LOADING_MESSAGES: readonly string[] = [
   "Papaje?...",
   "Buscando Excusas para Maurice...",
   "Donde entre es GOL!...",
+  "Como dice Hardouin: 'Es con su plata?'...",
 ];
 
 /** Returns a random message from the list. */

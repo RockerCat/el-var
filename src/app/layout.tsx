@@ -21,6 +21,13 @@ export const metadata: Metadata = {
     title: "La Penúltima — Predicciones Copa del Mundo 2026",
     description: "Predice. Compite. Reclama que te robaron puntos. Grupos privados para el Mundial 2026.",
     type: "website",
+    images: [{ url: "/opengraph-image.png", width: 1200, height: 630 }],
+  },
+  twitter: {
+    card:        "summary_large_image",
+    title:       "La Penúltima — Predicciones Copa del Mundo 2026",
+    description: "Predice. Compite. Reclama que te robaron puntos. Grupos privados para el Mundial 2026.",
+    images:      ["/opengraph-image.png"],
   },
 };
 
