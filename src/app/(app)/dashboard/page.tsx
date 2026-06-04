@@ -19,6 +19,7 @@ import type { LeaderboardEntry } from "@/lib/groups";
 import { Check } from "lucide-react";
 import Link from "next/link";
 import LiveMatchPoller from "@/components/dashboard/LiveMatchPoller";
+import LiveMatchCard from "@/components/dashboard/LiveMatchCard";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -51,9 +52,23 @@ export default async function DashboardPage() {
     (m) => m.status === "scheduled" && matchClosedReason(m) === null && !m.prediction
   ).length;
 
-  // Next match the user can still predict
-  const nextMatch =
-    matches.find((m) => m.status === "scheduled" && matchClosedReason(m) === null) ?? null;
+  // Live matches sorted by kickoff — shown as a group when ≥1 exist.
+  const liveMatches = matches
+    .filter((m) => m.status === "live")
+    .sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime());
+
+  // Fallback featured match (used only when no live matches).
+  const fallbackMatch: MatchWithPrediction | null = (() => {
+    const open = matches.find((m) => m.status === "scheduled" && matchClosedReason(m) === null);
+    if (open) return open;
+    const scheduled = matches
+      .filter((m) => m.status === "scheduled")
+      .sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime())[0];
+    if (scheduled) return scheduled;
+    return matches
+      .filter((m) => m.status === "finished")
+      .sort((a, b) => new Date(b.starts_at).getTime() - new Date(a.starts_at).getTime())[0] ?? null;
+  })();
 
   const currentStage   = detectCurrentStage(matches);
   const hasLiveMatch   = matches.some((m) => m.status === "live");
@@ -78,9 +93,12 @@ export default async function DashboardPage() {
           <ScoringCard stage={currentStage} />
         </aside>
 
-        {/* ── Center: next-match card + group blocks ───────────────── */}
+        {/* ── Center: featured area + group blocks ─────────────────── */}
         <main className="lg:col-start-2 lg:row-start-1 min-w-0">
-          {nextMatch && <NextMatchCard match={nextMatch} />}
+          {liveMatches.length > 0
+            ? <LiveMatchesSection matches={liveMatches} />
+            : fallbackMatch && <FeaturedMatchCard match={fallbackMatch} />
+          }
           <PhaseMatchView matches={matches} />
         </main>
 
@@ -98,59 +116,123 @@ export default async function DashboardPage() {
   );
 }
 
-// ── Next-match card ───────────────────────────────────────────────────
-// Surfaces the soonest open prediction above the group grid.
+// ── Live matches section ──────────────────────────────────────────────
+// Renders one card per live match. Single match: full-width.
+// Multiple matches: 2-column grid on md+, single column on mobile.
 
-function NextMatchCard({ match }: { match: MatchWithPrediction }) {
+function LiveMatchesSection({ matches: liveMatches }: { matches: MatchWithPrediction[] }) {
+  return (
+    <div className="mb-5">
+      {liveMatches.length > 1 && (
+        <p className="text-[10px] font-bold text-[#475569] uppercase tracking-widest mb-3">
+          Partidos en vivo · {liveMatches.length}
+        </p>
+      )}
+      <div className={cn(
+        "grid gap-3",
+        liveMatches.length > 1 ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"
+      )}>
+        {liveMatches.map((m) => (
+          <LiveMatchCard key={m.id} match={m} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Fallback featured match card ──────────────────────────────────────
+// Used only when no live matches exist.
+// Shows: scheduled (open/closed) or last finished match.
+
+function FeaturedMatchCard({ match }: { match: MatchWithPrediction }) {
+  const isFinished = match.status === "finished";
   const hasPrediction = !!match.prediction;
+  const hasScore   = match.home_score !== null && match.away_score !== null;
 
+  if (isFinished && hasScore) {
+    return (
+      <Link
+        href={`/matches/${match.id}`}
+        className="block rounded-2xl border border-[#1e1e35] bg-[#11111c] p-4 mb-5 cursor-pointer transition-all hover:border-[#2a2a45]"
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] font-bold text-[#475569] uppercase tracking-widest mb-2">
+              Último partido
+            </p>
+            <div className="flex items-center gap-1.5 mb-1">
+              <span className="text-lg leading-none">{match.home_team.flag_emoji ?? "🏴"}</span>
+              <span className="text-sm font-bold text-[#f1f5f9] truncate">{match.home_team.name}</span>
+              <span className="text-sm font-black text-[#f1f5f9] tabular-nums mx-1">
+                {match.home_score}–{match.away_score}
+              </span>
+              <span className="text-sm font-bold text-[#f1f5f9] truncate">{match.away_team.name}</span>
+              <span className="text-lg leading-none">{match.away_team.flag_emoji ?? "🏴"}</span>
+            </div>
+            <p className="text-[10px] text-[#475569]">{formatKickoff(match.starts_at)}</p>
+          </div>
+          {hasPrediction && match.prediction!.scored_at && (
+            <div className="shrink-0 text-right">
+              <span className={cn(
+                "text-sm font-black tabular-nums",
+                match.prediction!.points > 0 ? "text-[#00c85a]" : "text-[#475569]"
+              )}>
+                {match.prediction!.points > 0 ? `+${match.prediction!.points}` : "0"} pts
+              </span>
+            </div>
+          )}
+        </div>
+      </Link>
+    );
+  }
+
+  // Scheduled (open or closed)
+  const isOpen = matchClosedReason(match) === null;
   return (
     <Link
       href={`/matches/${match.id}`}
       className={cn(
         "block rounded-2xl border p-4 mb-5 cursor-pointer transition-all",
-        hasPrediction
+        hasPrediction || !isOpen
           ? "bg-[#11111c] border-[#1e1e35] hover:border-[#2a2a45]"
           : "bg-[#f59e0b]/[0.04] border-[#f59e0b]/20 hover:border-[#f59e0b]/35"
       )}>
-      <div className="flex items-start justify-between gap-3">
+    <div className="flex items-start justify-between gap-3">
 
-        {/* Match info */}
-        <div className="flex-1 min-w-0">
-          <p className="text-[10px] font-bold text-[#475569] uppercase tracking-widest mb-2">
-            ⚽ Próximo partido
-          </p>
-          <div className="flex items-center gap-1.5 mb-1">
-            <span className="text-lg leading-none">{match.home_team.flag_emoji ?? "🏴"}</span>
-            <span className="text-sm font-bold text-[#f1f5f9] truncate">{match.home_team.name}</span>
-            <span className="text-[10px] text-[#475569] font-bold shrink-0">vs</span>
-            <span className="text-sm font-bold text-[#f1f5f9] truncate">{match.away_team.name}</span>
-            <span className="text-lg leading-none">{match.away_team.flag_emoji ?? "🏴"}</span>
-          </div>
-          <p className="text-[10px] text-[#475569]">{formatKickoff(match.starts_at)}</p>
+      <div className="flex-1 min-w-0">
+        <p className="text-[10px] font-bold text-[#475569] uppercase tracking-widest mb-2">
+          ⚽ Próximo partido
+        </p>
+        <div className="flex items-center gap-1.5 mb-1">
+          <span className="text-lg leading-none">{match.home_team.flag_emoji ?? "🏴"}</span>
+          <span className="text-sm font-bold text-[#f1f5f9] truncate">{match.home_team.name}</span>
+          <span className="text-[10px] text-[#475569] font-bold shrink-0">vs</span>
+          <span className="text-sm font-bold text-[#f1f5f9] truncate">{match.away_team.name}</span>
+          <span className="text-lg leading-none">{match.away_team.flag_emoji ?? "🏴"}</span>
         </div>
-
-        {/* Prediction status */}
-        <div className="shrink-0 text-right">
-          {hasPrediction ? (
-            <div>
-              <div className="flex items-center justify-end gap-1 mb-0.5">
-                <Check size={9} className="text-[#00c85a]" />
-                <span className="text-[10px] text-[#00c85a]">Guardado</span>
-              </div>
-              <span className="font-mono font-black text-base text-[#f1f5f9] tabular-nums">
-                {match.prediction!.home_score}–{match.prediction!.away_score}
-              </span>
-            </div>
-          ) : (
-            <div className="flex items-center gap-1">
-              <span className="text-xs text-[#f59e0b]">⚠</span>
-              <span className="text-xs font-semibold text-[#f59e0b]/80">Pendiente</span>
-            </div>
-          )}
-        </div>
-
+        <p className="text-[10px] text-[#475569]">{formatKickoff(match.starts_at)}</p>
       </div>
+
+      <div className="shrink-0 text-right">
+        {hasPrediction ? (
+          <div>
+            <div className="flex items-center justify-end gap-1 mb-0.5">
+              <Check size={9} className="text-[#00c85a]" />
+              <span className="text-[10px] text-[#00c85a]">Guardado</span>
+            </div>
+            <span className="font-mono font-black text-base text-[#f1f5f9] tabular-nums">
+              {match.prediction!.home_score}–{match.prediction!.away_score}
+            </span>
+          </div>
+        ) : isOpen ? (
+          <div className="flex items-center gap-1">
+            <span className="text-xs text-[#f59e0b]">⚠</span>
+            <span className="text-xs font-semibold text-[#f59e0b]/80">Pendiente</span>
+          </div>
+        ) : null}
+      </div>
+
+    </div>
     </Link>
   );
 }
