@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
-import PhaseMatchView from "@/components/dashboard/PhaseMatchView";
 import { getMatchesWithPredictions } from "@/lib/db/matches";
 import { getUserGroupsWithMeta, isGroupMember, getActivePlayerCount } from "@/lib/db/groups";
 import { getGroupLeaderboard } from "@/lib/db/leaderboard";
@@ -20,6 +19,7 @@ import Link from "next/link";
 import LiveMatchPoller from "@/components/dashboard/LiveMatchPoller";
 import LiveMatchCard from "@/components/dashboard/LiveMatchCard";
 import PrizePoolCard from "@/components/dashboard/PrizePoolCard";
+import DashboardViewToggle from "@/components/dashboard/DashboardViewToggle";
 import { computePrizePool } from "@/lib/groups";
 
 export default async function DashboardPage() {
@@ -109,7 +109,7 @@ export default async function DashboardPage() {
             ? <LiveMatchesSection matches={liveMatches} />
             : fallbackMatch && <FeaturedMatchCard match={fallbackMatch} />
           }
-          <PhaseMatchView matches={matches} />
+          <DashboardViewToggle matches={matches} />
         </main>
 
         {/* ── Left: user summary + scoring card ────────────────────── */}
