@@ -9,7 +9,6 @@ import Input from "@/components/ui/Input";
 import Card from "@/components/ui/Card";
 import { createClient } from "@/lib/supabase/client";
 import { getAuthErrorMessage } from "@/lib/auth-errors";
-import { joinGroupAction } from "@/app/actions/groups";
 
 const STATUS_MESSAGES = [
   "Revisando la jugada...",
@@ -61,40 +60,80 @@ export default function LoginForm({ inviteCode }: LoginFormProps) {
       return;
     }
 
-    console.log("[LoginForm] signIn OK");
+    console.log("[loginInvite] signIn OK → userId:", (await supabase.auth.getUser()).data.user?.id ?? "unknown");
 
     if (inviteCode) {
-      console.log("[LoginForm] calling joinGroupAction with code:", inviteCode);
       setJoinStatus({ phase: "joining" });
 
-      const fd = new FormData();
-      fd.set("invite_code", inviteCode);
-      const joinResult = await joinGroupAction(null, fd);
+      console.log("[loginInviteJoin] calling join_group_for_user RPC directly →", {
+        inviteCode,
+        reason: "Server Actions are intercepted by middleware on /login after auth cookies are set; using browser client instead",
+      });
 
-      console.log("[LoginForm] joinGroupAction result →", JSON.stringify(joinResult, null, 2));
+      // ── Idempotency check ───────────────────────────────────────────
+      // If the user is already a member (e.g. clicked the invite link twice),
+      // skip the RPC and redirect immediately.
+      const { data: existing } = await supabase
+        .from("group_members")
+        .select("group_id")
+        .maybeSingle();
 
-      if (joinResult && "error" in joinResult) {
-        setJoinStatus({
-          phase:     "error",
-          userMsg:   joinResult.error,
-          devDetail: joinResult.devMessage,
-        });
-        setLoading(false);
-        return; // Show error — don't redirect silently
-      }
-
-      if (joinResult && "success" in joinResult) {
-        setJoinStatus({
-          phase:     "success",
-          groupName: joinResult.group?.name ?? "el grupo",
-        });
-        console.log("[LoginForm] join SUCCESS ✓, redirecting in 1.5s");
-        setTimeout(() => {
-          router.push("/dashboard");
-          router.refresh();
-        }, 1500);
+      if (existing?.group_id) {
+        console.log("[loginInviteJoin] user already member of group_id:", existing.group_id, "→ treating as success");
+        const { data: existingGroup } = await supabase
+          .from("groups")
+          .select("name")
+          .eq("id", existing.group_id)
+          .maybeSingle();
+        setJoinStatus({ phase: "success", groupName: existingGroup?.name ?? "La Penúltima" });
+        setTimeout(() => { router.push("/dashboard"); router.refresh(); }, 1500);
         return;
       }
+
+      // ── Join via RPC ────────────────────────────────────────────────
+      // Use the same browser Supabase client that just ran signInWithPassword.
+      // Its in-memory session JWT is immediately available — no cookie-flush
+      // race condition that would affect a Server Action POST.
+      const { data: groupId, error: joinError } = await supabase.rpc(
+        "join_group_for_user",
+        { p_invite_code: inviteCode }
+      );
+
+      console.log("[loginInviteJoin] RPC result →", {
+        groupId,
+        error:     joinError?.message  ?? null,
+        errorCode: joinError?.code     ?? null,
+      });
+
+      if (joinError) {
+        const msg = joinError.message;
+        let userMsg: string;
+        if (msg === "invalid_code") {
+          userMsg = "Invitación inválida o expirada.";
+        } else if (msg === "not_authenticated") {
+          userMsg = "Problema de autenticación. Cierra sesión e intenta de nuevo.";
+        } else {
+          userMsg = "Iniciaste sesión, pero no se pudo unir al grupo. Intenta de nuevo.";
+        }
+        setJoinStatus({ phase: "error", userMsg, devDetail: msg });
+        setLoading(false);
+        return;
+      }
+
+      console.log("[joinGroupExistingUser] RPC success → groupId:", groupId);
+
+      const { data: group } = await supabase
+        .from("groups")
+        .select("name")
+        .eq("id", groupId as string)
+        .maybeSingle();
+
+      console.log("[joinGroupExistingUser] group name:", group?.name ?? "(not found)");
+
+      setJoinStatus({ phase: "success", groupName: group?.name ?? "La Penúltima" });
+      console.log("[loginInviteJoin] join SUCCESS ✓, redirecting to /dashboard in 1.5s");
+      setTimeout(() => { router.push("/dashboard"); router.refresh(); }, 1500);
+      return;
     }
 
     router.push("/dashboard");
