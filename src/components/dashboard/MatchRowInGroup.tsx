@@ -255,24 +255,29 @@ export default function MatchRowInGroup({ match, error, onDirty }: MatchRowInGro
             )}
           </div>
 
-          {/* Teams + inputs in one horizontal row */}
+          {/* Teams + inputs in one horizontal row.
+              The inputs section has a fixed shrink-0 width so team names
+              can use whatever space remains — truncation prevents overflow. */}
           <input type="hidden" name="match_id" value={match.id} />
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-1.5 mb-2 w-full">
 
-            <div className="flex items-center gap-1.5 flex-1 min-w-0">
-              <span className="text-xl leading-none shrink-0">{home_team.flag_emoji ?? "🏴"}</span>
-              <span className="text-sm font-semibold text-[#f1f5f9] truncate">{home_team.name}</span>
+            {/* Home team */}
+            <div className="flex items-center gap-1 min-w-0 flex-1">
+              <span className="text-base leading-none shrink-0">{home_team.flag_emoji ?? "🏴"}</span>
+              <span className="text-xs font-semibold text-[#f1f5f9] truncate">{home_team.name}</span>
             </div>
 
-            <div className="shrink-0 flex items-center gap-1.5">
+            {/* Score inputs — fixed width prevents compression */}
+            <div className="shrink-0 flex items-center gap-1">
               <ScoreInput name={`home_${match.id}`} defaultValue={saved?.home_score} onChange={handleInputChange} />
-              <span className="text-[#94a3b8] text-sm font-light select-none">–</span>
+              <span className="text-[#94a3b8] text-xs font-light select-none">–</span>
               <ScoreInput name={`away_${match.id}`} defaultValue={saved?.away_score} onChange={handleInputChange} />
             </div>
 
-            <div className="flex items-center gap-1.5 flex-1 flex-row-reverse min-w-0">
-              <span className="text-xl leading-none shrink-0">{away_team.flag_emoji ?? "🏴"}</span>
-              <span className="text-sm font-semibold text-[#f1f5f9] truncate text-right">{away_team.name}</span>
+            {/* Away team */}
+            <div className="flex items-center gap-1 flex-row-reverse min-w-0 flex-1">
+              <span className="text-base leading-none shrink-0">{away_team.flag_emoji ?? "🏴"}</span>
+              <span className="text-xs font-semibold text-[#f1f5f9] truncate text-right">{away_team.name}</span>
             </div>
 
           </div>
@@ -360,7 +365,7 @@ function ScoreInput({ name, defaultValue, onChange }: { name: string; defaultVal
       defaultValue={defaultValue ?? ""}
       placeholder="0"
       onChange={onChange}
-      className="w-12 h-9 text-center text-sm font-black rounded-xl bg-[#2a2a50] border-2 border-[#5252a0] text-[#f1f5f9] placeholder:text-[#5252a0] hover:border-[#6a6ac0] focus:border-[#00c85a] focus:ring-2 focus:ring-[#00c85a]/20 focus:bg-[#00c85a]/[0.05] tabular-nums transition-colors outline-none"
+      className="w-11 h-9 text-center text-base font-black rounded-xl bg-[#2a2a50] border-2 border-[#5252a0] text-[#f1f5f9] placeholder:text-[#5252a0] hover:border-[#6a6ac0] focus:border-[#00c85a] focus:ring-2 focus:ring-[#00c85a]/20 focus:bg-[#00c85a]/[0.05] tabular-nums transition-colors outline-none"
       style={{ MozAppearance: "textfield" } as React.CSSProperties}
     />
   );

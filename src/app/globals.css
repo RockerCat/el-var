@@ -54,6 +54,8 @@
 html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden; /* prevent horizontal scroll on all pages */
+  width: 100%;
 }
 
 body {
@@ -61,6 +63,8 @@ body {
   color: var(--foreground);
   font-family: var(--font-geist-sans), system-ui, sans-serif;
   min-height: 100dvh;
+  overflow-x: hidden;
+  width: 100%;
 }
 
 /* Scrollbar */
