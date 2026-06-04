@@ -107,6 +107,29 @@ export function formatKickoff(startsAt: string): string {
   }) + ` · ${time}`;
 }
 
+export type ScoringResult = {
+  points: number;
+  reason: "Marcador exacto" | "Resultado acertado" | "Sin puntos";
+};
+
+/** Compute what points a prediction earns against a known final score. */
+export function simulatePoints(
+  predHome: number, predAway: number,
+  actualHome: number, actualAway: number,
+  stage: MatchStage
+): ScoringResult {
+  const { exact, result } = PHASE_SCORING[stage];
+  if (predHome === actualHome && predAway === actualAway) {
+    return { points: exact, reason: "Marcador exacto" };
+  }
+  const predResult   = Math.sign(predHome - predAway);
+  const actualResult = Math.sign(actualHome - actualAway);
+  if (predResult === actualResult) {
+    return { points: result, reason: "Resultado acertado" };
+  }
+  return { points: 0, reason: "Sin puntos" };
+}
+
 /** Day bucket key used for grouping matches in the dashboard. */
 export function matchDayKey(startsAt: string): string {
   const date = new Date(startsAt);
@@ -127,3 +150,39 @@ export const STAGE_LABELS: Record<MatchStage, string> = {
   third_place:   "Tercer puesto",
   final:         "Final",
 };
+
+// ── Simplified phase names used in scoring / rules UI ─────────────────
+
+export const PHASE_LABELS: Record<MatchStage, string> = {
+  group:         "Fase 1",
+  round_of_32:   "Fase 2",
+  round_of_16:   "Fase 3",
+  quarter_final: "Fase 4",
+  semi_final:    "Semifinal",
+  third_place:   "Semifinal",
+  final:         "Final",
+};
+
+export type ScoringRule = { exact: number; result: number };
+
+export const PHASE_SCORING: Record<MatchStage, ScoringRule> = {
+  group:         { exact: 3, result: 1 },
+  round_of_32:   { exact: 4, result: 2 },
+  round_of_16:   { exact: 5, result: 3 },
+  quarter_final: { exact: 6, result: 4 },
+  semi_final:    { exact: 7, result: 5 },
+  third_place:   { exact: 7, result: 5 },
+  final:         { exact: 8, result: 6 },
+};
+
+/** Returns the stage of the current active phase (first non-finished match). */
+export function detectCurrentStage(
+  matches: Pick<Match, "stage" | "status">[]
+): MatchStage {
+  const live = matches.find((m) => m.status === "live");
+  if (live) return live.stage;
+  const scheduled = matches.find((m) => m.status === "scheduled");
+  if (scheduled) return scheduled.stage;
+  // All matches finished — use the last known stage
+  return matches[matches.length - 1]?.stage ?? "group";
+}

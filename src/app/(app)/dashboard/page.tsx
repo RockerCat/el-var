@@ -7,9 +7,18 @@ import { getUserGroupsWithMeta } from "@/lib/db/groups";
 import { getGroupLeaderboard } from "@/lib/db/leaderboard";
 import { isAdmin, isUserDisabled } from "@/lib/db/admin";
 import { isGroupMember } from "@/lib/db/groups";
-import { matchClosedReason, formatKickoff, type MatchWithPrediction } from "@/lib/matches";
+import {
+  matchClosedReason,
+  formatKickoff,
+  detectCurrentStage,
+  PHASE_LABELS,
+  PHASE_SCORING,
+  type MatchWithPrediction,
+} from "@/lib/matches";
 import type { LeaderboardEntry } from "@/lib/groups";
 import { Check } from "lucide-react";
+import Link from "next/link";
+import LiveMatchPoller from "@/components/dashboard/LiveMatchPoller";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -46,8 +55,12 @@ export default async function DashboardPage() {
   const nextMatch =
     matches.find((m) => m.status === "scheduled" && matchClosedReason(m) === null) ?? null;
 
+  const currentStage   = detectCurrentStage(matches);
+  const hasLiveMatch   = matches.some((m) => m.status === "live");
+
   return (
     <div className="max-w-[1320px] mx-auto px-4 py-6">
+      <LiveMatchPoller hasLiveMatch={hasLiveMatch} />
       {/*
         DOM order: [user-summary] [matches] [leaderboard]
         Mobile (flex-col): user-summary → matches → leaderboard
@@ -55,13 +68,14 @@ export default async function DashboardPage() {
       */}
       <div className="flex flex-col gap-5 lg:grid lg:grid-cols-[220px_1fr_200px] lg:items-start lg:gap-6">
 
-        {/* ── Left: user summary ────────────────────────────────────── */}
-        <aside className="lg:col-start-1 lg:row-start-1">
+        {/* ── Left: user summary + scoring card ────────────────────── */}
+        <aside className="lg:col-start-1 lg:row-start-1 flex flex-col gap-4">
           <UserSummaryPanel
             displayName={displayName}
             userEntry={userEntry}
             pendingCount={pendingCount}
           />
+          <ScoringCard stage={currentStage} />
         </aside>
 
         {/* ── Center: next-match card + group blocks ───────────────── */}
@@ -91,12 +105,14 @@ function NextMatchCard({ match }: { match: MatchWithPrediction }) {
   const hasPrediction = !!match.prediction;
 
   return (
-    <div className={cn(
-      "rounded-2xl border p-4 mb-5",
-      hasPrediction
-        ? "bg-[#11111c] border-[#1e1e35]"
-        : "bg-[#f59e0b]/[0.04] border-[#f59e0b]/20"
-    )}>
+    <Link
+      href={`/matches/${match.id}`}
+      className={cn(
+        "block rounded-2xl border p-4 mb-5 cursor-pointer transition-all",
+        hasPrediction
+          ? "bg-[#11111c] border-[#1e1e35] hover:border-[#2a2a45]"
+          : "bg-[#f59e0b]/[0.04] border-[#f59e0b]/20 hover:border-[#f59e0b]/35"
+      )}>
       <div className="flex items-start justify-between gap-3">
 
         {/* Match info */}
@@ -135,7 +151,7 @@ function NextMatchCard({ match }: { match: MatchWithPrediction }) {
         </div>
 
       </div>
-    </div>
+    </Link>
   );
 }
 
@@ -224,6 +240,47 @@ function UserSummaryPanel({
         </div>
       )}
 
+    </div>
+  );
+}
+
+// ── Left sidebar: scoring card ────────────────────────────────────────
+
+function ScoringCard({ stage }: { stage: import("@/lib/matches").MatchStage }) {
+  const phaseLabel = PHASE_LABELS[stage];
+  const scoring    = PHASE_SCORING[stage];
+
+  return (
+    <div className="bg-[#11111c] border border-[#1e1e35] rounded-2xl p-5">
+      <p className="text-[10px] font-bold text-[#475569] uppercase tracking-widest mb-0.5">
+        Sistema de puntos
+      </p>
+      <p className="text-xs text-[#64748b] mb-4">
+        Fase actual:{" "}
+        <span className="font-semibold text-[#94a3b8]">{phaseLabel}</span>
+      </p>
+
+      <div className="flex flex-col gap-2 mb-4">
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-[#94a3b8]">⚡ Marcador exacto</span>
+          <span className="text-xs font-black text-[#f59e0b] tabular-nums">
+            {scoring.exact} pts
+          </span>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-[#94a3b8]">✓ Ganador correcto</span>
+          <span className="text-xs font-black text-[#00c85a] tabular-nums">
+            {scoring.result} pt{scoring.result !== 1 ? "s" : ""}
+          </span>
+        </div>
+      </div>
+
+      <Link
+        href="/rules"
+        className="text-[11px] text-[#475569] hover:text-[#64748b] transition-colors"
+      >
+        Ver reglas completas →
+      </Link>
     </div>
   );
 }

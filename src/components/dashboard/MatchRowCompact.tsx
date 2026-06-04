@@ -10,26 +10,19 @@ import {
   type Team,
 } from "@/lib/matches";
 import { savePredictionAction } from "@/app/actions/predictions";
+import { useRouter } from "next/navigation";
 import { Check, Lock, Loader2 } from "lucide-react";
-
-// ── Live minute ───────────────────────────────────────────────────────
-// Maps elapsed time since kickoff to a match-minute string.
-// Falls back to "67'" for stale demo matches (>97 min elapsed).
-
-function computeLiveMinute(startsAt: string): string {
-  const elapsed = Math.floor((Date.now() - new Date(startsAt).getTime()) / 60_000);
-  if (elapsed <= 0)  return "1'";
-  if (elapsed <= 45) return `${elapsed}'`;
-  if (elapsed <= 58) return "HT";
-  if (elapsed <= 90) return `${elapsed - 13}'`;
-  if (elapsed <= 97) return `90+${elapsed - 90}'`;
-  return "67'"; // stale demo — static representative minute
-}
 
 // ─────────────────────────────────────────────────────────────────────
 
 export default function MatchRowCompact({ match }: { match: MatchWithPrediction }) {
   const { home_team, away_team, status } = match;
+  const router = useRouter();
+
+  function handleCardClick(e: React.MouseEvent<HTMLDivElement>) {
+    if ((e.target as Element).closest("input, button, select, a")) return;
+    router.push(`/matches/${match.id}`);
+  }
 
   const [formState, formAction, isPending] = useActionState<PredictionActionState, FormData>(
     savePredictionAction,
@@ -38,14 +31,6 @@ export default function MatchRowCompact({ match }: { match: MatchWithPrediction 
   // Start NOT editing when a saved prediction already exists
   const [isEditing, setIsEditing] = useState(!match.prediction);
 
-  // Live minute — starts at "67'" (SSR-safe), updates after hydration
-  const [liveMinute, setLiveMinute] = useState<string>("67'");
-  useEffect(() => {
-    if (status !== "live") return;
-    setLiveMinute(computeLiveMinute(match.starts_at));
-    const id = setInterval(() => setLiveMinute(computeLiveMinute(match.starts_at)), 30_000);
-    return () => clearInterval(id);
-  }, [status, match.starts_at]);
 
   useEffect(() => {
     if (formState && "success" in formState) setIsEditing(false);
@@ -64,7 +49,10 @@ export default function MatchRowCompact({ match }: { match: MatchWithPrediction 
   // ──────────────────────────────────────────────────────────────────
   if (isLive) {
     return (
-      <div className="rounded-xl border border-[#ef4444]/25 bg-gradient-to-br from-[#ef4444]/[0.09] to-[#18182a] animate-live-glow overflow-hidden">
+      <div
+        onClick={handleCardClick}
+        className="rounded-xl border border-[#ef4444]/25 bg-gradient-to-br from-[#ef4444]/[0.09] to-[#18182a] animate-live-glow overflow-hidden cursor-pointer transition-all hover:border-[#ef4444]/45"
+      >
         <div className="px-4 py-4">
 
           {/* Status badge + time */}
@@ -77,10 +65,6 @@ export default function MatchRowCompact({ match }: { match: MatchWithPrediction 
               </span>
               <span className="text-xs font-black text-[#ef4444] uppercase tracking-wide">
                 EN VIVO
-              </span>
-              <span className="text-[10px] text-[#ef4444]/50 select-none">·</span>
-              <span className="text-xs font-bold text-[#ef4444]/70 font-mono tabular-nums">
-                {liveMinute}
               </span>
             </div>
             <span className="text-[10px] text-[#475569]">{formatKickoff(match.starts_at)}</span>
@@ -153,7 +137,7 @@ export default function MatchRowCompact({ match }: { match: MatchWithPrediction 
     );
 
     return (
-      <div className={cardClass}>
+      <div onClick={handleCardClick} className={cn(cardClass, "cursor-pointer")}>
         <div className="px-3 py-3">
 
           {/* Status + points */}
@@ -212,7 +196,10 @@ export default function MatchRowCompact({ match }: { match: MatchWithPrediction 
   // 🟢  PROGRAMADO
   // ──────────────────────────────────────────────────────────────────
   return (
-    <div className="rounded-xl border border-[#2a2a45] bg-[#18182a] overflow-hidden">
+    <div
+      onClick={handleCardClick}
+      className="rounded-xl border border-[#2a2a45] bg-[#18182a] overflow-hidden cursor-pointer transition-all hover:border-[#3a3a60]"
+    >
       <div className="px-3 py-3">
 
         {/* Status badge + kickoff */}

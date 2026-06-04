@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
   formatKickoff,
@@ -9,16 +10,9 @@ import {
   type Team,
 } from "@/lib/matches";
 import { Check, Lock } from "lucide-react";
+import { useGoalCelebration } from "@/hooks/useGoalCelebration";
+import GoalCelebrationOverlay from "./GoalCelebrationOverlay";
 
-function computeLiveMinute(startsAt: string): string {
-  const elapsed = Math.floor((Date.now() - new Date(startsAt).getTime()) / 60_000);
-  if (elapsed <= 0)  return "1'";
-  if (elapsed <= 45) return `${elapsed}'`;
-  if (elapsed <= 58) return "HT";
-  if (elapsed <= 90) return `${elapsed - 13}'`;
-  if (elapsed <= 97) return `90+${elapsed - 90}'`;
-  return "67'";
-}
 
 interface MatchRowInGroupProps {
   match: MatchWithPrediction;
@@ -28,14 +22,20 @@ interface MatchRowInGroupProps {
 
 export default function MatchRowInGroup({ match, error, onDirty }: MatchRowInGroupProps) {
   const { home_team, away_team, status } = match;
+  const router = useRouter();
 
-  const [liveMinute, setLiveMinute] = useState("67'");
-  useEffect(() => {
-    if (status !== "live") return;
-    setLiveMinute(computeLiveMinute(match.starts_at));
-    const id = setInterval(() => setLiveMinute(computeLiveMinute(match.starts_at)), 30_000);
-    return () => clearInterval(id);
-  }, [status, match.starts_at]);
+  // Navigate to the match detail page when clicking anywhere that is not
+  // an interactive form element (input, button, select).
+  function handleCardClick(e: React.MouseEvent<HTMLDivElement>) {
+    if ((e.target as Element).closest("input, button, select, a")) return;
+    router.push(`/matches/${match.id}`);
+  }
+
+  const goalAnim = useGoalCelebration(
+    { home: match.home_score, away: match.away_score },
+    status === "live"
+  );
+
 
   const [localDirty, setLocalDirty] = useState(false);
   function handleInputChange() {
@@ -53,7 +53,16 @@ export default function MatchRowInGroup({ match, error, onDirty }: MatchRowInGro
   // ──────────────────────────────────────────────────────────────────
   if (isLive) {
     return (
-      <div className="rounded-xl border border-[#ef4444]/35 bg-gradient-to-br from-[#ef4444]/[0.12] to-[#18182a] animate-live-glow">
+      <div
+        onClick={handleCardClick}
+        className={cn(
+          "relative rounded-xl border border-[#ef4444]/35 bg-gradient-to-br from-[#ef4444]/[0.12] to-[#18182a] overflow-hidden cursor-pointer transition-all hover:border-[#ef4444]/55",
+          // Goal animation replaces the ambient live-glow for its 2 s run.
+          goalAnim ? "animate-goal-card" : "animate-live-glow"
+        )}
+      >
+        <GoalCelebrationOverlay active={goalAnim} />
+
         <div className="px-4 py-4">
 
           {/* Badge row — pill background makes it unmistakable */}
@@ -64,11 +73,6 @@ export default function MatchRowInGroup({ match, error, onDirty }: MatchRowInGro
                 <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-[#ef4444]" />
               </span>
               <span className="text-xs font-black text-[#ef4444] uppercase tracking-wide">EN VIVO</span>
-              <span className="text-[#ef4444]/50 select-none text-[10px]">·</span>
-              {/* Minute counter — same prominence as the badge text */}
-              <span className="text-sm font-black text-[#ef4444] font-mono tabular-nums leading-none">
-                {liveMinute}
-              </span>
             </div>
             <span className="text-[10px] text-[#64748b]">{formatKickoff(match.starts_at)}</span>
           </div>
@@ -142,7 +146,11 @@ export default function MatchRowInGroup({ match, error, onDirty }: MatchRowInGro
                   {};
 
     return (
-      <div className={cn("rounded-xl border", borderClass, bgClass)} style={glowStyle}>
+      <div
+        onClick={handleCardClick}
+        className={cn("rounded-xl border cursor-pointer transition-all", borderClass, bgClass)}
+        style={glowStyle}
+      >
         <div className="px-3 py-3">
 
           {/* Status row */}
@@ -223,10 +231,15 @@ export default function MatchRowInGroup({ match, error, onDirty }: MatchRowInGro
     const isSaved   =  saved && !localDirty;
 
     return (
-      <div className={cn(
-        "rounded-xl border transition-colors",
-        isPending ? "border-[#f59e0b]/30 bg-[#f59e0b]/[0.04]" : "border-[#2a2a45] bg-[#18182a]"
-      )}>
+      <div
+        onClick={handleCardClick}
+        className={cn(
+          "rounded-xl border cursor-pointer transition-all",
+          isPending
+            ? "border-[#f59e0b]/30 bg-[#f59e0b]/[0.04] hover:border-[#f59e0b]/50"
+            : "border-[#2a2a45] bg-[#18182a] hover:border-[#3a3a60]"
+        )}
+      >
         <div className="px-3 py-2.5">
 
           {/* Status badge + optional amber alert */}
@@ -270,7 +283,6 @@ export default function MatchRowInGroup({ match, error, onDirty }: MatchRowInGro
             {isSaved && (
               <div className="flex items-center gap-1">
                 <Check size={9} className="text-[#00c85a] shrink-0" />
-                {/* Full green — confirmation should be clearly visible */}
                 <span className="text-[10px] text-[#00c85a]">Guardado</span>
               </div>
             )}
@@ -287,7 +299,10 @@ export default function MatchRowInGroup({ match, error, onDirty }: MatchRowInGro
   // 🔒  CERRADO
   // ──────────────────────────────────────────────────────────────────
   return (
-    <div className="rounded-xl border border-[#2a2a45] bg-[#18182a]">
+    <div
+      onClick={handleCardClick}
+      className="rounded-xl border border-[#2a2a45] bg-[#18182a] cursor-pointer transition-all hover:border-[#3a3a60]"
+    >
       <div className="px-3 py-3">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-1.5">
@@ -309,7 +324,6 @@ export default function MatchRowInGroup({ match, error, onDirty }: MatchRowInGro
               <span className="font-mono font-bold text-[#94a3b8]">{saved.home_score}–{saved.away_score}</span>
             </span>
           ) : (
-            // Raised from near-invisible #2a2a45 to readable #475569
             <span className="text-xs text-[#475569]">Sin predicción</span>
           )}
         </div>

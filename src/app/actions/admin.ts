@@ -171,10 +171,19 @@ export async function updateMatchResultAction(
 
   if (!matchId || !status) return { error: "Datos incompletos." };
 
-  const homeScore = homeRaw !== "" ? parseInt(homeRaw, 10) : null;
-  const awayScore = awayRaw !== "" ? parseInt(awayRaw, 10) : null;
+  let homeScore = homeRaw !== "" ? parseInt(homeRaw, 10) : null;
+  let awayScore = awayRaw !== "" ? parseInt(awayRaw, 10) : null;
   if (homeScore !== null && isNaN(homeScore)) return { error: "Marcador local inválido." };
   if (awayScore !== null && isNaN(awayScore)) return { error: "Marcador visitante inválido." };
+
+  // Live matches must always have a numeric score.
+  // When the admin transitions a match to "live" without entering scores,
+  // default to 0-0 so the UI never shows "- vs -" and so the client-side
+  // goal-celebration hook never sees a null→0 transition.
+  if (status === "live") {
+    if (homeScore === null) homeScore = 0;
+    if (awayScore === null) awayScore = 0;
+  }
 
   const supabase = await createClient();
 

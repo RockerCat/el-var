@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { Loader2, Check, AlertCircle, ChevronDown, ChevronUp, Users } from "lucide-react";
 import {
   updateMatchResultAction,
@@ -191,6 +191,23 @@ export default function MatchEditorCard({ match }: { match: Match }) {
   const [fixtureState, fixtureAction, fixturePending] =
     useActionState<UpdateFixtureState, FormData>(updateMatchFixtureAction, null);
 
+  // Controlled state for the result form — synced from props so the form
+  // always reflects the latest server-confirmed values after a save.
+  const [statusVal,    setStatusVal]    = useState<string>(match.status);
+  const [homeScoreVal, setHomeScoreVal] = useState(match.home_score ?? "");
+  const [awayScoreVal, setAwayScoreVal] = useState(match.away_score ?? "");
+
+  useEffect(() => { setStatusVal(match.status); },           [match.status]);
+  useEffect(() => { setHomeScoreVal(match.home_score ?? ""); }, [match.home_score]);
+  useEffect(() => { setAwayScoreVal(match.away_score ?? ""); }, [match.away_score]);
+
+  // Controlled state for the fixture form
+  const [startsAtVal, setStartsAtVal] = useState(toDatetimeLocal(match.starts_at));
+  const [groupCodeVal, setGroupCodeVal] = useState(match.group_code ?? "");
+
+  useEffect(() => { setStartsAtVal(toDatetimeLocal(match.starts_at)); }, [match.starts_at]);
+  useEffect(() => { setGroupCodeVal(match.group_code ?? ""); },          [match.group_code]);
+
   // Human-readable label passed to server actions for activity logging
   const matchLabel = `${match.home_team.code} vs ${match.away_team.code}${match.group_code ? ` · Grupo ${match.group_code}` : ""}`;
 
@@ -244,7 +261,8 @@ export default function MatchEditorCard({ match }: { match: Match }) {
               <FieldLabel>Estado</FieldLabel>
               <select
                 name="status"
-                defaultValue={match.status}
+                value={statusVal}
+                onChange={(e) => setStatusVal(e.target.value)}
                 className="h-10 rounded-xl bg-[#0e0e1d] border border-[#2a2a45] text-[#f1f5f9] text-sm px-3 focus:outline-none focus:border-[#00c85a]/60 focus:ring-2 focus:ring-[#00c85a]/10 transition-colors"
               >
                 {STATUS_OPTIONS.map(({ value, label }) => (
@@ -258,7 +276,8 @@ export default function MatchEditorCard({ match }: { match: Match }) {
                 <FieldLabel>{match.home_team.code} (local)</FieldLabel>
                 <AdminInput
                   type="number" name="home_score"
-                  defaultValue={match.home_score ?? ""} min={0} max={30} placeholder="–"
+                  value={homeScoreVal} onChange={(e) => setHomeScoreVal(e.target.value)}
+                  min={0} max={30} placeholder="–"
                   className="text-center tabular-nums"
                 />
               </div>
@@ -266,7 +285,8 @@ export default function MatchEditorCard({ match }: { match: Match }) {
                 <FieldLabel>{match.away_team.code} (visitante)</FieldLabel>
                 <AdminInput
                   type="number" name="away_score"
-                  defaultValue={match.away_score ?? ""} min={0} max={30} placeholder="–"
+                  value={awayScoreVal} onChange={(e) => setAwayScoreVal(e.target.value)}
+                  min={0} max={30} placeholder="–"
                   className="text-center tabular-nums"
                 />
               </div>
@@ -302,7 +322,8 @@ export default function MatchEditorCard({ match }: { match: Match }) {
               <FieldLabel>Kickoff (UTC)</FieldLabel>
               <AdminInput
                 type="datetime-local" name="starts_at"
-                defaultValue={toDatetimeLocal(match.starts_at)} className="w-full"
+                value={startsAtVal} onChange={(e) => setStartsAtVal(e.target.value)}
+                className="w-full"
               />
               <p className="text-[10px] text-[#475569]">La hora ingresada se guardará como UTC.</p>
             </div>
@@ -311,7 +332,8 @@ export default function MatchEditorCard({ match }: { match: Match }) {
               <FieldLabel>Grupo</FieldLabel>
               <AdminInput
                 type="text" name="group_code"
-                defaultValue={match.group_code ?? ""} maxLength={10} placeholder="A, B, C …"
+                value={groupCodeVal} onChange={(e) => setGroupCodeVal(e.target.value.toUpperCase())}
+                maxLength={10} placeholder="A, B, C …"
                 className="uppercase w-28"
               />
             </div>

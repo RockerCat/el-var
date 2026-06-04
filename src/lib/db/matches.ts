@@ -1,6 +1,15 @@
 import { createClient } from "@/lib/supabase/server";
 import type { Match, Prediction, MatchWithPrediction } from "@/lib/matches";
 
+export type MatchPredictionEntry = {
+  user_id:       string;
+  display_name:  string;
+  pred_home:     number;
+  pred_away:     number;
+  points:        number;
+  points_reason: string | null;
+};
+
 type RawMatch = Omit<Match, "home_team" | "away_team"> & {
   home_team: Match["home_team"];
   away_team: Match["away_team"];
@@ -59,4 +68,20 @@ export async function getMatchesWithPredictions(
     ...m,
     prediction: predMap.get(m.id) ?? null,
   }));
+}
+
+export async function getMatchDetailPredictions(
+  matchId: string,
+  groupId: string
+): Promise<MatchPredictionEntry[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("get_match_detail_predictions", {
+    p_match_id: matchId,
+    p_group_id: groupId,
+  });
+  if (error) {
+    console.error("[matches] getMatchDetailPredictions:", error.message);
+    return [];
+  }
+  return (data ?? []) as MatchPredictionEntry[];
 }
