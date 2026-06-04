@@ -81,10 +81,25 @@ export default async function DashboardPage() {
         Mobile (flex-col): user-summary → matches → leaderboard
         Desktop (lg:grid):  user-summary | matches | leaderboard
       */}
+      {/*
+        Mobile  (flex-col + order): matches(1) → user+scoring(2) → leaderboard(3)
+        Desktop (lg:grid, explicit col-start/row-start): order ignored, cols 1|2|3
+      */}
       <div className="flex flex-col gap-5 lg:grid lg:grid-cols-[220px_1fr_200px] lg:items-start lg:gap-6">
 
+        {/* ── Center: featured area + group blocks ─────────────────── */}
+        {/* Mobile: order-1 (first). Desktop: col-2 via explicit grid placement. */}
+        <main className="order-1 lg:order-none lg:col-start-2 lg:row-start-1 min-w-0">
+          {liveMatches.length > 0
+            ? <LiveMatchesSection matches={liveMatches} />
+            : fallbackMatch && <FeaturedMatchCard match={fallbackMatch} />
+          }
+          <PhaseMatchView matches={matches} />
+        </main>
+
         {/* ── Left: user summary + scoring card ────────────────────── */}
-        <aside className="lg:col-start-1 lg:row-start-1 flex flex-col gap-4">
+        {/* Mobile: order-2 (below matches). Desktop: col-1 via grid. */}
+        <aside className="order-2 lg:order-none lg:col-start-1 lg:row-start-1 flex flex-col gap-4">
           <UserSummaryPanel
             displayName={displayName}
             userEntry={userEntry}
@@ -93,18 +108,10 @@ export default async function DashboardPage() {
           <ScoringCard stage={currentStage} />
         </aside>
 
-        {/* ── Center: featured area + group blocks ─────────────────── */}
-        <main className="lg:col-start-2 lg:row-start-1 min-w-0">
-          {liveMatches.length > 0
-            ? <LiveMatchesSection matches={liveMatches} />
-            : fallbackMatch && <FeaturedMatchCard match={fallbackMatch} />
-          }
-          <PhaseMatchView matches={matches} />
-        </main>
-
         {/* ── Right: leaderboard ────────────────────────────────────── */}
+        {/* Mobile: order-3 (last). Desktop: col-3 via grid. */}
         {leaderboard.length > 0 && (
-          <aside className="lg:col-start-3 lg:row-start-1">
+          <aside className="order-3 lg:order-none lg:col-start-3 lg:row-start-1">
             <div className="lg:sticky lg:top-[64px] lg:max-h-[calc(100vh-88px)] lg:overflow-y-auto">
               <LeaderboardPanel leaderboard={leaderboard} currentUserId={user.id} />
             </div>
@@ -251,23 +258,39 @@ function UserSummaryPanel({
   const initial = displayName.charAt(0).toUpperCase();
 
   return (
-    <div className="bg-[#11111c] border border-[#1e1e35] rounded-2xl p-5">
+    <div className="bg-[#11111c] border border-[#1e1e35] rounded-2xl p-4 lg:p-5">
 
-      {/* Avatar + name */}
-      <div className="flex items-center gap-3 mb-5">
-        <div className="w-10 h-10 rounded-full bg-[#00c85a]/15 border border-[#00c85a]/20 flex items-center justify-center shrink-0">
-          <span className="text-sm font-black text-[#00c85a]">{initial}</span>
+      {/* ── Header: avatar + name ── */}
+      {/* Mobile: avatar smaller, rank+pts inline to the right */}
+      {/* Desktop: avatar larger, "La Penúltima" subtitle, rank+pts in cards below */}
+      <div className="flex items-center gap-3 mb-3 lg:mb-5">
+        <div className="w-8 h-8 lg:w-10 lg:h-10 rounded-full bg-[#00c85a]/15 border border-[#00c85a]/20 flex items-center justify-center shrink-0">
+          <span className="text-xs lg:text-sm font-black text-[#00c85a]">{initial}</span>
         </div>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <p className="text-sm font-bold text-[#f1f5f9] truncate">{displayName}</p>
-          <p className="text-[10px] text-[#475569]">La Penúltima</p>
+          <p className="text-[10px] text-[#475569] hidden lg:block">La Penúltima</p>
         </div>
+        {/* Mobile only: rank + pts inline */}
+        {userEntry && (
+          <div className="lg:hidden shrink-0 text-right">
+            <p className={cn(
+              "text-lg font-black leading-none tabular-nums",
+              userEntry.rank <= 3 ? "text-[#f59e0b]" : "text-[#f1f5f9]"
+            )}>
+              #{userEntry.rank}
+            </p>
+            <p className="text-[10px] text-[#475569] tabular-nums mt-0.5">
+              {userEntry.total_points} pts
+            </p>
+          </div>
+        )}
       </div>
 
-      {/* Primary stats: rank + points */}
       {userEntry ? (
         <>
-          <div className="grid grid-cols-2 gap-3 mb-3">
+          {/* Desktop only: big rank + points stat cards */}
+          <div className="hidden lg:grid grid-cols-2 gap-3 mb-3">
             <div className="bg-[#18182a] border border-[#1e1e35] rounded-xl p-3 text-center">
               <p className="text-[10px] text-[#475569] uppercase tracking-wide mb-1.5">
                 Posición
@@ -289,7 +312,7 @@ function UserSummaryPanel({
             </div>
           </div>
 
-          {/* Secondary stats */}
+          {/* Secondary stats — shown on both mobile and desktop */}
           <div className="border-t border-[#1e1e35] pt-3 grid grid-cols-3 gap-1 text-center">
             <div>
               <p className="text-sm font-black text-[#f59e0b] tabular-nums">
@@ -333,7 +356,7 @@ function ScoringCard({ stage }: { stage: import("@/lib/matches").MatchStage }) {
   const scoring    = PHASE_SCORING[stage];
 
   return (
-    <div className="bg-[#11111c] border border-[#1e1e35] rounded-2xl p-5">
+    <div className="bg-[#11111c] border border-[#1e1e35] rounded-2xl p-4 lg:p-5">
       <p className="text-[10px] font-bold text-[#475569] uppercase tracking-widest mb-0.5">
         Sistema de puntos
       </p>
