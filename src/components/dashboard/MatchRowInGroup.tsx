@@ -238,10 +238,7 @@ export default function MatchRowInGroup({ match, error, onDirty }: MatchRowInGro
               </span>
             </div>
             {isPending && (
-              <div className="flex items-center gap-1">
-                <span className="text-[#f59e0b] text-xs leading-none">⚠</span>
-                <span className="text-[10px] font-semibold text-[#f59e0b]">Pronóstico requerido</span>
-              </div>
+              <span className="text-[#f59e0b] text-xs leading-none">⚠</span>
             )}
           </div>
 

@@ -137,6 +137,21 @@ export default function PhaseMatchView({ matches }: PhaseMatchViewProps) {
     [activeStage, stageMatches]
   );
 
+  // Default-open: the block that contains the earliest scheduled (not yet started) match.
+  // Returns null when all matches are finished → every accordion starts collapsed.
+  const defaultOpenKey = useMemo(() => {
+    let earliestMs = Infinity;
+    let key: string | null = null;
+    for (const block of blocks) {
+      for (const m of block.matches) {
+        if (m.status !== "scheduled") continue;
+        const t = new Date(m.starts_at).getTime();
+        if (t < earliestMs) { earliestMs = t; key = block.key; }
+      }
+    }
+    return key;
+  }, [blocks]);
+
   if (matches.length === 0) {
     return (
       <div className="bg-[#18182a] border border-dashed border-[#2a2a45] rounded-2xl p-8 text-center">
@@ -179,7 +194,12 @@ export default function PhaseMatchView({ matches }: PhaseMatchViewProps) {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {blocks.map(({ key, label, matches: blockMatches }) => (
-            <GroupMatchBlock key={key} label={label} matches={blockMatches} />
+            <GroupMatchBlock
+              key={key}
+              label={label}
+              matches={blockMatches}
+              isDefaultOpen={key === defaultOpenKey}
+            />
           ))}
         </div>
       )}
