@@ -10,8 +10,9 @@ import {
   Trophy,
   Link2,
   Activity,
-  LogOut,
+  LayoutGrid,
 } from "lucide-react";
+import LogoutButton from "@/components/auth/LogoutButton";
 
 const NAV = [
   { href: "/admin",             label: "Dashboard",    icon: LayoutDashboard },
@@ -38,11 +39,7 @@ export default function AdminSidebar() {
         <div className="px-5 py-5 border-b border-[#1e1e35]">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-lg bg-[#00c85a] flex items-center justify-center">
-              <svg width="14" height="11" viewBox="0 0 18 14" fill="none">
-                <path d="M1 1L5.5 12L9 5L12.5 12L17 1"
-                  stroke="#0a0a12" strokeWidth="2.2"
-                  strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
+              <span className="text-sm leading-none">🏆</span>
             </div>
             <div>
               <p className="text-xs font-black text-[#f1f5f9] leading-none">La Penúltima</p>
@@ -71,14 +68,15 @@ export default function AdminSidebar() {
         </nav>
 
         {/* Footer */}
-        <div className="px-3 pb-5 border-t border-[#1e1e35] pt-3">
+        <div className="px-3 pb-5 border-t border-[#1e1e35] pt-3 flex flex-col gap-0.5">
           <Link
             href="/dashboard"
             className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-[#475569] hover:text-[#64748b] hover:bg-[#18182a] transition-colors"
           >
-            <LogOut size={15} strokeWidth={1.8} />
+            <LayoutGrid size={15} strokeWidth={1.8} />
             Ver como jugador
           </Link>
+          <LogoutButton />
         </div>
       </aside>
 
@@ -104,6 +102,7 @@ export default function AdminSidebar() {
                 <Icon size={16} strokeWidth={isActive(href) ? 2.2 : 1.8} />
               </Link>
             ))}
+            <LogoutButton compact />
           </nav>
         </div>
       </header>

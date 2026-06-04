@@ -4,15 +4,7 @@ export default function Footer() {
       <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-2">
           <div className="w-6 h-6 rounded-md bg-[#00c85a] flex items-center justify-center">
-            <svg width="14" height="10" viewBox="0 0 18 14" fill="none">
-              <path
-                d="M1 1L5.5 12L9 5L12.5 12L17 1"
-                stroke="#0a0a12"
-                strokeWidth="2.2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
+            <span className="text-xs leading-none">🏆</span>
           </div>
           <span className="text-sm font-bold text-[#f1f5f9]">
             La <span className="text-[#00c85a]">Penúltima</span>

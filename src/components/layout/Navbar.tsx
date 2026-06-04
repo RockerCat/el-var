@@ -98,15 +98,7 @@ function GuestNav() {
 function VarLogo() {
   return (
     <div className="w-8 h-8 rounded-lg bg-[#00c85a] flex items-center justify-center">
-      <svg width="18" height="14" viewBox="0 0 18 14" fill="none">
-        <path
-          d="M1 1L5.5 12L9 5L12.5 12L17 1"
-          stroke="#0a0a12"
-          strokeWidth="2.2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
+      <span className="text-base leading-none">🏆</span>
     </div>
   );
 }

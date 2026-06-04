@@ -7,9 +7,9 @@ import { Home, Trophy, Users, User } from "lucide-react";
 
 const navItems = [
   { href: "/dashboard", label: "Inicio", icon: Home },
-  { href: "/dashboard/leaderboard", label: "Tabla", icon: Trophy },
+  { href: "/leaderboard", label: "Tabla", icon: Trophy },
   { href: "/community", label: "Comunidad", icon: Users },
-  { href: "/dashboard/profile", label: "Perfil", icon: User },
+  { href: "/profile", label: "Perfil", icon: User },
 ];
 
 export default function BottomNav() {
