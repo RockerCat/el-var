@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { isAdmin, isUserDisabled } from "@/lib/db/admin";
-import { isGroupMember } from "@/lib/db/groups";
+import { isGroupMember, getActivePlayerCount } from "@/lib/db/groups";
 import { getMatchesWithPredictions } from "@/lib/db/matches";
 import {
   detectCurrentStage,
@@ -9,6 +9,7 @@ import {
   PHASE_SCORING,
   type MatchStage,
 } from "@/lib/matches";
+import { computePrizePool, formatCOP } from "@/lib/groups";
 import { cn } from "@/lib/utils";
 
 // Ordered rows for the scoring table (third_place shares Semifinal tier)
@@ -38,9 +39,37 @@ export default async function RulesPage() {
   if (await isUserDisabled(user.id)) redirect("/disabled");
   if (!(await isGroupMember(user.id))) redirect("/no-access");
 
-  const matches = await getMatchesWithPredictions(user.id);
+  // Fetch matches and group prize config in parallel
+  const [matches, groupResult] = await Promise.all([
+    getMatchesWithPredictions(user.id),
+    supabase
+      .from("groups")
+      .select("id, entry_fee, first_place_pct, second_place_pct")
+      .limit(1)
+      .single(),
+  ]);
+
   const currentStage = detectCurrentStage(matches);
   const currentPhaseLabel = PHASE_LABELS[currentStage];
+
+  const groupData = groupResult.data as {
+    id:               string;
+    entry_fee:        number | null;
+    first_place_pct:  number | null;
+    second_place_pct: number | null;
+  } | null;
+
+  const activePlayers = groupData ? await getActivePlayerCount(groupData.id) : 0;
+  const prizePool = groupData
+    ? computePrizePool(
+        {
+          entry_fee:        groupData.entry_fee        ?? 0,
+          first_place_pct:  groupData.first_place_pct  ?? 70,
+          second_place_pct: groupData.second_place_pct ?? 30,
+        },
+        activePlayers
+      )
+    : null;
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 space-y-8">
@@ -55,6 +84,52 @@ export default async function RulesPage() {
           <span className="font-semibold text-[#94a3b8]">{currentPhaseLabel}</span>
         </p>
       </div>
+
+      {/* ── Prize pool ────────────────────────────────────────────────── */}
+      {prizePool && (
+        <section>
+          <SectionHeader title="💰 Bolsa de premios" />
+          <div className="bg-[#11111c] border border-[#1e1e35] rounded-2xl overflow-hidden">
+
+            {/* Summary row */}
+            <div className="px-5 py-4 border-b border-[#1e1e35] flex items-center justify-between gap-4 flex-wrap">
+              <div className="space-y-1">
+                <p className="text-[10px] text-[#64748b] uppercase tracking-widest">Total recaudado</p>
+                <p className="text-3xl font-black text-[#f1f5f9] tabular-nums">{formatCOP(prizePool.total)}</p>
+              </div>
+              <div className="text-right space-y-1">
+                <p className="text-xs text-[#94a3b8]">
+                  {prizePool.member_count} jugador{prizePool.member_count !== 1 ? "es" : ""} × {formatCOP(prizePool.config.entry_fee)}
+                </p>
+                <p className="text-[10px] text-[#64748b]">Solo jugadores activos</p>
+              </div>
+            </div>
+
+            {/* Prize split */}
+            <div className="divide-y divide-[#1e1e35]">
+              <PrizeSplitRow
+                medal="🥇"
+                label="1er lugar"
+                pct={prizePool.config.first_place_pct}
+                amount={prizePool.first_prize}
+                accent="yellow"
+              />
+              <PrizeSplitRow
+                medal="🥈"
+                label="2do lugar"
+                pct={prizePool.config.second_place_pct}
+                amount={prizePool.second_prize}
+                accent="silver"
+              />
+            </div>
+
+            {/* Note */}
+            <p className="px-5 py-3 text-[10px] text-[#475569] border-t border-[#1e1e35]">
+              Los montos se actualizan automáticamente según el número de participantes registrados.
+            </p>
+          </div>
+        </section>
+      )}
 
       {/* ── Scoring table ─────────────────────────────────────────────── */}
       <section>
@@ -192,6 +267,36 @@ export default async function RulesPage() {
         </div>
       </section>
 
+    </div>
+  );
+}
+
+function PrizeSplitRow({
+  medal,
+  label,
+  pct,
+  amount,
+  accent,
+}: {
+  medal:  string;
+  label:  string;
+  pct:    number;
+  amount: number;
+  accent: "yellow" | "silver";
+}) {
+  const amountColor = accent === "yellow" ? "text-[#f59e0b]" : "text-[#94a3b8]";
+  const pctColor    = accent === "yellow" ? "text-[#f59e0b]/70" : "text-[#64748b]";
+
+  return (
+    <div className="flex items-center gap-4 px-5 py-4">
+      <span className="text-xl leading-none shrink-0">{medal}</span>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-bold text-[#f1f5f9]">{label}</p>
+        <p className={cn("text-[10px] tabular-nums", pctColor)}>{pct}% del total</p>
+      </div>
+      <p className={cn("text-xl font-black tabular-nums shrink-0", amountColor)}>
+        {formatCOP(amount)}
+      </p>
     </div>
   );
 }

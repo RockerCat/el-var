@@ -180,9 +180,9 @@ export default function LoginForm({ inviteCode }: LoginFormProps) {
           <Input label="Contraseña" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} leftIcon={<Lock size={16} />} required autoComplete="current-password" />
 
           <div className="flex justify-end">
-            <button type="button" className="text-xs text-[#94a3b8] hover:text-[#00c85a] transition-colors">
+            <Link href="/forgot-password" className="text-xs text-[#94a3b8] hover:text-[#00c85a] transition-colors">
               ¿Olvidaste tu contraseña?
-            </button>
+            </Link>
           </div>
 
           {error && (
@@ -201,7 +201,7 @@ export default function LoginForm({ inviteCode }: LoginFormProps) {
           <p className="text-sm text-[#94a3b8]">
             ¿No tienes cuenta?{" "}
             <Link
-              href={inviteCode ? `/signup?invite=${inviteCode}` : "/signup"}
+              href={inviteCode ? `/signup?invite=${inviteCode}` : "/join"}
               className="text-[#00c85a] font-semibold hover:text-[#00e87a]"
             >
               {inviteCode ? "Crear cuenta" : "Únete por invitación"}

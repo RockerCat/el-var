@@ -1,24 +1,16 @@
 import { getAdminCommunityGroup } from "@/lib/db/admin";
+import { getActivePlayerCount } from "@/lib/db/groups";
 import CopyInviteLinkButton from "@/components/groups/CopyInviteLinkButton";
 import CopyButton from "@/components/groups/CopyButton";
 import InvitationMessageButton from "@/components/admin/InvitationMessageButton";
 import PrizeConfigForm from "@/components/admin/PrizeConfigForm";
 import { ShieldAlert } from "lucide-react";
 import { formatCOP, computePrizePool } from "@/lib/groups";
-import { createClient } from "@/lib/supabase/server";
-
-async function getMemberCount(groupId: string): Promise<number> {
-  const supabase = await createClient();
-  const { count } = await supabase
-    .from("group_members")
-    .select("id", { count: "exact", head: true })
-    .eq("group_id", groupId);
-  return count ?? 0;
-}
 
 export default async function AdminInvitationsPage() {
   const group = await getAdminCommunityGroup();
-  const memberCount = group ? await getMemberCount(group.id) : 0;
+  // Use active player count (excludes admins and disabled users) for prize calculations
+  const activePlayers = group ? await getActivePlayerCount(group.id) : 0;
 
   const prizePool = group
     ? computePrizePool(
@@ -27,7 +19,7 @@ export default async function AdminInvitationsPage() {
           first_place_pct:  group.first_place_pct  ?? 70,
           second_place_pct: group.second_place_pct ?? 30,
         },
-        memberCount
+        activePlayers
       )
     : null;
 
@@ -92,7 +84,7 @@ export default async function AdminInvitationsPage() {
               <div className="bg-[#18182a] border border-[#2a2a45] rounded-xl p-4 space-y-2">
                 <p className="text-[10px] text-[#64748b] uppercase tracking-widest">Vista previa</p>
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-[#94a3b8]">{memberCount} participantes × {formatCOP(prizePool.config.entry_fee)}</span>
+                  <span className="text-xs text-[#94a3b8]">{activePlayers} jugadores activos × {formatCOP(prizePool.config.entry_fee)}</span>
                   <span className="text-base font-black text-[#f1f5f9]">{formatCOP(prizePool.total)}</span>
                 </div>
                 <div className="text-xs text-[#94a3b8] space-y-0.5">

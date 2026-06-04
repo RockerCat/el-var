@@ -6,6 +6,7 @@ import { getMatchesWithPredictions } from "@/lib/db/matches";
 import { isAdmin, isUserDisabled } from "@/lib/db/admin";
 import { matchClosedReason } from "@/lib/matches";
 import { cn } from "@/lib/utils";
+import ChangePasswordForm from "@/components/auth/ChangePasswordForm";
 
 export default async function ProfilePage() {
   const supabase = await createClient();
@@ -131,6 +132,14 @@ export default async function ProfilePage() {
           </p>
         </div>
       )}
+
+      {/* Security */}
+      <div className="bg-[#11111c] border border-[#1e1e35] rounded-2xl p-5">
+        <p className="text-[10px] font-bold text-[#64748b] uppercase tracking-widest mb-4">
+          Seguridad
+        </p>
+        <ChangePasswordForm />
+      </div>
 
     </div>
   );

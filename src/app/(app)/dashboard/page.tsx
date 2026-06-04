@@ -3,10 +3,9 @@ import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
 import PhaseMatchView from "@/components/dashboard/PhaseMatchView";
 import { getMatchesWithPredictions } from "@/lib/db/matches";
-import { getUserGroupsWithMeta } from "@/lib/db/groups";
+import { getUserGroupsWithMeta, isGroupMember, getActivePlayerCount } from "@/lib/db/groups";
 import { getGroupLeaderboard } from "@/lib/db/leaderboard";
 import { isAdmin, isUserDisabled } from "@/lib/db/admin";
-import { isGroupMember } from "@/lib/db/groups";
 import {
   matchClosedReason,
   formatKickoff,
@@ -46,7 +45,10 @@ export default async function DashboardPage() {
   ]);
 
   const community   = groups[0] ?? null;
-  const leaderboard = community ? await getGroupLeaderboard(community.id) : [];
+  const [leaderboard, activePlayers] = await Promise.all([
+    community ? getGroupLeaderboard(community.id) : Promise.resolve([]),
+    community ? getActivePlayerCount(community.id) : Promise.resolve(0),
+  ]);
   const userEntry   = leaderboard.find((e) => e.user_id === user.id) ?? null;
 
   // Scheduled matches with open prediction window and no prediction yet
@@ -82,7 +84,7 @@ export default async function DashboardPage() {
           first_place_pct:  community.first_place_pct  ?? 70,
           second_place_pct: community.second_place_pct ?? 30,
         },
-        community.member_count
+        activePlayers   // active players only — excludes admins and disabled users
       )
     : null;
 

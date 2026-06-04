@@ -1,6 +1,22 @@
 import { createClient } from "@/lib/supabase/server";
 import type { GroupWithMeta } from "@/lib/groups";
 
+/**
+ * Returns the count of active (non-admin, non-disabled) players in a group.
+ * Use this instead of raw group_members count for prize pool calculations.
+ */
+export async function getActivePlayerCount(groupId: string): Promise<number> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("get_active_player_count", {
+    p_group_id: groupId,
+  });
+  if (error) {
+    console.error("[getActivePlayerCount]", error.message);
+    return 0;
+  }
+  return (data as number) ?? 0;
+}
+
 /** Fast membership check — a single row lookup, no joins. */
 export async function isGroupMember(userId: string): Promise<boolean> {
   const supabase = await createClient();

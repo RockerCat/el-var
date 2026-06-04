@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getUserGroupsWithMeta, isGroupMember } from "@/lib/db/groups";
+import { getUserGroupsWithMeta, isGroupMember, getActivePlayerCount } from "@/lib/db/groups";
 import { getGroupLeaderboard } from "@/lib/db/leaderboard";
 import { isAdmin, isUserDisabled } from "@/lib/db/admin";
 import { cn } from "@/lib/utils";
@@ -16,7 +16,10 @@ export default async function LeaderboardPage() {
 
   const groups = await getUserGroupsWithMeta(user.id);
   const community = groups[0] ?? null;
-  const leaderboard = community ? await getGroupLeaderboard(community.id) : [];
+  const [leaderboard, activePlayers] = await Promise.all([
+    community ? getGroupLeaderboard(community.id) : Promise.resolve([]),
+    community ? getActivePlayerCount(community.id) : Promise.resolve(0),
+  ]);
 
   const prizePool = community
     ? computePrizePool(
@@ -25,7 +28,7 @@ export default async function LeaderboardPage() {
           first_place_pct:  community.first_place_pct  ?? 70,
           second_place_pct: community.second_place_pct ?? 30,
         },
-        community.member_count
+        activePlayers
       )
     : null;
 

@@ -4,6 +4,7 @@ import { Crown, Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getGroupLeaderboard, getGroupActivity } from "@/lib/db/leaderboard";
 import { isUserDisabled } from "@/lib/db/admin";
+import { getActivePlayerCount } from "@/lib/db/groups";
 import Leaderboard from "@/components/groups/Leaderboard";
 import MemberList from "@/components/groups/MemberList";
 import GroupStats from "@/components/groups/GroupStats";
@@ -57,8 +58,8 @@ export default async function GroupPage({
   const memberCount = group.group_members?.[0]?.count ?? 0;
   const isOwner = group.owner_id === user.id;
 
-  // Parallel fetch: leaderboard, activity, member join dates, match counts
-  const [leaderboard, activity, membersResult, matchesResult] = await Promise.all([
+  // Parallel fetch: leaderboard, activity, member join dates, match counts, active player count
+  const [leaderboard, activity, membersResult, matchesResult, activePlayers] = await Promise.all([
     getGroupLeaderboard(groupId),
     getGroupActivity(groupId),
     supabase
@@ -67,6 +68,7 @@ export default async function GroupPage({
       .eq("group_id", groupId)
       .order("joined_at", { ascending: true }),
     supabase.from("matches").select("status"),
+    getActivePlayerCount(groupId),
   ]);
 
   // Derive members: names come from leaderboard, join dates from group_members
@@ -93,7 +95,7 @@ export default async function GroupPage({
       first_place_pct:  group.first_place_pct  ?? 70,
       second_place_pct: group.second_place_pct ?? 30,
     },
-    memberCount
+    activePlayers   // active players only — excludes admins and disabled users
   );
 
   // Current user context
