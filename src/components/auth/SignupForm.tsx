@@ -10,7 +10,7 @@ import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import { createClient } from "@/lib/supabase/client";
 import { getAuthErrorMessage, validatePassword } from "@/lib/auth-errors";
-import { joinGroupAction } from "@/app/actions/groups";
+import type { Session } from "@supabase/supabase-js";
 
 interface SignupFormProps {
   inviteCode: string | null;
@@ -30,7 +30,6 @@ export default function SignupForm({ inviteCode, groupName }: SignupFormProps) {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
-  const [emailConfirmationNeeded, setEmailConfirmationNeeded] = useState(false);
   const [joinStatus, setJoinStatus] = useState<JoinStatus | null>(null);
 
   function handlePasswordChange(value: string) {
@@ -48,14 +47,16 @@ export default function SignupForm({ inviteCode, groupName }: SignupFormProps) {
     setPasswordError(null);
     setLoading(true);
 
-    // ── 1. Log what we received ───────────────────────────────────────
-    console.log("[SignupForm] handleSubmit →", {
+    console.log("[signupInvite] handleSubmit →", {
       email,
       inviteCode,
       groupName,
       hasInviteCode: !!inviteCode,
     });
 
+    // ── 1. Create account ─────────────────────────────────────────────
+    // Use the browser client — we'll reuse this same instance for the
+    // join RPC so the in-memory session is guaranteed to be available.
     const supabase = createClient();
     const { data, error: authError } = await supabase.auth.signUp({
       email,
@@ -64,78 +65,118 @@ export default function SignupForm({ inviteCode, groupName }: SignupFormProps) {
     });
 
     if (authError) {
+      console.error("[signupInvite] signUp error:", authError.message);
       setError(getAuthErrorMessage(authError));
       setLoading(false);
       return;
     }
 
-    // ── 2. Log session state ──────────────────────────────────────────
-    console.log("[SignupForm] signUp result →", {
-      userId:           data.user?.id ?? null,
-      sessionExists:    !!data.session,
-      sessionToken:     data.session?.access_token
-                          ? `${data.session.access_token.slice(0, 20)}...`
-                          : null,
-      emailConfirmNeeded: !data.session && !!data.user,
+    console.log("[signupInvite] signUp result →", {
+      userId:         data.user?.id ?? null,
+      sessionExists:  !!data.session,
     });
 
-    // ── Email confirmation required ───────────────────────────────────
-    if (data.user && !data.session) {
-      setEmailConfirmationNeeded(true);
+    // ── 2. Resolve session ────────────────────────────────────────────
+    // With email confirmation OFF, signUp returns a session inline.
+    // If not (misconfiguration), fall back to signInWithPassword so the
+    // flow never shows a "check your email" screen for this internal app.
+    let session: Session | null = data.session;
+
+    if (!session && data.user) {
+      console.log("[signupInvite] no inline session — attempting signInWithPassword fallback");
+      const { data: signInData, error: signInErr } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      console.log("[signupInvite] signInWithPassword fallback →", {
+        sessionExists: !!signInData.session,
+        error:         signInErr?.message ?? null,
+      });
+      if (signInErr || !signInData.session) {
+        setError(
+          "Cuenta creada, pero no se pudo iniciar sesión automáticamente. " +
+          "El administrador debe desactivar la confirmación de correo en " +
+          "Supabase → Authentication → Providers → Email → Confirm email."
+        );
+        setLoading(false);
+        return;
+      }
+      session = signInData.session;
+    }
+
+    if (!session) {
+      console.error("[signupInvite] no session after signUp + fallback — aborting");
+      setError("No se pudo crear la sesión. Intenta de nuevo.");
       setLoading(false);
       return;
     }
 
-    // ── Session present — try to auto-join ───────────────────────────
-    if (data.session) {
-      if (inviteCode) {
-        console.log("[SignupForm] session OK, calling joinGroupAction with code:", inviteCode);
-        setJoinStatus({ phase: "joining" });
+    console.log("[signupInvite] session confirmed → userId:", session.user.id);
 
-        const fd = new FormData();
-        fd.set("invite_code", inviteCode);
-        const joinResult = await joinGroupAction(null, fd);
+    // ── 3. Join the group ─────────────────────────────────────────────
+    // IMPORTANT: We call join_group_for_user directly on the browser
+    // Supabase client — NOT via a Server Action. The browser client
+    // already has the session JWT in memory from the signUp call above.
+    // A Server Action would need to read the JWT from cookies, but those
+    // cookies may not be flushed into the outgoing request headers before
+    // the Server Action POST fires, causing auth.uid() = null in the DB.
+    if (inviteCode) {
+      setJoinStatus({ phase: "joining" });
 
-        // ── 3. Log the full join result ──────────────────────────────
-        console.log("[SignupForm] joinGroupAction result →", JSON.stringify(joinResult, null, 2));
+      console.log("[signupInvite][joinGroupAfterSignup] calling join_group_for_user RPC →", {
+        inviteCode,
+        userId: session.user.id,
+      });
 
-        if (joinResult && "error" in joinResult) {
-          const status: JoinStatus = {
-            phase:     "error",
-            userMsg:   joinResult.error,
-            devDetail: joinResult.devMessage,
-          };
-          setJoinStatus(status);
-          setLoading(false);
-          // DON'T redirect — show the error so the user can report it
-          return;
-        }
+      const { data: groupId, error: joinError } = await supabase.rpc(
+        "join_group_for_user",
+        { p_invite_code: inviteCode }
+      );
 
-        if (joinResult && "success" in joinResult) {
-          setJoinStatus({
-            phase:     "success",
-            groupName: joinResult.group?.name ?? groupName ?? "el grupo",
-          });
-          console.log("[SignupForm] join SUCCESS ✓, redirecting in 1.5s");
-          setTimeout(() => {
-            router.push("/dashboard");
-            router.refresh();
-          }, 1500);
-          return;
-        }
-      } else {
-        // No invite code — plain signup
+      console.log("[signupInvite][joinGroupAfterSignup] RPC result →", {
+        groupId,
+        error:     joinError?.message  ?? null,
+        errorCode: joinError?.code     ?? null,
+        errorHint: joinError?.hint     ?? null,
+      });
+
+      if (joinError) {
+        setJoinStatus({
+          phase:     "error",
+          userMsg:   "La cuenta fue creada, pero no se pudo unir al grupo. Intenta iniciar sesión con el enlace de invitación.",
+          devDetail: joinError.message,
+        });
+        setLoading(false);
+        return;
+      }
+
+      // Fetch group name for the success card
+      const { data: group } = await supabase
+        .from("groups")
+        .select("name")
+        .eq("id", groupId as string)
+        .maybeSingle();
+
+      console.log("[signupInvite][joinGroupAfterSignup] join SUCCESS ✓ → groupId:", groupId, "name:", group?.name);
+
+      setJoinStatus({
+        phase:     "success",
+        groupName: group?.name ?? groupName ?? "La Penúltima",
+      });
+
+      setTimeout(() => {
+        console.log("[signupInvite] redirecting to /dashboard");
         router.push("/dashboard");
         router.refresh();
-      }
+      }, 1500);
+      return;
     }
 
+    // No invite code (shouldn't reach here due to signup page gate, but handle gracefully)
+    console.log("[signupInvite] no invite code — redirecting to /dashboard");
+    router.push("/dashboard");
+    router.refresh();
     setLoading(false);
-  }
-
-  // ── Email confirmation screen ────────────────────────────────────────
-  if (emailConfirmationNeeded) {
-    return <EmailConfirmationScreen email={email} inviteCode={inviteCode} />;
   }
 
   // ── Join status overlay ──────────────────────────────────────────────
@@ -307,45 +348,3 @@ function JoinStatusCard({
   );
 }
 
-// ── Email confirmation screen ────────────────────────────────────────────
-
-function EmailConfirmationScreen({
-  email,
-  inviteCode,
-}: {
-  email: string;
-  inviteCode: string | null;
-}) {
-  return (
-    <div className="w-full max-w-sm animate-fade-in-up text-center">
-      <div className="w-16 h-16 rounded-2xl bg-[#00c85a]/15 flex items-center justify-center mx-auto mb-6">
-        <CheckCircle2 size={32} className="text-[#00c85a]" />
-      </div>
-      <h2 className="text-2xl font-black text-[#f1f5f9] mb-2">Revisa tu correo</h2>
-      <p className="text-[#64748b] text-sm leading-relaxed mb-2">
-        Te enviamos un enlace de confirmación a:
-      </p>
-      <p className="text-[#f1f5f9] font-semibold text-sm mb-6">{email}</p>
-      <Card className="p-4 text-left">
-        <p className="text-xs text-[#475569] leading-relaxed">
-          Confirma tu correo para activar tu cuenta.
-          {inviteCode && " Luego visita el enlace de invitación para unirte al grupo."}
-          {" "}Si no lo ves, revisa tu carpeta de spam.
-        </p>
-      </Card>
-      <div className="mt-6 flex flex-col gap-3">
-        {inviteCode && (
-          <Link
-            href={`/invite/${inviteCode}`}
-            className="flex items-center justify-center h-11 w-full bg-[#18182a] text-[#94a3b8] text-sm font-medium rounded-xl border border-[#2a2a45] hover:border-[#3b3b60] hover:text-[#f1f5f9] transition-colors"
-          >
-            Ir al enlace de invitación
-          </Link>
-        )}
-        <Link href="/login" className="text-sm text-[#00c85a] font-semibold hover:text-[#00e87a]">
-          Volver al inicio de sesión
-        </Link>
-      </div>
-    </div>
-  );
-}

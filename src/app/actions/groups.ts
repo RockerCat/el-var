@@ -87,90 +87,127 @@ export async function joinGroupAction(
     ?.trim()
     .toUpperCase() ?? "";
 
-  // ── Step 1 ────────────────────────────────────────────────────────
-  console.log("[joinGroup] invite_code:", code);
+  console.log("[inviteJoin] joinGroupAction called → code:", code);
 
-  if (code.length < 4) return { error: "Ingresa un código de invitación válido." };
-
-  const supabase = await createClient();
-
-  // ── Step 2: Auth API check ────────────────────────────────────────
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-  console.log("[joinGroup] getUser →", {
-    userId:    user?.id ?? null,
-    authError: authError?.message ?? null,
-  });
-
-  if (authError || !user) {
-    const detail = authError ? fmtError("getUser", authError) : "getUser returned null user";
-    console.error("[joinGroup] auth failed:", detail);
-    return { error: "Debes iniciar sesión.", devMessage: isDev ? detail : undefined };
+  if (code.length < 4) {
+    return { error: "Ingresa un código de invitación válido." };
   }
 
-  // ── Step 3: join_group_for_user RPC ──────────────────────────────
-  // Returns UUID on success, throws EXCEPTION on error.
-  console.log("[joinGroup] calling join_group_for_user, code:", code, "userId:", user.id);
+  try {
+    const supabase = await createClient();
 
-  const { data: groupId, error: rpcError } = await supabase.rpc(
-    "join_group_for_user",
-    { p_invite_code: code }
-  );
+    // ── Auth check ────────────────────────────────────────────────────
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    console.log("[inviteJoin] getUser →", {
+      userId:    user?.id ?? null,
+      authError: authError?.message ?? null,
+    });
 
-  console.log("[joinGroup] RPC response →", {
-    groupId,
-    rpcErrorMsg:  rpcError?.message  ?? null,
-    rpcErrorCode: rpcError?.code     ?? null,
-    rpcErrorHint: rpcError?.hint     ?? null,
-  });
+    if (authError || !user) {
+      const detail = authError ? fmtError("getUser", authError) : "getUser returned null user";
+      console.error("[inviteJoin] auth failed:", detail);
+      return { error: "Debes iniciar sesión.", devMessage: isDev ? detail : undefined };
+    }
 
-  if (rpcError) {
-    const msg = rpcError.message;
+    // ── Already a member? Return success immediately ───────────────────
+    // Idempotency guard: avoids a redundant RPC call if the user is already
+    // in group_members (e.g. invite link opened twice, or login after signup).
+    const { data: existing } = await supabase
+      .from("group_members")
+      .select("group_id")
+      .eq("user_id", user.id)
+      .maybeSingle();
 
-    if (msg === "not_authenticated") {
-      const detail = "auth.uid() is NULL in the PostgREST session — JWT did not reach the database layer";
-      console.error("[joinGroup] ✗ not_authenticated:", detail);
+    if (existing) {
+      console.log("[inviteJoin] user already a member of group_id:", existing.group_id, "— returning success");
+      const { data: group } = await supabase
+        .from("groups")
+        .select("id, name, invite_code")
+        .eq("id", existing.group_id)
+        .maybeSingle();
+      revalidatePath("/dashboard");
       return {
-        error: "Problema de autenticación. Cierra sesión, vuelve a ingresar e intenta de nuevo.",
-        devMessage: isDev ? `[not_authenticated] ${detail}` : undefined,
+        success: true,
+        group: {
+          id:          existing.group_id,
+          name:        group?.name        ?? "La Penúltima",
+          invite_code: group?.invite_code ?? code,
+        },
       };
     }
 
-    if (msg === "invalid_code") {
-      console.log("[joinGroup] ✗ invalid_code for:", code);
-      return { error: "Código inválido. Verifica que esté bien escrito." };
+    // ── join_group_for_user RPC ───────────────────────────────────────
+    console.log("[inviteJoin] calling join_group_for_user RPC →", { code, userId: user.id });
+
+    const { data: groupId, error: rpcError } = await supabase.rpc(
+      "join_group_for_user",
+      { p_invite_code: code }
+    );
+
+    console.log("[inviteJoin] RPC response →", {
+      groupId,
+      rpcErrorMsg:  rpcError?.message  ?? null,
+      rpcErrorCode: rpcError?.code     ?? null,
+      rpcErrorHint: rpcError?.hint     ?? null,
+    });
+
+    if (rpcError) {
+      const msg = rpcError.message;
+
+      if (msg === "not_authenticated") {
+        const detail = "auth.uid() is NULL — JWT did not reach the DB layer. " +
+          "This happens when the Server Action runs before auth cookies are set. " +
+          "Use the client-side RPC call after signup instead.";
+        console.error("[inviteJoin] ✗ not_authenticated:", detail);
+        return {
+          error: "Problema de autenticación. Cierra sesión, vuelve a ingresar e intenta de nuevo.",
+          devMessage: isDev ? detail : undefined,
+        };
+      }
+
+      if (msg === "invalid_code") {
+        console.error("[inviteJoin] ✗ invalid_code for:", code);
+        return { error: "Código inválido. Verifica que esté bien escrito." };
+      }
+
+      const detail = fmtError("rpc.join_group_for_user", rpcError);
+      console.error("[inviteJoin] ✗ unexpected RPC error:", detail);
+      return {
+        error: "No se pudo unir al grupo. Intenta de nuevo.",
+        devMessage: isDev ? detail : undefined,
+      };
     }
 
-    // Unexpected RPC error (function missing, syntax error, etc.)
-    const detail = fmtError("rpc.join_group_for_user", rpcError);
-    console.error("[joinGroup] ✗ unexpected RPC error:", detail);
+    // ── Success ───────────────────────────────────────────────────────
+    console.log("[inviteJoin] ✓ joined group_id:", groupId);
+
+    const { data: group, error: selectError } = await supabase
+      .from("groups")
+      .select("id, name, invite_code")
+      .eq("id", groupId as string)
+      .maybeSingle();
+
+    console.log("[inviteJoin] group SELECT →", {
+      found:       !!group,
+      selectError: selectError?.message ?? null,
+    });
+
+    revalidatePath("/dashboard");
     return {
-      error: "No se pudo unir al grupo. Intenta de nuevo.",
+      success: true,
+      group: {
+        id:          groupId as string,
+        name:        group?.name        ?? "La Penúltima",
+        invite_code: group?.invite_code ?? code,
+      },
+    };
+
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : String(err);
+    console.error("[inviteJoin] ✗ uncaught exception:", detail);
+    return {
+      error: "Error inesperado al unirse al grupo. Intenta de nuevo.",
       devMessage: isDev ? detail : undefined,
     };
   }
-
-  // ── Step 4: success ───────────────────────────────────────────────
-  console.log("[joinGroup] ✓ joined group_id:", groupId);
-
-  // Fetch name for the success card (user is now a member — RLS allows this)
-  const { data: group, error: selectError } = await supabase
-    .from("groups")
-    .select("id, name, invite_code")
-    .eq("id", groupId as string)
-    .single();
-
-  console.log("[joinGroup] group SELECT →", {
-    found:       !!group,
-    selectError: selectError?.message ?? null,
-  });
-
-  revalidatePath("/dashboard");
-  return {
-    success: true,
-    group: {
-      id:          groupId as string,
-      name:        group?.name        ?? "Grupo",
-      invite_code: group?.invite_code ?? code,
-    },
-  };
 }
