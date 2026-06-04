@@ -9,6 +9,7 @@ import { isAdmin } from "@/lib/db/admin";
 export type ToggleUserState    = { error: string } | { success: true } | null;
 export type UpdateMatchState   = { error: string } | { success: true; scored: number } | null;
 export type UpdateFixtureState = { error: string } | { success: true } | null;
+export type UpdatePrizeState   = { error: string } | { success: true } | null;
 export type RecalculateState   =
   | { error: string }
   | { success: true; matches_processed: number; predictions_scored: number }
@@ -288,6 +289,51 @@ export async function updateMatchFixtureAction(
   });
 
   revalidatePath("/admin/matches");
+  revalidatePath("/dashboard");
+  return { success: true };
+}
+
+// ── updateGroupPrizeAction ────────────────────────────────────────────
+// Saves entry fee and prize percentages for the community group.
+
+export async function updateGroupPrizeAction(
+  _prev: UpdatePrizeState,
+  formData: FormData
+): Promise<UpdatePrizeState> {
+  const groupId       = (formData.get("group_id")         as string | null) ?? "";
+  const entryRaw      = (formData.get("entry_fee")         as string | null) ?? "";
+  const firstRaw      = (formData.get("first_place_pct")   as string | null) ?? "";
+  const secondRaw     = (formData.get("second_place_pct")  as string | null) ?? "";
+
+  if (!groupId) return { error: "Grupo no encontrado." };
+
+  const entryFee       = parseInt(entryRaw,  10);
+  const firstPlacePct  = parseInt(firstRaw,  10);
+  const secondPlacePct = parseInt(secondRaw, 10);
+
+  if (isNaN(entryFee)  || entryFee  < 0)   return { error: "Inscripción inválida." };
+  if (isNaN(firstPlacePct)  || firstPlacePct  < 0 || firstPlacePct  > 100) return { error: "Porcentaje inválido." };
+  if (isNaN(secondPlacePct) || secondPlacePct < 0 || secondPlacePct > 100) return { error: "Porcentaje inválido." };
+  if (firstPlacePct + secondPlacePct !== 100) return { error: "Los porcentajes deben sumar 100%." };
+
+  const supabase = await createClient();
+  const { data: { user }, error: authErr } = await supabase.auth.getUser();
+  if (authErr || !user) return { error: "No autenticado." };
+  if (!(await isAdmin(user.id))) return { error: "Sin permisos." };
+
+  const { error } = await supabase.rpc("update_group_prize_config", {
+    p_group_id:         groupId,
+    p_entry_fee:        entryFee,
+    p_first_place_pct:  firstPlacePct,
+    p_second_place_pct: secondPlacePct,
+  });
+
+  if (error) {
+    if (error.message === "percentages_must_sum_100") return { error: "Los porcentajes deben sumar 100%." };
+    return { error: error.message };
+  }
+
+  revalidatePath("/admin/invitations");
   revalidatePath("/dashboard");
   return { success: true };
 }

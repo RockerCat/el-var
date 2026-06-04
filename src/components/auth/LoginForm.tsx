@@ -9,13 +9,7 @@ import Input from "@/components/ui/Input";
 import Card from "@/components/ui/Card";
 import { createClient } from "@/lib/supabase/client";
 import { getAuthErrorMessage } from "@/lib/auth-errors";
-
-const STATUS_MESSAGES = [
-  "Revisando la jugada...",
-  "Consultando la mesa arbitral...",
-  "Buscando culpables...",
-  "Confirmando tu versión de los hechos...",
-];
+import { LOADING_MESSAGES } from "@/lib/loading-messages";
 
 interface LoginFormProps {
   inviteCode: string | null;
@@ -36,7 +30,7 @@ export default function LoginForm({ inviteCode }: LoginFormProps) {
   const [statusIdx, setStatusIdx] = useState(0);
 
   useEffect(() => {
-    const id = setInterval(() => setStatusIdx(i => (i + 1) % STATUS_MESSAGES.length), 3000);
+    const id = setInterval(() => setStatusIdx(i => (i + 1) % LOADING_MESSAGES.length), 3000);
     return () => clearInterval(id);
   }, []);
 
@@ -165,7 +159,7 @@ export default function LoginForm({ inviteCode }: LoginFormProps) {
           </span>
         </Link>
         <h1 className="text-2xl font-black text-[#f1f5f9]">La Penúltima</h1>
-        <p className="text-sm text-[#64748b] mt-1">El lugar donde se sufre pero se gana</p>
+        <p className="text-sm text-[#94a3b8] mt-1">El lugar donde se sufre pero se gana</p>
       </div>
 
       {inviteCode && (
@@ -174,7 +168,7 @@ export default function LoginForm({ inviteCode }: LoginFormProps) {
             <Hash size={14} className="text-[#00c85a]" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-xs text-[#64748b]">Código de invitación</p>
+            <p className="text-xs text-[#94a3b8]">Código de invitación</p>
             <p className="text-sm font-bold font-mono text-[#f1f5f9]">{inviteCode}</p>
           </div>
         </div>
@@ -186,7 +180,7 @@ export default function LoginForm({ inviteCode }: LoginFormProps) {
           <Input label="Contraseña" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} leftIcon={<Lock size={16} />} required autoComplete="current-password" />
 
           <div className="flex justify-end">
-            <button type="button" className="text-xs text-[#64748b] hover:text-[#00c85a] transition-colors">
+            <button type="button" className="text-xs text-[#94a3b8] hover:text-[#00c85a] transition-colors">
               ¿Olvidaste tu contraseña?
             </button>
           </div>
@@ -204,7 +198,7 @@ export default function LoginForm({ inviteCode }: LoginFormProps) {
         </form>
 
         <div className="mt-4 pt-4 border-t border-[#1e1e35] text-center">
-          <p className="text-sm text-[#64748b]">
+          <p className="text-sm text-[#94a3b8]">
             ¿No tienes cuenta?{" "}
             <Link
               href={inviteCode ? `/signup?invite=${inviteCode}` : "/signup"}
@@ -219,7 +213,7 @@ export default function LoginForm({ inviteCode }: LoginFormProps) {
       <div className="flex items-center justify-center gap-2 mt-6">
         <span className="w-1.5 h-1.5 rounded-full bg-[#3b82f6] animate-live-pulse" />
         <span className="text-xs font-mono text-[#3b82f6] uppercase tracking-widest">
-          {STATUS_MESSAGES[statusIdx]}
+          {LOADING_MESSAGES[statusIdx]}
         </span>
       </div>
     </div>
@@ -251,8 +245,8 @@ function JoinStatusCard({
       <Card variant="glow-green" className="p-6 text-center">
         <CheckCircle2 size={28} className="text-[#00c85a] mx-auto mb-3" />
         <p className="text-base font-black text-[#f1f5f9] mb-1">¡Te uniste al grupo!</p>
-        <p className="text-sm text-[#64748b] mb-5">{status.groupName}</p>
-        <p className="text-xs text-[#475569]">Redirigiendo al dashboard...</p>
+        <p className="text-sm text-[#94a3b8] mb-5">{status.groupName}</p>
+        <p className="text-xs text-[#64748b]">Redirigiendo al dashboard...</p>
       </Card>
     );
   }
@@ -278,7 +272,7 @@ function JoinStatusCard({
         </div>
       )}
 
-      <p className="text-xs text-[#475569] mb-4">
+      <p className="text-xs text-[#64748b] mb-4">
         Tu sesión es válida. Puedes continuar al dashboard e intentar unirte desde allí.
       </p>
 

@@ -28,7 +28,7 @@ function toDatetimeLocal(iso: string): string {
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return (
-    <label className="text-[10px] font-semibold text-[#64748b] uppercase tracking-widest">
+    <label className="text-[10px] font-semibold text-[#94a3b8] uppercase tracking-widest">
       {children}
     </label>
   );
@@ -45,7 +45,7 @@ function AdminInput({ className = "", ...props }: React.InputHTMLAttributes<HTML
 
 function StatusBadge({ status }: { status: string }) {
   const colors: Record<string, string> = {
-    scheduled: "bg-[#2a2a45] text-[#64748b]",
+    scheduled: "bg-[#2a2a45] text-[#94a3b8]",
     live:      "bg-[#ef4444]/15 text-[#ef4444]",
     finished:  "bg-[#00c85a]/15 text-[#00c85a]",
   };
@@ -104,7 +104,7 @@ function PredictionsPanel({ matchId }: { matchId: string }) {
       <button
         onClick={toggle}
         disabled={loading}
-        className="w-full flex items-center justify-between px-5 py-3 text-xs font-semibold text-[#64748b] hover:text-[#94a3b8] hover:bg-[#18182a]/50 transition-colors"
+        className="w-full flex items-center justify-between px-5 py-3 text-xs font-semibold text-[#94a3b8] hover:text-[#94a3b8] hover:bg-[#18182a]/50 transition-colors"
       >
         <span className="flex items-center gap-2">
           {loading ? (
@@ -128,13 +128,13 @@ function PredictionsPanel({ matchId }: { matchId: string }) {
       {open && predictions !== null && (
         <div className="px-5 pb-4">
           {predictions.length === 0 ? (
-            <p className="text-xs text-[#475569] py-2">
+            <p className="text-xs text-[#64748b] py-2">
               No existen pronósticos para este partido.
             </p>
           ) : (
             <div className="rounded-xl overflow-hidden border border-[#1e1e35]">
               {/* Header */}
-              <div className="grid grid-cols-[1fr_auto_auto] gap-3 px-4 py-2 bg-[#0e0e1d] text-[9px] font-semibold text-[#475569] uppercase tracking-widest">
+              <div className="grid grid-cols-[1fr_auto_auto] gap-3 px-4 py-2 bg-[#0e0e1d] text-[9px] font-semibold text-[#64748b] uppercase tracking-widest">
                 <span>Usuario</span>
                 <span className="text-center">Pronóstico</span>
                 <span className="text-right">Enviado</span>
@@ -158,12 +158,12 @@ function PredictionsPanel({ matchId }: { matchId: string }) {
                           {p.home_score}–{p.away_score}
                         </span>
                         {p.points !== null && p.points !== undefined && (
-                          <p className={`text-[9px] font-mono ${p.points > 0 ? "text-[#00c85a]" : "text-[#475569]"}`}>
+                          <p className={`text-[9px] font-mono ${p.points > 0 ? "text-[#00c85a]" : "text-[#64748b]"}`}>
                             {p.points > 0 ? `+${p.points}` : "0"} pts
                           </p>
                         )}
                       </div>
-                      <p className="text-[9px] text-[#475569] text-right tabular-nums">
+                      <p className="text-[9px] text-[#64748b] text-right tabular-nums">
                         {new Date(p.submitted_at).toLocaleString("es-CO", {
                           month: "short", day: "numeric",
                           hour: "2-digit", minute: "2-digit",
@@ -238,9 +238,9 @@ export default function MatchEditorCard({ match }: { match: Match }) {
         <div className="flex items-center gap-2 flex-wrap">
           <StatusBadge status={match.status} />
           {match.group_code && (
-            <span className="text-[10px] text-[#475569] font-mono">Grupo {match.group_code}</span>
+            <span className="text-[10px] text-[#64748b] font-mono">Grupo {match.group_code}</span>
           )}
-          <span className="text-[10px] text-[#475569] font-mono">
+          <span className="text-[10px] text-[#64748b] font-mono">
             {new Date(match.starts_at).toISOString().replace("T", " ").slice(0, 16)} UTC
           </span>
         </div>
@@ -250,7 +250,7 @@ export default function MatchEditorCard({ match }: { match: Match }) {
 
         {/* ── Section 1: Resultado ─────────────────────────────────── */}
         <div className="px-5 py-4">
-          <p className="text-[10px] font-bold text-[#475569] uppercase tracking-widest mb-4">
+          <p className="text-[10px] font-bold text-[#64748b] uppercase tracking-widest mb-4">
             Resultado
           </p>
           <form action={resultAction} className="flex flex-col gap-4">
@@ -302,7 +302,7 @@ export default function MatchEditorCard({ match }: { match: Match }) {
             </button>
 
             {match.status !== "finished" && (
-              <p className="text-[10px] text-[#475569]">
+              <p className="text-[10px] text-[#64748b]">
                 Al marcar como <strong className="text-[#f1f5f9]">Finalizado</strong> se recalculan los puntos automáticamente.
               </p>
             )}
@@ -311,7 +311,7 @@ export default function MatchEditorCard({ match }: { match: Match }) {
 
         {/* ── Section 2: Fixture ───────────────────────────────────── */}
         <div className="px-5 py-4">
-          <p className="text-[10px] font-bold text-[#475569] uppercase tracking-widest mb-4">
+          <p className="text-[10px] font-bold text-[#64748b] uppercase tracking-widest mb-4">
             Fixture
           </p>
           <form action={fixtureAction} className="flex flex-col gap-4">
@@ -325,7 +325,7 @@ export default function MatchEditorCard({ match }: { match: Match }) {
                 value={startsAtVal} onChange={(e) => setStartsAtVal(e.target.value)}
                 className="w-full"
               />
-              <p className="text-[10px] text-[#475569]">La hora ingresada se guardará como UTC.</p>
+              <p className="text-[10px] text-[#64748b]">La hora ingresada se guardará como UTC.</p>
             </div>
 
             <div className="flex flex-col gap-1.5">

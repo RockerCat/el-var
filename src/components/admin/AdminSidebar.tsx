@@ -10,7 +10,6 @@ import {
   Trophy,
   Link2,
   Activity,
-  LayoutGrid,
 } from "lucide-react";
 import LogoutButton from "@/components/auth/LogoutButton";
 
@@ -43,7 +42,7 @@ export default function AdminSidebar() {
             </div>
             <div>
               <p className="text-xs font-black text-[#f1f5f9] leading-none">La Penúltima</p>
-              <p className="text-[9px] text-[#475569] font-mono mt-0.5">Admin</p>
+              <p className="text-[9px] text-[#64748b] font-mono mt-0.5">Admin</p>
             </div>
           </div>
         </div>
@@ -58,7 +57,7 @@ export default function AdminSidebar() {
                 "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors",
                 isActive(href)
                   ? "bg-[#00c85a]/10 text-[#00c85a]"
-                  : "text-[#64748b] hover:text-[#94a3b8] hover:bg-[#18182a]"
+                  : "text-[#94a3b8] hover:text-[#94a3b8] hover:bg-[#18182a]"
               )}
             >
               <Icon size={16} strokeWidth={isActive(href) ? 2.2 : 1.8} />
@@ -68,14 +67,7 @@ export default function AdminSidebar() {
         </nav>
 
         {/* Footer */}
-        <div className="px-3 pb-5 border-t border-[#1e1e35] pt-3 flex flex-col gap-0.5">
-          <Link
-            href="/dashboard"
-            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-[#475569] hover:text-[#64748b] hover:bg-[#18182a] transition-colors"
-          >
-            <LayoutGrid size={15} strokeWidth={1.8} />
-            Ver como jugador
-          </Link>
+        <div className="px-3 pb-5 border-t border-[#1e1e35] pt-3">
           <LogoutButton />
         </div>
       </aside>
@@ -85,7 +77,7 @@ export default function AdminSidebar() {
         <div className="flex items-center justify-between px-4 h-12">
           <span className="text-xs font-black text-[#f1f5f9]">
             La <span className="text-[#00c85a]">Penúltima</span>
-            <span className="text-[#475569] font-mono font-normal ml-1.5">Admin</span>
+            <span className="text-[#64748b] font-mono font-normal ml-1.5">Admin</span>
           </span>
           <nav className="flex items-center gap-0.5">
             {NAV.map(({ href, icon: Icon }) => (
@@ -96,7 +88,7 @@ export default function AdminSidebar() {
                   "w-9 h-9 flex items-center justify-center rounded-lg transition-colors",
                   isActive(href)
                     ? "text-[#00c85a] bg-[#00c85a]/10"
-                    : "text-[#475569] hover:text-[#94a3b8]"
+                    : "text-[#64748b] hover:text-[#94a3b8]"
                 )}
               >
                 <Icon size={16} strokeWidth={isActive(href) ? 2.2 : 1.8} />

@@ -205,7 +205,7 @@ export default function SignupForm({ inviteCode, groupName }: SignupFormProps) {
           </span>
         </Link>
         <h1 className="text-2xl font-black text-[#f1f5f9]">Únete a La Penúltima</h1>
-        <p className="text-sm text-[#64748b] mt-1">
+        <p className="text-sm text-[#94a3b8] mt-1">
           {inviteCode
             ? "Únete al grupo y deja tu penúltima palabra."
             : "Demuestra que sabes más fútbol que tus amigos."}
@@ -218,7 +218,7 @@ export default function SignupForm({ inviteCode, groupName }: SignupFormProps) {
             <Hash size={14} className="text-[#00c85a]" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-xs text-[#64748b]">Te invitaron a jugar</p>
+            <p className="text-xs text-[#94a3b8]">Te invitaron a jugar</p>
             <p className="text-sm font-bold text-[#f1f5f9] truncate">
               {groupName ?? "un grupo de La Penúltima"}
             </p>
@@ -245,13 +245,13 @@ export default function SignupForm({ inviteCode, groupName }: SignupFormProps) {
           </Button>
         </form>
 
-        <p className="text-xs text-[#475569] text-center mt-4">
+        <p className="text-xs text-[#64748b] text-center mt-4">
           Al registrarte aceptas nuestros{" "}
-          <span className="text-[#64748b] hover:text-[#94a3b8] cursor-pointer">términos</span>.
+          <span className="text-[#94a3b8] hover:text-[#94a3b8] cursor-pointer">términos</span>.
         </p>
 
         <div className="mt-4 pt-4 border-t border-[#1e1e35] text-center">
-          <p className="text-sm text-[#64748b]">
+          <p className="text-sm text-[#94a3b8]">
             ¿Ya tienes cuenta?{" "}
             <Link href="/login" className="text-[#00c85a] font-semibold hover:text-[#00e87a]">Ingresar</Link>
           </p>
@@ -293,8 +293,8 @@ function JoinStatusCard({
       <Card variant="glow-green" className="p-6 text-center">
         <CheckCircle2 size={28} className="text-[#00c85a] mx-auto mb-3" />
         <p className="text-base font-black text-[#f1f5f9] mb-1">¡Te uniste al grupo!</p>
-        <p className="text-sm text-[#64748b] mb-5">{status.groupName}</p>
-        <p className="text-xs text-[#475569]">Redirigiendo al dashboard...</p>
+        <p className="text-sm text-[#94a3b8] mb-5">{status.groupName}</p>
+        <p className="text-xs text-[#64748b]">Redirigiendo al dashboard...</p>
       </Card>
     );
   }
@@ -323,7 +323,7 @@ function JoinStatusCard({
         </div>
       )}
 
-      <p className="text-xs text-[#475569] mb-4">
+      <p className="text-xs text-[#64748b] mb-4">
         Tu cuenta fue creada correctamente. Puedes intentar unirte de nuevo desde el dashboard.
       </p>
 

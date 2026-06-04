@@ -67,7 +67,7 @@ export default function MatchRowCompact({ match }: { match: MatchWithPrediction 
                 EN VIVO
               </span>
             </div>
-            <span className="text-[10px] text-[#475569]">{formatKickoff(match.starts_at)}</span>
+            <span className="text-[10px] text-[#64748b]">{formatKickoff(match.starts_at)}</span>
           </div>
 
           {/* Teams + live score — score is the largest element */}
@@ -100,16 +100,16 @@ export default function MatchRowCompact({ match }: { match: MatchWithPrediction 
           {/* Prediction + locked notice */}
           <div className="flex items-center justify-between pt-2.5 border-t border-[#ef4444]/10">
             {saved ? (
-              <span className="text-xs text-[#64748b]">
+              <span className="text-xs text-[#94a3b8]">
                 Tu pronóstico:{" "}
                 <span className="font-mono font-bold text-[#94a3b8]">
                   {saved.home_score}–{saved.away_score}
                 </span>
               </span>
             ) : (
-              <span className="text-xs text-[#2a2a45]">Sin predicción</span>
+              <span className="text-xs text-[#64748b]">Sin predicción</span>
             )}
-            <span className="flex items-center gap-1 text-[10px] text-[#475569]">
+            <span className="flex items-center gap-1 text-[10px] text-[#64748b]">
               <Lock size={9} className="shrink-0" />
               Cerrado
             </span>
@@ -142,7 +142,7 @@ export default function MatchRowCompact({ match }: { match: MatchWithPrediction 
 
           {/* Status + points */}
           <div className="flex items-center justify-between mb-2.5">
-            <span className="text-[10px] font-semibold text-[#475569] uppercase tracking-widest">
+            <span className="text-[10px] font-semibold text-[#64748b] uppercase tracking-widest">
               FINALIZADO
             </span>
             {isScored ? (
@@ -153,7 +153,7 @@ export default function MatchRowCompact({ match }: { match: MatchWithPrediction 
                 {gotPoints ? `+${saved.points} pts` : "0 pts"}
               </span>
             ) : (
-              <span className="text-[10px] text-[#475569]">{formatKickoff(match.starts_at)}</span>
+              <span className="text-[10px] text-[#64748b]">{formatKickoff(match.starts_at)}</span>
             )}
           </div>
 
@@ -168,19 +168,19 @@ export default function MatchRowCompact({ match }: { match: MatchWithPrediction 
           {/* Prediction + reason */}
           <div className="mt-2 flex items-center justify-between gap-2">
             {hasPred ? (
-              <span className="text-xs text-[#64748b]">
+              <span className="text-xs text-[#94a3b8]">
                 Pronóstico:{" "}
                 <span className="font-mono font-bold text-[#94a3b8]">
                   {saved.home_score}–{saved.away_score}
                 </span>
               </span>
             ) : (
-              <span className="text-xs text-[#2a2a45]">Sin predicción</span>
+              <span className="text-xs text-[#64748b]">Sin predicción</span>
             )}
             {isScored && saved.points_reason && (
               <span className={cn(
                 "text-[10px] font-mono shrink-0",
-                gotPoints ? "text-[#00c85a]/60" : "text-[#475569]/60"
+                gotPoints ? "text-[#00c85a]/60" : "text-[#64748b]/60"
               )}>
                 {saved.points_reason}
               </span>
@@ -213,13 +213,13 @@ export default function MatchRowCompact({ match }: { match: MatchWithPrediction 
             </div>
           ) : (
             <div className="flex items-center gap-1.5">
-              <Lock size={9} className="text-[#475569] shrink-0" />
-              <span className="text-[10px] font-semibold text-[#475569] uppercase tracking-widest">
+              <Lock size={9} className="text-[#64748b] shrink-0" />
+              <span className="text-[10px] font-semibold text-[#64748b] uppercase tracking-widest">
                 CERRADO
               </span>
             </div>
           )}
-          <span className="text-[10px] text-[#475569]">{formatKickoff(match.starts_at)}</span>
+          <span className="text-[10px] text-[#64748b]">{formatKickoff(match.starts_at)}</span>
         </div>
 
         {/* Teams */}
@@ -234,7 +234,7 @@ export default function MatchRowCompact({ match }: { match: MatchWithPrediction 
               <input type="hidden" name="match_id" value={match.id} />
               <div className="flex items-center gap-2">
                 <ScoreInput name="home_score" defaultValue={saved?.home_score} disabled={isPending} />
-                <span className="text-[#64748b] text-sm font-light select-none">–</span>
+                <span className="text-[#94a3b8] text-sm font-light select-none">–</span>
                 <ScoreInput name="away_score" defaultValue={saved?.away_score} disabled={isPending} />
                 <button
                   type="submit"
@@ -254,7 +254,7 @@ export default function MatchRowCompact({ match }: { match: MatchWithPrediction 
                   <button
                     type="button"
                     onClick={() => setIsEditing(false)}
-                    className="text-[10px] text-[#475569] hover:text-[#94a3b8] transition-colors shrink-0"
+                    className="text-[10px] text-[#64748b] hover:text-[#94a3b8] transition-colors shrink-0"
                   >
                     Cancelar
                   </button>
@@ -278,7 +278,7 @@ export default function MatchRowCompact({ match }: { match: MatchWithPrediction 
               </div>
               <button
                 onClick={() => setIsEditing(true)}
-                className="text-[10px] text-[#475569] hover:text-[#94a3b8] transition-colors shrink-0"
+                className="text-[10px] text-[#64748b] hover:text-[#94a3b8] transition-colors shrink-0"
               >
                 Editar
               </button>
@@ -290,14 +290,14 @@ export default function MatchRowCompact({ match }: { match: MatchWithPrediction 
           /* Closed — read-only */
           <div className="mt-2.5">
             {saved ? (
-              <span className="text-xs text-[#64748b]">
+              <span className="text-xs text-[#94a3b8]">
                 Tu pronóstico:{" "}
                 <span className="font-mono font-bold text-[#94a3b8]">
                   {saved.home_score}–{saved.away_score}
                 </span>
               </span>
             ) : (
-              <span className="text-xs text-[#2a2a45]">Sin predicción</span>
+              <span className="text-xs text-[#64748b]">Sin predicción</span>
             )}
           </div>
 
@@ -330,7 +330,7 @@ function TeamsWithScore({
             {homeScore}–{awayScore}
           </span>
         ) : (
-          <span className="text-xs text-[#475569]">···</span>
+          <span className="text-xs text-[#64748b]">···</span>
         )}
       </div>
       <TeamSide team={awayTeam} side="away" />

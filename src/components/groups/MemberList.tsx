@@ -11,7 +11,7 @@ export default function MemberList({ members, currentUserId }: MemberListProps) 
   if (members.length === 0) {
     return (
       <div className="bg-[#18182a] border border-dashed border-[#2a2a45] rounded-2xl p-5 text-center">
-        <p className="text-xs text-[#475569]">Sin miembros registrados.</p>
+        <p className="text-xs text-[#64748b]">Sin miembros registrados.</p>
       </div>
     );
   }
@@ -36,7 +36,7 @@ export default function MemberList({ members, currentUserId }: MemberListProps) 
                 "w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-xs font-bold",
                 isCurrentUser
                   ? "bg-[#00c85a]/20 text-[#00c85a]"
-                  : "bg-[#1e1e35] text-[#64748b]"
+                  : "bg-[#1e1e35] text-[#94a3b8]"
               )}
             >
               {letter}
@@ -68,7 +68,7 @@ export default function MemberList({ members, currentUserId }: MemberListProps) 
             </div>
 
             {/* Joined date */}
-            <span className="text-[11px] text-[#475569] font-mono shrink-0">
+            <span className="text-[11px] text-[#64748b] font-mono shrink-0">
               Desde {formatRelativeDate(member.joined_at)}
             </span>
           </div>

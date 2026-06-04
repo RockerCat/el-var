@@ -19,6 +19,9 @@ type RawGroup = {
   invite_code: string;
   owner_id: string;
   created_at: string;
+  entry_fee:        number | null;
+  first_place_pct:  number | null;
+  second_place_pct: number | null;
   group_members: { count: number }[];
 };
 
@@ -54,7 +57,7 @@ export async function getUserGroupsWithMeta(
   const [groupsResult, ranksResult] = await Promise.all([
     supabase
       .from("groups")
-      .select(`id, name, invite_code, owner_id, created_at, group_members(count)`)
+      .select(`id, name, invite_code, owner_id, created_at, entry_fee, first_place_pct, second_place_pct, group_members(count)`)
       .order("created_at", { ascending: false }),
     supabase.rpc("get_user_ranks_in_groups"),
   ]);
@@ -83,13 +86,16 @@ export async function getUserGroupsWithMeta(
   }
 
   return (data as RawGroup[]).map((g) => ({
-    id:           g.id,
-    name:         g.name,
-    invite_code:  g.invite_code,
-    owner_id:     g.owner_id,
-    created_at:   g.created_at,
-    member_count: g.group_members?.[0]?.count ?? 0,
-    is_owner:     g.owner_id === userId,
-    user_rank:    rankMap.get(g.id) ?? null,
+    id:               g.id,
+    name:             g.name,
+    invite_code:      g.invite_code,
+    owner_id:         g.owner_id,
+    created_at:       g.created_at,
+    entry_fee:        g.entry_fee        ?? null,
+    first_place_pct:  g.first_place_pct  ?? null,
+    second_place_pct: g.second_place_pct ?? null,
+    member_count:     g.group_members?.[0]?.count ?? 0,
+    is_owner:         g.owner_id === userId,
+    user_rank:        rankMap.get(g.id) ?? null,
   }));
 }

@@ -62,7 +62,7 @@ export default function GroupModal({
           <h2 className="text-base font-bold text-[#f1f5f9]">{title}</h2>
           <button
             onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-xl text-[#475569] hover:text-[#f1f5f9] hover:bg-[#20203a] transition-colors"
+            className="w-8 h-8 flex items-center justify-center rounded-xl text-[#64748b] hover:text-[#f1f5f9] hover:bg-[#20203a] transition-colors"
           >
             <X size={16} />
           </button>

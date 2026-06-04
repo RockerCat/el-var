@@ -21,6 +21,9 @@ export type GroupRow = {
   invite_code: string;
   owner_id: string;
   created_at: string;
+  entry_fee:        number | null;
+  first_place_pct:  number | null;
+  second_place_pct: number | null;
 };
 
 export type GroupMemberRow = {
@@ -84,6 +87,41 @@ export type GroupActionState = GroupActionResult | null;
 
 export function formatMemberCount(n: number): string {
   return n === 1 ? "1 miembro" : `${n} miembros`;
+}
+
+// ──────────────────────────────────────────────────────────────────────
+// Prize pool helpers
+// ──────────────────────────────────────────────────────────────────────
+
+/** Colombian peso formatting: $300.000 */
+export function formatCOP(amount: number): string {
+  return "$" + Math.round(amount).toLocaleString("es-CO");
+}
+
+export type PrizeConfig = {
+  entry_fee:        number;
+  first_place_pct:  number;
+  second_place_pct: number;
+};
+
+export type PrizePool = {
+  config:       PrizeConfig;
+  member_count: number;
+  total:        number;
+  first_prize:  number;
+  second_prize: number;
+};
+
+/** Returns null when entry_fee is 0 / not configured. */
+export function computePrizePool(
+  config: PrizeConfig,
+  memberCount: number
+): PrizePool | null {
+  if (!config.entry_fee || config.entry_fee <= 0) return null;
+  const total        = config.entry_fee * memberCount;
+  const first_prize  = Math.round(total * config.first_place_pct  / 100);
+  const second_prize = Math.round(total * config.second_place_pct / 100);
+  return { config, member_count: memberCount, total, first_prize, second_prize };
 }
 
 // ──────────────────────────────────────────────────────────────────────

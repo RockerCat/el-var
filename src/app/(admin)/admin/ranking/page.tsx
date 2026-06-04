@@ -19,11 +19,11 @@ export default async function AdminRankingPage() {
     <div className="max-w-2xl mx-auto px-6 py-8 space-y-6">
 
       <div>
-        <p className="text-[10px] text-[#475569] font-mono uppercase tracking-widest mb-1">
+        <p className="text-[10px] text-[#64748b] font-mono uppercase tracking-widest mb-1">
           Admin · Ranking
         </p>
         <h1 className="text-2xl font-black text-[#f1f5f9]">Tabla de posiciones</h1>
-        <p className="text-sm text-[#64748b] mt-0.5">
+        <p className="text-sm text-[#94a3b8] mt-0.5">
           Vista de solo lectura · {leaderboard.length} participante{leaderboard.length !== 1 ? "s" : ""}
         </p>
       </div>
@@ -31,11 +31,11 @@ export default async function AdminRankingPage() {
       <RecalculateButton />
 
       {leaderboard.length === 0 ? (
-        <p className="text-sm text-[#475569]">Aún no hay predicciones puntuadas.</p>
+        <p className="text-sm text-[#64748b]">Aún no hay predicciones puntuadas.</p>
       ) : (
         <div className="bg-[#11111c] border border-[#1e1e35] rounded-2xl overflow-hidden">
           {/* Header */}
-          <div className="grid grid-cols-[auto_1fr_auto_auto_auto_auto] gap-3 px-5 py-3 border-b border-[#1e1e35] text-[10px] font-semibold text-[#475569] uppercase tracking-widest">
+          <div className="grid grid-cols-[auto_1fr_auto_auto_auto_auto] gap-3 px-5 py-3 border-b border-[#1e1e35] text-[10px] font-semibold text-[#64748b] uppercase tracking-widest">
             <span className="w-7">#</span>
             <span>Jugador</span>
             <span className="text-right">Pts</span>
@@ -57,7 +57,7 @@ export default async function AdminRankingPage() {
                     {medal ? (
                       <span className="text-sm">{medal}</span>
                     ) : (
-                      <span className="text-[10px] font-mono text-[#475569]">
+                      <span className="text-[10px] font-mono text-[#64748b]">
                         {entry.rank}
                       </span>
                     )}
@@ -87,7 +87,7 @@ export default async function AdminRankingPage() {
                   </p>
 
                   {/* Pred count */}
-                  <p className="text-xs text-[#475569] tabular-nums text-right">
+                  <p className="text-xs text-[#64748b] tabular-nums text-right">
                     {entry.pred_count}
                   </p>
                 </div>

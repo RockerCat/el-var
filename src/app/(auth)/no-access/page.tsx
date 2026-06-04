@@ -18,7 +18,7 @@ export default async function NoAccessPage() {
       <h1 className="text-xl font-black text-[#f1f5f9] mb-2">
         No perteneces a ningún grupo
       </h1>
-      <p className="text-sm text-[#64748b] leading-relaxed mb-6">
+      <p className="text-sm text-[#94a3b8] leading-relaxed mb-6">
         La Penúltima es una liga privada.
         <br />
         Solicita una invitación al administrador para participar.
@@ -26,10 +26,10 @@ export default async function NoAccessPage() {
 
       {/* Info card */}
       <div className="bg-[#11111c] border border-[#1e1e35] rounded-2xl p-5 text-left mb-5">
-        <p className="text-xs text-[#475569] leading-relaxed">
+        <p className="text-xs text-[#64748b] leading-relaxed">
           Si recibiste un enlace de invitación, úsalo directamente.
           El enlace tiene la forma{" "}
-          <span className="font-mono text-[#64748b]">/invite/CÓDIGO</span>{" "}
+          <span className="font-mono text-[#94a3b8]">/invite/CÓDIGO</span>{" "}
           y te agrega automáticamente al grupo.
         </p>
       </div>
@@ -38,7 +38,7 @@ export default async function NoAccessPage() {
       <div className="flex flex-col gap-3">
         {user ? (
           <>
-            <p className="text-[10px] text-[#475569] font-mono">
+            <p className="text-[10px] text-[#64748b] font-mono">
               Conectado como {user.email}
             </p>
             <LogoutButton />

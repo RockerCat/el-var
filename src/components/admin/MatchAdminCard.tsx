@@ -30,16 +30,16 @@ export default function MatchAdminCard({ match }: { match: Match }) {
         <div className="flex items-center gap-2 mb-0.5">
           <span className="text-base">{match.home_team.flag_emoji}</span>
           <span className="text-sm font-bold text-[#f1f5f9]">{match.home_team.name}</span>
-          <span className="text-xs text-[#475569] font-mono">vs</span>
+          <span className="text-xs text-[#64748b] font-mono">vs</span>
           <span className="text-sm font-bold text-[#f1f5f9]">{match.away_team.name}</span>
           <span className="text-base">{match.away_team.flag_emoji}</span>
         </div>
-        <p className="text-xs text-[#475569] font-mono">{formatKickoff(match.starts_at)}</p>
+        <p className="text-xs text-[#64748b] font-mono">{formatKickoff(match.starts_at)}</p>
       </div>
 
       {/* Status */}
       <div className="flex flex-col gap-1.5">
-        <label className="text-xs font-medium text-[#64748b] uppercase tracking-wide">
+        <label className="text-xs font-medium text-[#94a3b8] uppercase tracking-wide">
           Estado
         </label>
         <select
@@ -56,7 +56,7 @@ export default function MatchAdminCard({ match }: { match: Match }) {
       {/* Scores */}
       <div className="grid grid-cols-2 gap-3">
         <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-medium text-[#64748b]">
+          <label className="text-xs font-medium text-[#94a3b8]">
             {match.home_team.code} (local)
           </label>
           <input
@@ -70,7 +70,7 @@ export default function MatchAdminCard({ match }: { match: Match }) {
           />
         </div>
         <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-medium text-[#64748b]">
+          <label className="text-xs font-medium text-[#94a3b8]">
             {match.away_team.code} (visitante)
           </label>
           <input

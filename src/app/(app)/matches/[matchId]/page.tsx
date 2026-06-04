@@ -140,7 +140,7 @@ export default async function MatchDetailPage({
       {/* Back */}
       <a
         href="/dashboard"
-        className="text-xs text-[#475569] hover:text-[#94a3b8] transition-colors inline-flex items-center gap-1"
+        className="text-xs text-[#64748b] hover:text-[#94a3b8] transition-colors inline-flex items-center gap-1"
       >
         ← Inicio
       </a>
@@ -166,7 +166,7 @@ export default async function MatchDetailPage({
       {/* ── Pre-kickoff message ────────────────────────────────────── */}
       {!revealed && (
         <div className="bg-[#11111c] border border-[#1e1e35] rounded-2xl p-5 text-center">
-          <p className="text-sm text-[#475569]">
+          <p className="text-sm text-[#64748b]">
             Los pronósticos de los demás se revelarán cuando comience el partido.
           </p>
         </div>
@@ -332,9 +332,9 @@ function MatchHeader({ match }: { match: MatchWithTeams }) {
       <div className="flex items-center justify-between mb-4">
         <StatusBadge status={status} />
         <div className="text-right">
-          <p className="text-[10px] text-[#475569]">{phaseLabel}</p>
+          <p className="text-[10px] text-[#64748b]">{phaseLabel}</p>
           {group_code && (
-            <p className="text-[10px] text-[#3a3a60]">Grupo {group_code}</p>
+            <p className="text-[10px] text-[#64748b]">Grupo {group_code}</p>
           )}
         </div>
       </div>
@@ -345,7 +345,7 @@ function MatchHeader({ match }: { match: MatchWithTeams }) {
 
         <div className="shrink-0 text-center min-w-[80px]">
           {status === "scheduled" ? (
-            <p className="text-xs text-[#3a3a60] font-mono">
+            <p className="text-xs text-[#64748b] font-mono">
               {formatKickoff(match.starts_at)}
             </p>
           ) : hasScore ? (
@@ -370,7 +370,7 @@ function MatchHeader({ match }: { match: MatchWithTeams }) {
 
       {/* Kickoff for non-scheduled */}
       {status !== "scheduled" && (
-        <p className="text-[10px] text-[#3a3a60] text-center mt-3">
+        <p className="text-[10px] text-[#64748b] text-center mt-3">
           {formatKickoff(match.starts_at)}
         </p>
       )}
@@ -392,7 +392,7 @@ function StatusBadge({ status }: { status: string }) {
   }
   if (status === "finished") {
     return (
-      <span className="text-[10px] font-semibold text-[#64748b] uppercase tracking-widest">
+      <span className="text-[10px] font-semibold text-[#94a3b8] uppercase tracking-widest">
         FINALIZADO
       </span>
     );
@@ -447,24 +447,24 @@ function MyPredictionCard({
 
       {/* Mi pronóstico */}
       <div>
-        <p className="text-[10px] font-bold text-[#475569] uppercase tracking-widest mb-2">
+        <p className="text-[10px] font-bold text-[#64748b] uppercase tracking-widest mb-2">
           Mi pronóstico
         </p>
         {myPrediction ? (
           <p className="text-2xl font-black font-mono text-[#f1f5f9] tabular-nums">
             {myPrediction.home_score}
-            <span className="text-[#475569] mx-2 font-light">–</span>
+            <span className="text-[#64748b] mx-2 font-light">–</span>
             {myPrediction.away_score}
           </p>
         ) : (
-          <p className="text-sm text-[#3a3a60]">No ingresaste pronóstico</p>
+          <p className="text-sm text-[#64748b]">No ingresaste pronóstico</p>
         )}
       </div>
 
       {/* Mi situación */}
       {(isLive || isFinished) && (
         <div className="border-t border-[#1e1e35] pt-4">
-          <p className="text-[10px] font-bold text-[#475569] uppercase tracking-widest mb-2">
+          <p className="text-[10px] font-bold text-[#64748b] uppercase tracking-widest mb-2">
             Mi situación
           </p>
           <MySituationLine
@@ -492,13 +492,13 @@ function MySituationLine({
 }) {
   if (!myPrediction) {
     return (
-      <p className="text-sm text-[#475569]">
+      <p className="text-sm text-[#64748b]">
         ⚪ No ingresaste pronóstico para este partido
       </p>
     );
   }
   if (!hasScore || !mySim) {
-    return <p className="text-sm text-[#475569]">Esperando marcador…</p>;
+    return <p className="text-sm text-[#64748b]">Esperando marcador…</p>;
   }
   if (mySim.reason === "Marcador exacto") {
     return (
@@ -554,7 +554,7 @@ function LiveRankingCard({
               {medal ? (
                 <span className="text-base leading-none">{medal}</span>
               ) : (
-                <span className="text-xs font-mono text-[#475569]">#{i + 1}</span>
+                <span className="text-xs font-mono text-[#64748b]">#{i + 1}</span>
               )}
             </div>
 
@@ -566,7 +566,7 @@ function LiveRankingCard({
                 {entry.display_name}
                 {isMe && <span className="text-[10px] text-[#00c85a]/60 font-mono ml-1.5">tú</span>}
               </p>
-              <p className="text-[10px] text-[#3a3a60] font-mono">
+              <p className="text-[10px] text-[#64748b] font-mono">
                 {entry.pred_home}–{entry.pred_away}
               </p>
             </div>
@@ -578,7 +578,7 @@ function LiveRankingCard({
               )}>
                 {pts > 0 ? `+${pts}` : "0"}
               </p>
-              <p className="text-[9px] text-[#3a3a60]">pts</p>
+              <p className="text-[9px] text-[#64748b]">pts</p>
             </div>
           </div>
         );
@@ -612,7 +612,7 @@ function DistributionCard({
             <span className="text-xs text-[#94a3b8]">{label}</span>
             <span className="text-xs font-bold text-[#f1f5f9] tabular-nums">
               {p}%
-              <span className="text-[#475569] font-normal ml-1">({count})</span>
+              <span className="text-[#64748b] font-normal ml-1">({count})</span>
             </span>
           </div>
           <div className="h-1.5 rounded-full bg-[#1e1e35] overflow-hidden">
@@ -623,7 +623,7 @@ function DistributionCard({
           </div>
         </div>
       ))}
-      <p className="text-[10px] text-[#3a3a60] text-right">{total} pronóstico{total !== 1 ? "s" : ""}</p>
+      <p className="text-[10px] text-[#64748b] text-right">{total} pronóstico{total !== 1 ? "s" : ""}</p>
     </div>
   );
 }
@@ -638,7 +638,7 @@ function TopScoresCard({ topScores, total }: { topScores: [string, number][]; to
           key={score}
           className="flex items-center gap-3 px-4 py-3 border-b border-[#1e1e35] last:border-b-0"
         >
-          <span className="text-xs font-mono text-[#475569] w-5 shrink-0">{i + 1}.</span>
+          <span className="text-xs font-mono text-[#64748b] w-5 shrink-0">{i + 1}.</span>
           <span className="text-sm font-black font-mono text-[#f1f5f9] flex-1">{score}</span>
           <div className="flex items-center gap-2 shrink-0">
             <div className="h-1.5 w-16 rounded-full bg-[#1e1e35] overflow-hidden">
@@ -647,7 +647,7 @@ function TopScoresCard({ topScores, total }: { topScores: [string, number][]; to
                 style={{ width: total > 0 ? `${Math.round((count / total) * 100)}%` : "0%" }}
               />
             </div>
-            <span className="text-xs text-[#64748b] tabular-nums w-16 text-right">
+            <span className="text-xs text-[#94a3b8] tabular-nums w-16 text-right">
               {count} persona{count !== 1 ? "s" : ""}
             </span>
           </div>
@@ -678,10 +678,10 @@ function PredictionsTable({
     <div className="bg-[#11111c] border border-[#1e1e35] rounded-2xl overflow-hidden">
       {/* Header */}
       <div className="grid grid-cols-[1fr_auto_auto_auto] gap-2 px-4 py-2.5 border-b border-[#1e1e35]">
-        <span className="text-[10px] text-[#475569] uppercase tracking-widest">Jugador</span>
-        <span className="text-[10px] text-[#475569] uppercase tracking-widest text-center w-14">Pred</span>
-        <span className="text-[10px] text-[#475569] uppercase tracking-widest text-right w-14">Pts</span>
-        <span className="text-[10px] text-[#475569] uppercase tracking-widest text-right w-20">Resultado</span>
+        <span className="text-[10px] text-[#64748b] uppercase tracking-widest">Jugador</span>
+        <span className="text-[10px] text-[#64748b] uppercase tracking-widest text-center w-14">Pred</span>
+        <span className="text-[10px] text-[#64748b] uppercase tracking-widest text-right w-14">Pts</span>
+        <span className="text-[10px] text-[#64748b] uppercase tracking-widest text-right w-20">Resultado</span>
       </div>
 
       {sorted.map((entry) => {
@@ -690,7 +690,7 @@ function PredictionsTable({
         const rsn   = hasScore ? entry.sim.reason : null;
 
         const ptsColor =
-          pts === null    ? "text-[#3a3a60]" :
+          pts === null    ? "text-[#64748b]" :
           pts === 0       ? "text-[#ef4444]/70" :
           rsn === "Marcador exacto" ? "text-[#f59e0b]" :
           "text-[#00c85a]";
@@ -729,7 +729,7 @@ function PredictionsTable({
               "text-[11px] font-mono text-right w-20 shrink-0",
               rsn === "Marcador exacto"    ? "text-[#f59e0b]" :
               rsn === "Resultado acertado" ? "text-[#00c85a]/80" :
-              "text-[#3a3a60]"
+              "text-[#64748b]"
             )}>
               {rsnLabel}
             </span>

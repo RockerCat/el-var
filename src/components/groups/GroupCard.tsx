@@ -29,7 +29,7 @@ export default function GroupCard({ group }: { group: GroupWithMeta }) {
               {group.name}
             </h3>
           </div>
-          <p className="text-xs text-[#475569]">
+          <p className="text-xs text-[#64748b]">
             Creado {formatRelativeDate(group.created_at)}
           </p>
         </div>
@@ -44,7 +44,7 @@ export default function GroupCard({ group }: { group: GroupWithMeta }) {
 
       {/* Member count + rank preview */}
       <div className="flex items-center gap-3 mb-3">
-        <div className="flex items-center gap-1.5 text-xs text-[#64748b]">
+        <div className="flex items-center gap-1.5 text-xs text-[#94a3b8]">
           <Users size={13} strokeWidth={1.8} />
           <span>{formatMemberCount(group.member_count)}</span>
         </div>
@@ -53,7 +53,7 @@ export default function GroupCard({ group }: { group: GroupWithMeta }) {
           <span
             className={cn(
               "text-xs font-mono font-bold",
-              group.user_rank === 1 ? "text-[#f59e0b]" : "text-[#475569]"
+              group.user_rank === 1 ? "text-[#f59e0b]" : "text-[#64748b]"
             )}
           >
             {group.user_rank === 1 ? "🔥 " : ""}#{group.user_rank} de {group.member_count}

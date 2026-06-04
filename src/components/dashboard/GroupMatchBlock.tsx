@@ -97,14 +97,14 @@ export default function GroupMatchBlock({ label, matches, isDefaultOpen = false 
         <ChevronRight
           size={10}
           className={cn(
-            "text-[#3a3a60] transition-transform duration-200 shrink-0",
+            "text-[#64748b] transition-transform duration-200 shrink-0",
             isOpen && "rotate-90"
           )}
         />
-        <span className="text-[10px] font-semibold text-[#3a3a60] uppercase tracking-widest shrink-0">
+        <span className="text-[10px] font-semibold text-[#64748b] uppercase tracking-widest shrink-0">
           {label}
         </span>
-        <span className="text-[10px] text-[#2a2a45] shrink-0">
+        <span className="text-[10px] text-[#64748b] shrink-0">
           {matches.length} partido{matches.length !== 1 ? "s" : ""}
           {hasPending ? ` · ${pendingCount} pendiente${pendingCount !== 1 ? "s" : ""}` : ""}
         </span>
@@ -112,7 +112,7 @@ export default function GroupMatchBlock({ label, matches, isDefaultOpen = false 
           <span className="w-1.5 h-1.5 rounded-full bg-[#f59e0b] shrink-0" aria-hidden />
         )}
         {nextHint && (
-          <span className="text-[10px] text-[#2a2a45] shrink-0">{nextHint}</span>
+          <span className="text-[10px] text-[#64748b] shrink-0">{nextHint}</span>
         )}
         <div className="flex-1 h-px bg-[#1e1e35]" />
       </button>

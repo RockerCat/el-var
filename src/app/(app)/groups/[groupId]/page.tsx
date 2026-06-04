@@ -13,6 +13,8 @@ import CopyInviteLinkButton from "@/components/groups/CopyInviteLinkButton";
 import {
   formatMemberCount,
   formatRelativeDate,
+  computePrizePool,
+  formatCOP,
   type MemberDetail,
 } from "@/lib/groups";
 
@@ -22,6 +24,9 @@ type RawGroup = {
   invite_code: string;
   owner_id: string;
   created_at: string;
+  entry_fee:        number | null;
+  first_place_pct:  number | null;
+  second_place_pct: number | null;
   group_members: { count: number }[];
 };
 
@@ -42,7 +47,7 @@ export default async function GroupPage({
   // RLS enforces membership — returns null if user is not a member
   const { data: rawGroup } = await supabase
     .from("groups")
-    .select("id, name, invite_code, owner_id, created_at, group_members(count)")
+    .select("id, name, invite_code, owner_id, created_at, entry_fee, first_place_pct, second_place_pct, group_members(count)")
     .eq("id", groupId)
     .single();
 
@@ -82,6 +87,15 @@ export default async function GroupPage({
   const totalPredictions = leaderboard.reduce((sum, e) => sum + e.pred_count, 0);
   const leader           = leaderboard.find((e) => e.total_points > 0);
 
+  const prizePool = computePrizePool(
+    {
+      entry_fee:        group.entry_fee        ?? 0,
+      first_place_pct:  group.first_place_pct  ?? 70,
+      second_place_pct: group.second_place_pct ?? 30,
+    },
+    memberCount
+  );
+
   // Current user context
   const userEntry  = leaderboard.find((e) => e.user_id === user.id);
   const isLeading  =
@@ -96,7 +110,7 @@ export default async function GroupPage({
       {/* Back link */}
       <Link
         href="/dashboard"
-        className="text-xs text-[#475569] hover:text-[#94a3b8] transition-colors inline-flex items-center gap-1"
+        className="text-xs text-[#64748b] hover:text-[#94a3b8] transition-colors inline-flex items-center gap-1"
       >
         ← Inicio
       </Link>
@@ -117,7 +131,7 @@ export default async function GroupPage({
             </span>
           )}
         </div>
-        <div className="flex items-center gap-1.5 text-xs text-[#64748b]">
+        <div className="flex items-center gap-1.5 text-xs text-[#94a3b8]">
           <Users size={13} strokeWidth={1.8} />
           <span>{formatMemberCount(memberCount)}</span>
           <span className="text-[#2a2a45]">·</span>
@@ -128,7 +142,7 @@ export default async function GroupPage({
       {/* Invite link — admin only */}
       {isOwner && (
         <div className="bg-[#18182a] border border-[#2a2a45] rounded-2xl p-4">
-          <p className="text-[10px] text-[#475569] font-mono uppercase tracking-widest mb-3">
+          <p className="text-[10px] text-[#64748b] font-mono uppercase tracking-widest mb-3">
             Invitar miembros
           </p>
           <div className="flex items-center gap-3">
@@ -161,6 +175,14 @@ export default async function GroupPage({
         <Leaderboard entries={leaderboard} currentUserId={user.id} />
       </section>
 
+      {/* Prize pool */}
+      {prizePool && (
+        <section>
+          <SectionHeader title="Bolsa del Mundial" />
+          <PrizeSummary pool={prizePool} leaderboard={leaderboard} />
+        </section>
+      )}
+
       {/* Members */}
       <section>
         <SectionHeader title="Miembros" count={members.length} />
@@ -181,6 +203,47 @@ export default async function GroupPage({
   );
 }
 
+function PrizeSummary({
+  pool,
+  leaderboard,
+}: {
+  pool: import("@/lib/groups").PrizePool;
+  leaderboard: import("@/lib/groups").LeaderboardEntry[];
+}) {
+  const first  = leaderboard.find((e) => e.rank === 1);
+  const second = leaderboard.find((e) => e.rank === 2);
+
+  return (
+    <div className="bg-[#11111c] border border-[#1e1e35] rounded-2xl p-5 space-y-3">
+      <div className="flex items-center justify-between">
+        <span className="text-[10px] text-[#64748b] uppercase tracking-widest">Bolsa total</span>
+        <span className="text-xl font-black text-[#f1f5f9] tabular-nums">{formatCOP(pool.total)}</span>
+      </div>
+      <div className="border-t border-[#1e1e35] pt-3 space-y-2">
+        <div className="flex items-center gap-2">
+          <span className="text-base leading-none">🥇</span>
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] text-[#64748b]">1er lugar ({pool.config.first_place_pct}%)</p>
+            {first && <p className="text-xs font-semibold text-[#94a3b8] truncate">{first.display_name}</p>}
+          </div>
+          <span className="text-sm font-black text-[#f59e0b] tabular-nums shrink-0">{formatCOP(pool.first_prize)}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-base leading-none">🥈</span>
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] text-[#64748b]">2do lugar ({pool.config.second_place_pct}%)</p>
+            {second && <p className="text-xs font-semibold text-[#94a3b8] truncate">{second.display_name}</p>}
+          </div>
+          <span className="text-sm font-black text-[#94a3b8] tabular-nums shrink-0">{formatCOP(pool.second_prize)}</span>
+        </div>
+      </div>
+      <p className="text-[10px] text-[#475569] leading-relaxed border-t border-[#1e1e35] pt-3">
+        La Penúltima no procesa pagos ni administra dinero. Los aportes y premios son gestionados directamente por los participantes del grupo.
+      </p>
+    </div>
+  );
+}
+
 function SectionHeader({
   title,
   count,
@@ -194,7 +257,7 @@ function SectionHeader({
         {title}
       </h2>
       {count !== undefined && (
-        <span className="text-xs bg-[#18182a] border border-[#2a2a45] text-[#64748b] px-1.5 py-0.5 rounded-full">
+        <span className="text-xs bg-[#18182a] border border-[#2a2a45] text-[#94a3b8] px-1.5 py-0.5 rounded-full">
           {count}
         </span>
       )}

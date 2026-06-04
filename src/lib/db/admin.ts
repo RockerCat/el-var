@@ -122,8 +122,15 @@ export async function getAdminCommunityGroup() {
   const supabase = await createClient();
   const { data } = await supabase
     .from("groups")
-    .select("id, name, invite_code")
+    .select("id, name, invite_code, entry_fee, first_place_pct, second_place_pct")
     .limit(1)
     .maybeSingle();
-  return data ?? null;
+  return data as {
+    id: string;
+    name: string;
+    invite_code: string;
+    entry_fee:        number | null;
+    first_place_pct:  number | null;
+    second_place_pct: number | null;
+  } | null;
 }

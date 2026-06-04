@@ -37,10 +37,10 @@ export default function MatchCard({
         <div className="flex items-center gap-2">
           {status === "live" && <Badge variant="live">EN VIVO</Badge>}
           {status === "upcoming" && (
-            <span className="text-xs text-[#64748b]">{kickoff}</span>
+            <span className="text-xs text-[#94a3b8]">{kickoff}</span>
           )}
           {status === "finished" && (
-            <span className="text-xs text-[#475569] uppercase tracking-wide font-mono">
+            <span className="text-xs text-[#64748b] uppercase tracking-wide font-mono">
               FT
             </span>
           )}
@@ -59,7 +59,7 @@ export default function MatchCard({
             <p className="text-sm font-bold text-[#f1f5f9] truncate">
               {homeTeam.name}
             </p>
-            <p className="text-xs text-[#475569] font-mono">{homeTeam.code}</p>
+            <p className="text-xs text-[#64748b] font-mono">{homeTeam.code}</p>
           </div>
         </div>
 
@@ -68,13 +68,13 @@ export default function MatchCard({
           {hasResult ? (
             <p className="text-2xl font-black text-[#f1f5f9] tabular-nums leading-none">
               {homeScore}
-              <span className="text-[#475569] font-light mx-0.5">–</span>
+              <span className="text-[#64748b] font-light mx-0.5">–</span>
               {awayScore}
             </p>
           ) : status === "live" && homeScore !== undefined ? (
             <p className="text-2xl font-black text-[#ef4444] tabular-nums leading-none animate-live-pulse">
               {homeScore}
-              <span className="text-[#475569] font-light mx-0.5">–</span>
+              <span className="text-[#64748b] font-light mx-0.5">–</span>
               {awayScore}
             </p>
           ) : (
@@ -89,7 +89,7 @@ export default function MatchCard({
             <p className="text-sm font-bold text-[#f1f5f9] truncate">
               {awayTeam.name}
             </p>
-            <p className="text-xs text-[#475569] font-mono">{awayTeam.code}</p>
+            <p className="text-xs text-[#64748b] font-mono">{awayTeam.code}</p>
           </div>
         </div>
       </div>
@@ -97,7 +97,7 @@ export default function MatchCard({
       {/* Your prediction */}
       {prediction && (
         <div className="mt-3 pt-3 border-t border-[#1e1e35] flex items-center justify-between">
-          <span className="text-xs text-[#475569]">Tu predicción</span>
+          <span className="text-xs text-[#64748b]">Tu predicción</span>
           <span className="text-xs font-mono font-semibold text-[#94a3b8]">
             {prediction.home} – {prediction.away}
           </span>

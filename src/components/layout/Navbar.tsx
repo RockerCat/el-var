@@ -63,17 +63,20 @@ function AuthenticatedNav({
           </span>
         </div>
 
-        {/* Mobile: user initial avatar */}
-        <div className="sm:hidden w-8 h-8 rounded-full bg-[#18182a] border border-[#2a2a45] flex items-center justify-center">
-          <span className="text-xs font-bold text-[#00c85a]">{initial}</span>
+        {/* Mobile: avatar + name + logout — all in one flex row */}
+        <div className="sm:hidden flex items-center gap-1.5 min-w-0">
+          <div className="w-7 h-7 rounded-full bg-[#00c85a]/20 border border-[#00c85a]/30 flex items-center justify-center shrink-0">
+            <span className="text-[10px] font-bold text-[#00c85a]">{initial}</span>
+          </div>
+          <span className="text-sm font-medium text-[#94a3b8] truncate max-w-[90px]">
+            {displayName}
+          </span>
+          <LogoutButton compact />
         </div>
 
-        {/* Desktop: text + icon; mobile: icon only */}
+        {/* Desktop: text + icon */}
         <div className="hidden sm:block">
           <LogoutButton />
-        </div>
-        <div className="sm:hidden">
-          <LogoutButton compact />
         </div>
       </div>
     </>

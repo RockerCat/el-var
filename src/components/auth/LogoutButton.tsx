@@ -30,7 +30,7 @@ export default function LogoutButton({ compact = false }: LogoutButtonProps) {
       aria-label="Cerrar sesión"
       className={cn(
         "inline-flex items-center justify-center gap-1.5 rounded-xl transition-colors",
-        "text-[#64748b] hover:text-[#f1f5f9] hover:bg-[#18182a]",
+        "text-[#94a3b8] hover:text-[#f1f5f9] hover:bg-[#18182a]",
         "disabled:opacity-50 disabled:cursor-not-allowed",
         "active:scale-[0.97]",
         compact

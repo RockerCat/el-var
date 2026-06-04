@@ -62,14 +62,14 @@ export default function LiveMatchCard({ match }: { match: MatchWithPrediction })
       {/* Own prediction */}
       <div className="mt-3 pt-2.5 border-t border-[#ef4444]/10 flex items-center justify-between">
         {hasPrediction ? (
-          <span className="text-xs text-[#64748b]">
+          <span className="text-xs text-[#94a3b8]">
             Mi pronóstico:{" "}
             <span className="font-mono font-bold text-[#94a3b8]">
               {match.prediction!.home_score}–{match.prediction!.away_score}
             </span>
           </span>
         ) : (
-          <span className="text-xs text-[#2a2a45]">Sin predicción</span>
+          <span className="text-xs text-[#64748b]">Sin predicción</span>
         )}
         <span className="text-[10px] text-[#ef4444]/40">Ver detalles →</span>
       </div>

@@ -41,7 +41,7 @@ function StatCard({ value, label }: { value: number; label: string }) {
       <p className="text-2xl font-black text-[#f1f5f9] tabular-nums leading-none mb-0.5">
         {value}
       </p>
-      <p className="text-[11px] text-[#475569] font-mono">{label}</p>
+      <p className="text-[11px] text-[#64748b] font-mono">{label}</p>
     </div>
   );
 }

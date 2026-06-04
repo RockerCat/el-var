@@ -31,7 +31,7 @@ function EmptyState() {
           <p className="text-sm font-bold text-[#f1f5f9] mb-1">
             Aún no tienes un grupo
           </p>
-          <p className="text-xs text-[#64748b] leading-relaxed">
+          <p className="text-xs text-[#94a3b8] leading-relaxed">
             Crea tu propio grupo o pídele a un amigo que te comparta su código
             de invitación.
           </p>
@@ -53,7 +53,7 @@ function GroupList({ groups }: { groups: GroupWithMeta[] }) {
 
       {/* Secondary actions below the list */}
       <div className="flex items-center justify-between pt-1">
-        <p className="text-xs text-[#475569]">
+        <p className="text-xs text-[#64748b]">
           {groups.length === 1 ? "1 grupo" : `${groups.length} grupos`}
         </p>
         <GroupActions variant="compact" />

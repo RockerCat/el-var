@@ -11,7 +11,7 @@ export default function ActivityFeed({ entries, currentUserId }: ActivityFeedPro
     return (
       <div className="bg-[#18182a] border border-dashed border-[#2a2a45] rounded-2xl p-6 text-center">
         <p className="text-2xl mb-2">📋</p>
-        <p className="text-xs text-[#64748b]">
+        <p className="text-xs text-[#94a3b8]">
           Aún no hay actividad. Los eventos aparecen cuando el admin confirma resultados.
         </p>
       </div>
@@ -50,7 +50,7 @@ function ActivityItem({
           "w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-xs font-bold",
           isCurrentUser
             ? "bg-[#00c85a]/20 text-[#00c85a]"
-            : "bg-[#1e1e35] text-[#64748b]"
+            : "bg-[#1e1e35] text-[#94a3b8]"
         )}
       >
         {avatarLetter}
@@ -68,7 +68,7 @@ function ActivityItem({
           >
             {displayName}
           </span>
-          <span className="text-xs text-[#64748b]">
+          <span className="text-xs text-[#94a3b8]">
             {isExact ? "acertó el marcador exacto" : "acertó el resultado"}
           </span>
         </div>
@@ -85,7 +85,7 @@ function ActivityItem({
         </p>
 
         {/* Time */}
-        <p className="text-[10px] text-[#475569]">
+        <p className="text-[10px] text-[#64748b]">
           {formatRelativeDate(entry.scored_at)}
         </p>
       </div>
@@ -100,7 +100,7 @@ function ActivityItem({
         >
           +{entry.points}
         </span>
-        <p className="text-[10px] text-[#475569] font-mono">pts</p>
+        <p className="text-[10px] text-[#64748b] font-mono">pts</p>
       </div>
     </div>
   );

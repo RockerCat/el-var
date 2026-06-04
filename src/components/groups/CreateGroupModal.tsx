@@ -42,7 +42,7 @@ export default function CreateGroupModal({ open, onClose }: CreateGroupModalProp
         />
       ) : (
         <form ref={formRef} action={formAction} className="flex flex-col gap-4">
-          <p className="text-sm text-[#64748b]">
+          <p className="text-sm text-[#94a3b8]">
             Dale un nombre a tu grupo y comparte el código de invitación con tus
             amigos.
           </p>
@@ -113,13 +113,13 @@ function SuccessView({
           <h3 className="text-base font-black text-[#f1f5f9]">
             ¡Grupo creado!
           </h3>
-          <p className="text-sm text-[#64748b] mt-0.5">{groupName}</p>
+          <p className="text-sm text-[#94a3b8] mt-0.5">{groupName}</p>
         </div>
       </div>
 
       {/* Invite code highlight */}
       <div className="bg-[#0a0a12] border border-[#2a2a45] rounded-2xl p-4">
-        <p className="text-xs text-[#475569] mb-2">
+        <p className="text-xs text-[#64748b] mb-2">
           Comparte este código con tus amigos:
         </p>
         <div className="flex items-center justify-between gap-3">
@@ -139,7 +139,7 @@ function SuccessView({
         </div>
       </div>
 
-      <p className="text-xs text-[#475569]">
+      <p className="text-xs text-[#64748b]">
         Tus amigos pueden unirse desde la pantalla de registro o desde el
         dashboard con este código.
       </p>

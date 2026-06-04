@@ -21,7 +21,7 @@ export default function LeaderboardCard({
     <Card className="overflow-hidden">
       <div className="px-4 py-3 border-b border-[#1e1e35] flex items-center justify-between">
         <div>
-          <p className="text-xs text-[#475569] uppercase tracking-wide font-mono mb-0.5">
+          <p className="text-xs text-[#64748b] uppercase tracking-wide font-mono mb-0.5">
             Tabla de posiciones
           </p>
           <p className="text-sm font-bold text-[#f1f5f9]">{groupName}</p>
@@ -60,7 +60,7 @@ function LeaderboardRow({
         {isTop3 ? (
           <span className="text-base leading-none">{medals[rank - 1]}</span>
         ) : (
-          <span className="text-xs font-mono text-[#475569]">{rank}</span>
+          <span className="text-xs font-mono text-[#64748b]">{rank}</span>
         )}
       </div>
 
@@ -72,18 +72,18 @@ function LeaderboardRow({
         >
           {username}
           {isCurrentUser && (
-            <span className="text-xs text-[#475569] ml-1 font-normal">
+            <span className="text-xs text-[#64748b] ml-1 font-normal">
               (tú)
             </span>
           )}
         </p>
-        <p className="text-xs text-[#475569]">{exactScores} exactos</p>
+        <p className="text-xs text-[#64748b]">{exactScores} exactos</p>
       </div>
 
       <div className="text-right shrink-0">
         <p className="text-sm font-black tabular-nums text-[#f1f5f9]">
           {points}
-          <span className="text-xs font-normal text-[#475569] ml-0.5">pts</span>
+          <span className="text-xs font-normal text-[#64748b] ml-0.5">pts</span>
         </p>
       </div>
     </div>

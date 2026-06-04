@@ -20,6 +20,8 @@ import { Check } from "lucide-react";
 import Link from "next/link";
 import LiveMatchPoller from "@/components/dashboard/LiveMatchPoller";
 import LiveMatchCard from "@/components/dashboard/LiveMatchCard";
+import PrizePoolCard from "@/components/dashboard/PrizePoolCard";
+import { computePrizePool } from "@/lib/groups";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -73,6 +75,17 @@ export default async function DashboardPage() {
   const currentStage   = detectCurrentStage(matches);
   const hasLiveMatch   = matches.some((m) => m.status === "live");
 
+  const prizePool = community
+    ? computePrizePool(
+        {
+          entry_fee:        community.entry_fee        ?? 0,
+          first_place_pct:  community.first_place_pct  ?? 70,
+          second_place_pct: community.second_place_pct ?? 30,
+        },
+        community.member_count
+      )
+    : null;
+
   return (
     <div className="max-w-[1320px] mx-auto px-4 py-6">
       <LiveMatchPoller hasLiveMatch={hasLiveMatch} />
@@ -108,12 +121,15 @@ export default async function DashboardPage() {
           <ScoringCard stage={currentStage} />
         </aside>
 
-        {/* ── Right: leaderboard ────────────────────────────────────── */}
-        {/* Mobile: order-3 (last). Desktop: col-3 via grid. */}
+        {/* ── Right: leaderboard + prize pool ──────────────────────── */}
+        {/* Mobile: order-3 (after groups). Desktop: col-3 via grid. */}
         {leaderboard.length > 0 && (
           <aside className="order-3 lg:order-none lg:col-start-3 lg:row-start-1">
-            <div className="lg:sticky lg:top-[64px] lg:max-h-[calc(100vh-88px)] lg:overflow-y-auto">
+            <div className="lg:sticky lg:top-[64px] lg:max-h-[calc(100vh-88px)] lg:overflow-y-auto flex flex-col gap-4">
               <LeaderboardPanel leaderboard={leaderboard} currentUserId={user.id} />
+              {prizePool && (
+                <PrizePoolCard pool={prizePool} leaderboard={leaderboard} />
+              )}
             </div>
           </aside>
         )}
@@ -131,7 +147,7 @@ function LiveMatchesSection({ matches: liveMatches }: { matches: MatchWithPredic
   return (
     <div className="mb-5">
       {liveMatches.length > 1 && (
-        <p className="text-[10px] font-bold text-[#475569] uppercase tracking-widest mb-3">
+        <p className="text-[10px] font-bold text-[#64748b] uppercase tracking-widest mb-3">
           Partidos en vivo · {liveMatches.length}
         </p>
       )}
@@ -164,7 +180,7 @@ function FeaturedMatchCard({ match }: { match: MatchWithPrediction }) {
       >
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
-            <p className="text-[10px] font-bold text-[#475569] uppercase tracking-widest mb-2">
+            <p className="text-[10px] font-bold text-[#64748b] uppercase tracking-widest mb-2">
               Último partido
             </p>
             <div className="flex items-center gap-1.5 mb-1">
@@ -176,13 +192,13 @@ function FeaturedMatchCard({ match }: { match: MatchWithPrediction }) {
               <span className="text-sm font-bold text-[#f1f5f9] truncate">{match.away_team.name}</span>
               <span className="text-lg leading-none">{match.away_team.flag_emoji ?? "🏴"}</span>
             </div>
-            <p className="text-[10px] text-[#475569]">{formatKickoff(match.starts_at)}</p>
+            <p className="text-[10px] text-[#94a3b8]">{formatKickoff(match.starts_at)}</p>
           </div>
           {hasPrediction && match.prediction!.scored_at && (
             <div className="shrink-0 text-right">
               <span className={cn(
                 "text-sm font-black tabular-nums",
-                match.prediction!.points > 0 ? "text-[#00c85a]" : "text-[#475569]"
+                match.prediction!.points > 0 ? "text-[#00c85a]" : "text-[#64748b]"
               )}>
                 {match.prediction!.points > 0 ? `+${match.prediction!.points}` : "0"} pts
               </span>
@@ -207,17 +223,17 @@ function FeaturedMatchCard({ match }: { match: MatchWithPrediction }) {
     <div className="flex items-start justify-between gap-3">
 
       <div className="flex-1 min-w-0">
-        <p className="text-[10px] font-bold text-[#475569] uppercase tracking-widest mb-2">
+        <p className="text-[10px] font-bold text-[#64748b] uppercase tracking-widest mb-2">
           ⚽ Próximo partido
         </p>
         <div className="flex items-center gap-1.5 mb-1">
           <span className="text-lg leading-none">{match.home_team.flag_emoji ?? "🏴"}</span>
           <span className="text-sm font-bold text-[#f1f5f9] truncate">{match.home_team.name}</span>
-          <span className="text-[10px] text-[#475569] font-bold shrink-0">vs</span>
+          <span className="text-[10px] text-[#64748b] font-bold shrink-0">vs</span>
           <span className="text-sm font-bold text-[#f1f5f9] truncate">{match.away_team.name}</span>
           <span className="text-lg leading-none">{match.away_team.flag_emoji ?? "🏴"}</span>
         </div>
-        <p className="text-[10px] text-[#475569]">{formatKickoff(match.starts_at)}</p>
+        <p className="text-[10px] text-[#94a3b8]">{formatKickoff(match.starts_at)}</p>
       </div>
 
       <div className="shrink-0 text-right">
@@ -269,7 +285,7 @@ function UserSummaryPanel({
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-sm font-bold text-[#f1f5f9] truncate">{displayName}</p>
-          <p className="text-[10px] text-[#475569] hidden lg:block">La Penúltima</p>
+          <p className="text-[10px] text-[#64748b] hidden lg:block">La Penúltima</p>
         </div>
         {/* Mobile only: rank + pts inline */}
         {userEntry && (
@@ -280,7 +296,7 @@ function UserSummaryPanel({
             )}>
               #{userEntry.rank}
             </p>
-            <p className="text-[10px] text-[#475569] tabular-nums mt-0.5">
+            <p className="text-[10px] text-[#64748b] tabular-nums mt-0.5">
               {userEntry.total_points} pts
             </p>
           </div>
@@ -292,7 +308,7 @@ function UserSummaryPanel({
           {/* Desktop only: big rank + points stat cards */}
           <div className="hidden lg:grid grid-cols-2 gap-3 mb-3">
             <div className="bg-[#18182a] border border-[#1e1e35] rounded-xl p-3 text-center">
-              <p className="text-[10px] text-[#475569] uppercase tracking-wide mb-1.5">
+              <p className="text-[10px] text-[#64748b] uppercase tracking-wide mb-1.5">
                 Posición
               </p>
               <p className={cn(
@@ -303,7 +319,7 @@ function UserSummaryPanel({
               </p>
             </div>
             <div className="bg-[#18182a] border border-[#1e1e35] rounded-xl p-3 text-center">
-              <p className="text-[10px] text-[#475569] uppercase tracking-wide mb-1.5">
+              <p className="text-[10px] text-[#64748b] uppercase tracking-wide mb-1.5">
                 Puntos
               </p>
               <p className="text-3xl font-black leading-none tabular-nums text-[#f1f5f9]">
@@ -318,28 +334,28 @@ function UserSummaryPanel({
               <p className="text-sm font-black text-[#f59e0b] tabular-nums">
                 {userEntry.exact_count}
               </p>
-              <p className="text-[10px] text-[#475569]">Exactos</p>
+              <p className="text-[10px] text-[#94a3b8]">Exactos</p>
             </div>
             <div>
               <p className="text-sm font-black text-[#00c85a] tabular-nums">
                 {userEntry.result_count}
               </p>
-              <p className="text-[10px] text-[#475569]">Ganadores</p>
+              <p className="text-[10px] text-[#94a3b8]">Ganadores</p>
             </div>
             <div>
               <p className={cn(
                 "text-sm font-black tabular-nums",
-                pendingCount > 0 ? "text-[#f59e0b]" : "text-[#475569]"
+                pendingCount > 0 ? "text-[#f59e0b]" : "text-[#64748b]"
               )}>
                 {pendingCount}
               </p>
-              <p className="text-[10px] text-[#475569]">Pendientes</p>
+              <p className="text-[10px] text-[#94a3b8]">Pendientes</p>
             </div>
           </div>
         </>
       ) : (
         <div className="bg-[#18182a] rounded-xl p-4 text-center">
-          <p className="text-xs text-[#475569]">
+          <p className="text-xs text-[#64748b]">
             Haz tu primera predicción para aparecer en la tabla.
           </p>
         </div>
@@ -357,10 +373,10 @@ function ScoringCard({ stage }: { stage: import("@/lib/matches").MatchStage }) {
 
   return (
     <div className="bg-[#11111c] border border-[#1e1e35] rounded-2xl p-4 lg:p-5">
-      <p className="text-[10px] font-bold text-[#475569] uppercase tracking-widest mb-0.5">
+      <p className="text-[10px] font-bold text-[#64748b] uppercase tracking-widest mb-0.5">
         Sistema de puntos
       </p>
-      <p className="text-xs text-[#64748b] mb-4">
+      <p className="text-xs text-[#94a3b8] mb-4">
         Fase actual:{" "}
         <span className="font-semibold text-[#94a3b8]">{phaseLabel}</span>
       </p>
@@ -382,7 +398,7 @@ function ScoringCard({ stage }: { stage: import("@/lib/matches").MatchStage }) {
 
       <Link
         href="/rules"
-        className="text-[11px] text-[#475569] hover:text-[#64748b] transition-colors"
+        className="text-[11px] text-[#64748b] hover:text-[#94a3b8] transition-colors"
       >
         Ver reglas completas →
       </Link>
@@ -437,7 +453,7 @@ function LeaderboardPanel({
                 {medal ? (
                   <span className="text-sm leading-none">{medal}</span>
                 ) : (
-                  <span className="text-[10px] font-mono text-[#64748b]">#{entry.rank}</span>
+                  <span className="text-[10px] font-mono text-[#94a3b8]">#{entry.rank}</span>
                 )}
               </div>
 
@@ -454,11 +470,11 @@ function LeaderboardPanel({
                 <div className="flex items-baseline gap-0.5 justify-end">
                   <span className={cn(
                     "text-sm tabular-nums font-bold",
-                    isMe ? "text-[#f1f5f9]" : "text-[#64748b]"
+                    isMe ? "text-[#f1f5f9]" : "text-[#94a3b8]"
                   )}>
                     {entry.total_points}
                   </span>
-                  <span className="text-[9px] text-[#475569]">pts</span>
+                  <span className="text-[9px] text-[#64748b]">pts</span>
                 </div>
                 {diff !== null && (
                   <p className="text-[9px] text-[#ef4444]/70 tabular-nums">-{diff}</p>

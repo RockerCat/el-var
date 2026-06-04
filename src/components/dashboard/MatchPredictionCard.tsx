@@ -35,10 +35,10 @@ export default function MatchPredictionCard({ match }: MatchPredictionCardProps)
         <div className="flex items-center gap-2">
           {status === "live" && <Badge variant="live">EN VIVO</Badge>}
           {status === "scheduled" && (
-            <span className="text-xs text-[#64748b]">{formatKickoff(match.starts_at)}</span>
+            <span className="text-xs text-[#94a3b8]">{formatKickoff(match.starts_at)}</span>
           )}
           {status === "finished" && (
-            <span className="text-xs text-[#475569] uppercase tracking-wide font-mono">PT</span>
+            <span className="text-xs text-[#64748b] uppercase tracking-wide font-mono">PT</span>
           )}
         </div>
         <span className="text-[10px] text-[#2a2a45] uppercase tracking-widest font-mono">
@@ -55,7 +55,7 @@ export default function MatchPredictionCard({ match }: MatchPredictionCardProps)
           </span>
           <div className="min-w-0">
             <p className="text-sm font-bold text-[#f1f5f9] truncate">{home_team.name}</p>
-            <p className="text-[10px] text-[#475569] font-mono">{home_team.code}</p>
+            <p className="text-[10px] text-[#64748b] font-mono">{home_team.code}</p>
           </div>
         </div>
 
@@ -64,13 +64,13 @@ export default function MatchPredictionCard({ match }: MatchPredictionCardProps)
           {hasResult ? (
             <p className="text-xl font-black text-[#f1f5f9] tabular-nums leading-none">
               {match.home_score}
-              <span className="text-[#475569] font-light mx-0.5">–</span>
+              <span className="text-[#64748b] font-light mx-0.5">–</span>
               {match.away_score}
             </p>
           ) : status === "live" && match.home_score !== null ? (
             <p className="text-xl font-black text-[#ef4444] tabular-nums leading-none animate-live-pulse">
               {match.home_score}
-              <span className="text-[#475569] font-light mx-0.5">–</span>
+              <span className="text-[#64748b] font-light mx-0.5">–</span>
               {match.away_score}
             </p>
           ) : (
@@ -85,7 +85,7 @@ export default function MatchPredictionCard({ match }: MatchPredictionCardProps)
           </span>
           <div className="min-w-0 text-right">
             <p className="text-sm font-bold text-[#f1f5f9] truncate">{away_team.name}</p>
-            <p className="text-[10px] text-[#475569] font-mono">{away_team.code}</p>
+            <p className="text-[10px] text-[#64748b] font-mono">{away_team.code}</p>
           </div>
         </div>
       </div>

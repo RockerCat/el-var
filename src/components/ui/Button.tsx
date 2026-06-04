@@ -1,7 +1,8 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { ButtonHTMLAttributes, forwardRef } from "react";
+import { ButtonHTMLAttributes, forwardRef, useRef } from "react";
+import { getRandomLoadingMessage } from "@/lib/loading-messages";
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "primary" | "secondary" | "ghost" | "danger";
@@ -24,6 +25,10 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     },
     ref
   ) => {
+    // Pick a message once per mount so it stays stable across re-renders
+    // while the button is loading.
+    const messageRef = useRef(getRandomLoadingMessage());
+
     return (
       <button
         ref={ref}
@@ -56,7 +61,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         {loading ? (
           <>
             <svg
-              className="animate-spin h-4 w-4"
+              className="animate-spin h-4 w-4 shrink-0"
               fill="none"
               viewBox="0 0 24 24"
             >
@@ -74,7 +79,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
                 d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
               />
             </svg>
-            <span>Cargando...</span>
+            <span>{messageRef.current}</span>
           </>
         ) : (
           children

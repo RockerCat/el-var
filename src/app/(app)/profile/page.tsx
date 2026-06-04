@@ -63,7 +63,7 @@ export default async function ProfilePage() {
           </div>
           <div className="min-w-0">
             <p className="text-lg font-black text-[#f1f5f9] truncate">{displayName}</p>
-            <p className="text-sm text-[#475569] truncate">{user.email}</p>
+            <p className="text-sm text-[#64748b] truncate">{user.email}</p>
           </div>
         </div>
 
@@ -98,7 +98,7 @@ export default async function ProfilePage() {
           </div>
 
           <div className="bg-[#11111c] border border-[#1e1e35] rounded-2xl p-5">
-            <p className="text-[10px] font-bold text-[#475569] uppercase tracking-widest mb-4">
+            <p className="text-[10px] font-bold text-[#64748b] uppercase tracking-widest mb-4">
               Estadísticas
             </p>
             <div className="grid grid-cols-2 gap-3">
@@ -126,7 +126,7 @@ export default async function ProfilePage() {
         </>
       ) : (
         <div className="bg-[#18182a] border border-dashed border-[#2a2a45] rounded-2xl p-8 text-center">
-          <p className="text-sm text-[#475569]">
+          <p className="text-sm text-[#64748b]">
             Haz tu primera predicción para ver tus estadísticas.
           </p>
         </div>
@@ -139,7 +139,7 @@ export default async function ProfilePage() {
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-between gap-3 py-2 border-t border-[#1e1e35] first:border-t-0 first:pt-0">
-      <span className="text-xs text-[#475569]">{label}</span>
+      <span className="text-xs text-[#64748b]">{label}</span>
       <span className="text-xs font-semibold text-[#94a3b8] text-right truncate max-w-[60%]">
         {value}
       </span>
@@ -174,8 +174,8 @@ function StatCard({
       <p className={cn("font-black tabular-nums leading-none mb-1", valueColor, large ? "text-4xl" : "text-2xl")}>
         {value}
       </p>
-      {sub && <p className="text-[10px] text-[#475569] mb-1">{sub}</p>}
-      <p className="text-[10px] text-[#475569] uppercase tracking-wide">{label}</p>
+      {sub && <p className="text-[10px] text-[#64748b] mb-1">{sub}</p>}
+      <p className="text-[10px] text-[#64748b] uppercase tracking-wide">{label}</p>
     </div>
   );
 }

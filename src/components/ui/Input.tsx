@@ -26,7 +26,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
         )}
         <div className="relative">
           {leftIcon && (
-            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#475569]">
+            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#64748b]">
               {leftIcon}
             </span>
           )}
@@ -35,7 +35,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             id={inputId}
             className={cn(
               "w-full h-12 rounded-xl bg-[#18182a] border text-[#f1f5f9]",
-              "placeholder:text-[#475569] text-sm",
+              "placeholder:text-[#64748b] text-sm",
               "transition-colors duration-150",
               error
                 ? "border-[#ef4444]/50 focus:border-[#ef4444] focus:ring-[#ef4444]/20"
@@ -48,7 +48,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
           />
         </div>
         {error && <p className="text-xs text-[#ef4444]">{error}</p>}
-        {hint && !error && <p className="text-xs text-[#475569]">{hint}</p>}
+        {hint && !error && <p className="text-xs text-[#64748b]">{hint}</p>}
       </div>
     );
   }

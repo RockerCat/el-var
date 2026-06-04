@@ -75,7 +75,7 @@ export default function LiveMatchPoller({
   if (!hasLiveMatch) return null;
 
   return (
-    <p className="text-[10px] text-[#3a3a60] font-mono text-right mb-1 select-none">
+    <p className="text-[10px] text-[#64748b] font-mono text-right mb-1 select-none">
       Actualización en vivo activa
     </p>
   );

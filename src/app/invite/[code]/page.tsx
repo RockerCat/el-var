@@ -47,7 +47,7 @@ export default async function InvitePage({ params }: InvitePageProps) {
       <>
         <Navbar />
         <InviteLayout groupName={group.name}>
-          <p className="text-sm text-[#64748b] text-center mb-5">
+          <p className="text-sm text-[#94a3b8] text-center mb-5">
             Crea tu cuenta, únete al grupo y demuestra que sabes más fútbol que tus amigos.
           </p>
 
@@ -86,7 +86,7 @@ export default async function InvitePage({ params }: InvitePageProps) {
         <Navbar />
         <InviteLayout groupName={group.name}>
           <div className="text-center">
-            <p className="text-sm text-[#64748b] mb-5">
+            <p className="text-sm text-[#94a3b8] mb-5">
               Ya eres parte de este grupo. ¡Ve a ver los partidos y tus predicciones!
             </p>
             <Link
@@ -109,15 +109,15 @@ export default async function InvitePage({ params }: InvitePageProps) {
     <>
       <Navbar />
       <InviteLayout groupName={group.name}>
-        <p className="text-sm text-[#64748b] text-center mb-1">
+        <p className="text-sm text-[#94a3b8] text-center mb-1">
           Ingresando como{" "}
           <span className="text-[#94a3b8] font-semibold">{displayName}</span>
         </p>
-        <p className="text-xs text-[#475569] text-center mb-5">
+        <p className="text-xs text-[#64748b] text-center mb-5">
           Únete para predecir los marcadores del Mundial 2026 con tus amigos.
         </p>
         <InviteJoinForm inviteCode={upperCode} />
-        <p className="text-xs text-[#475569] text-center mt-3">
+        <p className="text-xs text-[#64748b] text-center mt-3">
           ¿No eres tú?{" "}
           <Link href="/login" className="text-[#00c85a] hover:text-[#00e87a]">
             Cambiar de cuenta
@@ -149,7 +149,7 @@ function InviteLayout({
             <span className="w-1.5 h-1.5 rounded-full bg-[#00c85a] animate-live-pulse" />
             Te invitaron a jugar La Penúltima
           </div>
-          <p className="text-sm text-[#64748b] mb-2">Únete al grupo y demuestra que sabes más fútbol que tus amigos.</p>
+          <p className="text-sm text-[#94a3b8] mb-2">Únete al grupo y demuestra que sabes más fútbol que tus amigos.</p>
           <h1 className="text-2xl font-black text-[#f1f5f9]">{groupName}</h1>
         </div>
 
@@ -161,7 +161,7 @@ function InviteLayout({
             </div>
             <div>
               <p className="text-sm font-bold text-[#f1f5f9]">{groupName}</p>
-              <div className="flex items-center gap-1.5 text-xs text-[#475569] mt-0.5">
+              <div className="flex items-center gap-1.5 text-xs text-[#64748b] mt-0.5">
                 <Users size={11} strokeWidth={1.8} />
                 <span>Copa del Mundo 2026</span>
               </div>
@@ -187,12 +187,12 @@ function InvalidCodePage({ code }: { code: string }) {
           <h1 className="text-xl font-black text-[#f1f5f9] mb-2">
             Enlace no válido
           </h1>
-          <p className="text-sm text-[#64748b] mb-1">
+          <p className="text-sm text-[#94a3b8] mb-1">
             El código de invitación{" "}
             <span className="font-mono text-[#94a3b8]">{code}</span> no existe
             o ya expiró.
           </p>
-          <p className="text-xs text-[#475569] mb-8">
+          <p className="text-xs text-[#64748b] mb-8">
             Pídele al organizador que te comparta el enlace actualizado.
           </p>
           <Link

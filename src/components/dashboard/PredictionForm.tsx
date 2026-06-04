@@ -46,9 +46,9 @@ export default function PredictionForm({
     return (
       <div className="mt-2 pt-2 border-t border-[#1e1e35] space-y-1.5">
         <div className="flex items-center justify-between">
-          <span className="text-xs text-[#475569]">Tu predicción</span>
+          <span className="text-xs text-[#64748b]">Tu predicción</span>
           {savedPrediction ? (
-            <span className="text-xs font-mono font-semibold text-[#64748b]">
+            <span className="text-xs font-mono font-semibold text-[#94a3b8]">
               {savedPrediction.home_score} – {savedPrediction.away_score}
             </span>
           ) : (
@@ -72,14 +72,14 @@ export default function PredictionForm({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Check size={13} className="text-[#00c85a]" />
-            <span className="text-xs text-[#64748b]">Tu predicción</span>
+            <span className="text-xs text-[#94a3b8]">Tu predicción</span>
             <span className="text-sm font-black font-mono text-[#f1f5f9]">
               {savedPrediction.home_score} – {savedPrediction.away_score}
             </span>
           </div>
           <button
             onClick={() => setIsEditing(true)}
-            className="flex items-center gap-1 text-xs text-[#475569] hover:text-[#94a3b8] transition-colors"
+            className="flex items-center gap-1 text-xs text-[#64748b] hover:text-[#94a3b8] transition-colors"
           >
             <Pencil size={11} />
             Editar
@@ -96,7 +96,7 @@ export default function PredictionForm({
         <input type="hidden" name="match_id" value={matchId} />
 
         <div className="flex items-center gap-2">
-          <span className="text-xs text-[#64748b] shrink-0">Tu predicción:</span>
+          <span className="text-xs text-[#94a3b8] shrink-0">Tu predicción:</span>
 
           <div className="flex items-center gap-1.5 flex-1">
             <ScoreInput
@@ -104,7 +104,7 @@ export default function PredictionForm({
               defaultValue={savedPrediction?.home_score ?? currentPrediction?.home_score}
               disabled={isPending}
             />
-            <span className="text-[#475569] text-sm font-light">—</span>
+            <span className="text-[#64748b] text-sm font-light">—</span>
             <ScoreInput
               name="away_score"
               defaultValue={savedPrediction?.away_score ?? currentPrediction?.away_score}
@@ -124,7 +124,7 @@ export default function PredictionForm({
             <button
               type="button"
               onClick={() => setIsEditing(false)}
-              className="shrink-0 text-xs text-[#475569] hover:text-[#94a3b8] transition-colors"
+              className="shrink-0 text-xs text-[#64748b] hover:text-[#94a3b8] transition-colors"
             >
               Cancelar
             </button>

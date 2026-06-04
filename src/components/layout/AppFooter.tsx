@@ -7,7 +7,7 @@ export default function AppFooter() {
           href="https://alexsosa.me"
           target="_blank"
           rel="noopener noreferrer"
-          className="text-[#475569] hover:text-[#64748b] transition-colors underline underline-offset-2"
+          className="text-[#64748b] hover:text-[#94a3b8] transition-colors underline underline-offset-2"
         >
           AlexSosa.me
         </a>{" "}

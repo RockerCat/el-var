@@ -9,23 +9,23 @@ export default async function AdminUsersPage() {
     <div className="max-w-4xl mx-auto px-6 py-8 space-y-6">
 
       <div>
-        <p className="text-[10px] text-[#475569] font-mono uppercase tracking-widest mb-1">
+        <p className="text-[10px] text-[#64748b] font-mono uppercase tracking-widest mb-1">
           Admin · Usuarios
         </p>
         <h1 className="text-2xl font-black text-[#f1f5f9]">
           Usuarios
         </h1>
-        <p className="text-sm text-[#64748b] mt-0.5">
+        <p className="text-sm text-[#94a3b8] mt-0.5">
           {users.length} participante{users.length !== 1 ? "s" : ""} en La Penúltima
         </p>
       </div>
 
       {users.length === 0 ? (
-        <p className="text-sm text-[#475569]">No hay usuarios registrados.</p>
+        <p className="text-sm text-[#64748b]">No hay usuarios registrados.</p>
       ) : (
         <div className="bg-[#11111c] border border-[#1e1e35] rounded-2xl overflow-hidden">
           {/* Table header */}
-          <div className="grid grid-cols-[1fr_auto_auto_auto] gap-4 px-5 py-3 border-b border-[#1e1e35] text-[10px] font-semibold text-[#475569] uppercase tracking-widest">
+          <div className="grid grid-cols-[1fr_auto_auto_auto] gap-4 px-5 py-3 border-b border-[#1e1e35] text-[10px] font-semibold text-[#64748b] uppercase tracking-widest">
             <span>Usuario</span>
             <span className="text-right">Pts</span>
             <span className="text-right">Preds</span>
@@ -53,7 +53,7 @@ export default async function AdminUsersPage() {
                       </span>
                     )}
                   </div>
-                  <p className="text-[10px] text-[#475569] truncate">{u.email}</p>
+                  <p className="text-[10px] text-[#64748b] truncate">{u.email}</p>
                   <p className="text-[10px] text-[#2a2a45]">
                     Unido {formatRelativeDate(u.joined_at)} · ⚡{u.exact_count} ✓{u.result_count}
                   </p>
@@ -65,7 +65,7 @@ export default async function AdminUsersPage() {
                 </p>
 
                 {/* Prediction count */}
-                <p className="text-xs text-[#64748b] tabular-nums text-right">
+                <p className="text-xs text-[#94a3b8] tabular-nums text-right">
                   {u.pred_count}
                 </p>
 
@@ -78,7 +78,7 @@ export default async function AdminUsersPage() {
       )}
 
       <div className="bg-[#11111c] border border-[#1e1e35] rounded-xl p-4">
-        <p className="text-xs text-[#64748b] leading-relaxed">
+        <p className="text-xs text-[#94a3b8] leading-relaxed">
           <strong className="text-[#94a3b8]">Deshabilitar</strong> impide que el usuario guarde predicciones. El usuario sigue pudiendo iniciar sesión y ver el dashboard, pero no aparece en el ranking.
           Los registros de predicción existentes se conservan.
         </p>

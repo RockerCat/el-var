@@ -29,25 +29,25 @@ export default async function AdminMatchesPage({ searchParams }: PageProps) {
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-[10px] text-[#475569] font-mono uppercase tracking-widest mb-1">
+          <p className="text-[10px] text-[#64748b] font-mono uppercase tracking-widest mb-1">
             Admin
           </p>
           <h1 className="text-2xl font-black text-[#f1f5f9]">Editor de partidos</h1>
-          <p className="text-xs text-[#64748b] mt-0.5">
+          <p className="text-xs text-[#94a3b8] mt-0.5">
             {matches.length} partido{matches.length !== 1 ? "s" : ""}
           </p>
         </div>
         <div className="flex items-center gap-2 pt-1">
           <Link
             href="/admin"
-            className="text-xs text-[#64748b] hover:text-[#94a3b8] transition-colors"
+            className="text-xs text-[#94a3b8] hover:text-[#94a3b8] transition-colors"
           >
             ← Admin
           </Link>
           <span className="text-[#2a2a45]">·</span>
           <Link
             href="/dashboard"
-            className="text-xs text-[#64748b] hover:text-[#94a3b8] transition-colors"
+            className="text-xs text-[#94a3b8] hover:text-[#94a3b8] transition-colors"
           >
             Dashboard
           </Link>
@@ -59,7 +59,7 @@ export default async function AdminMatchesPage({ searchParams }: PageProps) {
 
         {/* Group filter */}
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-[10px] text-[#475569] font-mono uppercase tracking-widest w-12 shrink-0">
+          <span className="text-[10px] text-[#64748b] font-mono uppercase tracking-widest w-12 shrink-0">
             Grupo
           </span>
           <Link
@@ -81,7 +81,7 @@ export default async function AdminMatchesPage({ searchParams }: PageProps) {
 
         {/* Status filter */}
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-[10px] text-[#475569] font-mono uppercase tracking-widest w-12 shrink-0">
+          <span className="text-[10px] text-[#64748b] font-mono uppercase tracking-widest w-12 shrink-0">
             Estado
           </span>
           {STATUS_FILTERS.map(({ value, label }) => (
@@ -98,7 +98,7 @@ export default async function AdminMatchesPage({ searchParams }: PageProps) {
 
       {/* Match editor cards */}
       {matches.length === 0 ? (
-        <div className="text-center py-12 text-sm text-[#64748b]">
+        <div className="text-center py-12 text-sm text-[#94a3b8]">
           No hay partidos con los filtros seleccionados.
         </div>
       ) : (
@@ -129,6 +129,6 @@ function filterClass(active: boolean): string {
     "text-xs px-2.5 py-1 rounded-lg transition-colors font-medium",
     active
       ? "bg-[#00c85a]/15 text-[#00c85a] border border-[#00c85a]/25"
-      : "bg-[#18182a] text-[#64748b] border border-[#2a2a45] hover:text-[#94a3b8]",
+      : "bg-[#18182a] text-[#94a3b8] border border-[#2a2a45] hover:text-[#94a3b8]",
   ].join(" ");
 }

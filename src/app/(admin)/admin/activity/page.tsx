@@ -37,18 +37,18 @@ export default async function AdminActivityPage() {
   return (
     <div className="max-w-4xl mx-auto px-6 py-8 space-y-6">
       <div>
-        <p className="text-[10px] text-[#475569] font-mono uppercase tracking-widest mb-1">
+        <p className="text-[10px] text-[#64748b] font-mono uppercase tracking-widest mb-1">
           Admin · Actividad
         </p>
         <h1 className="text-2xl font-black text-[#f1f5f9]">Historial de cambios</h1>
-        <p className="text-sm text-[#64748b] mt-0.5">
+        <p className="text-sm text-[#94a3b8] mt-0.5">
           Últimas {entries.length} acciones administrativas
         </p>
       </div>
 
       {entries.length === 0 ? (
         <div className="bg-[#11111c] border border-[#1e1e35] rounded-2xl p-8 text-center">
-          <p className="text-sm text-[#475569]">No hay actividad registrada todavía.</p>
+          <p className="text-sm text-[#64748b]">No hay actividad registrada todavía.</p>
           <p className="text-[10px] text-[#2a2a45] mt-1">
             Las acciones aparecerán aquí después de la primera modificación.
           </p>
@@ -56,7 +56,7 @@ export default async function AdminActivityPage() {
       ) : (
         <div className="bg-[#11111c] border border-[#1e1e35] rounded-2xl overflow-hidden">
           {/* Header */}
-          <div className="grid grid-cols-[auto_auto_1fr_auto] gap-4 px-5 py-3 border-b border-[#1e1e35] text-[9px] font-semibold text-[#475569] uppercase tracking-widest">
+          <div className="grid grid-cols-[auto_auto_1fr_auto] gap-4 px-5 py-3 border-b border-[#1e1e35] text-[9px] font-semibold text-[#64748b] uppercase tracking-widest">
             <span>Fecha</span>
             <span>Admin</span>
             <span>Detalle</span>
@@ -76,7 +76,7 @@ export default async function AdminActivityPage() {
               return (
                 <div key={entry.id} className="grid grid-cols-[auto_auto_1fr_auto] gap-4 items-start px-5 py-3">
                   {/* Date */}
-                  <p className="text-[10px] text-[#475569] font-mono whitespace-nowrap pt-0.5">
+                  <p className="text-[10px] text-[#64748b] font-mono whitespace-nowrap pt-0.5">
                     {dateStr}
                   </p>
 
@@ -88,12 +88,12 @@ export default async function AdminActivityPage() {
                   {/* Action + entity */}
                   <div className="min-w-0">
                     <p className={`text-xs font-semibold ${meta.color}`}>{meta.label}</p>
-                    <p className="text-[10px] text-[#475569] truncate">{entry.entity_label}</p>
+                    <p className="text-[10px] text-[#64748b] truncate">{entry.entity_label}</p>
                   </div>
 
                   {/* Diff */}
                   {diff && (
-                    <p className="text-[10px] text-[#64748b] text-right whitespace-nowrap font-mono">
+                    <p className="text-[10px] text-[#94a3b8] text-right whitespace-nowrap font-mono">
                       {diff}
                     </p>
                   )}

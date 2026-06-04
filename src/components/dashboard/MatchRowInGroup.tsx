@@ -74,7 +74,7 @@ export default function MatchRowInGroup({ match, error, onDirty }: MatchRowInGro
               </span>
               <span className="text-xs font-black text-[#ef4444] uppercase tracking-wide">EN VIVO</span>
             </div>
-            <span className="text-[10px] text-[#64748b]">{formatKickoff(match.starts_at)}</span>
+            <span className="text-[10px] text-[#94a3b8]">{formatKickoff(match.starts_at)}</span>
           </div>
 
           {/* Teams + live score */}
@@ -99,10 +99,10 @@ export default function MatchRowInGroup({ match, error, onDirty }: MatchRowInGro
             <div className="flex items-center justify-between">
               {saved ? (
                 <div>
-                  <p className="text-[10px] text-[#64748b] mb-0.5">Mi pronóstico</p>
+                  <p className="text-[10px] text-[#94a3b8] mb-0.5">Mi pronóstico</p>
                   <p className="text-xl font-black font-mono text-[#f1f5f9] tabular-nums leading-none">
                     {saved.home_score}
-                    <span className="text-[#64748b] mx-1.5 font-light text-lg">–</span>
+                    <span className="text-[#94a3b8] mx-1.5 font-light text-lg">–</span>
                     {saved.away_score}
                   </p>
                 </div>
@@ -112,7 +112,7 @@ export default function MatchRowInGroup({ match, error, onDirty }: MatchRowInGro
                   <span className="text-xs text-[#f59e0b]/90">No ingresaste pronóstico</span>
                 </div>
               )}
-              <span className="flex items-center gap-1 text-[10px] text-[#64748b]">
+              <span className="flex items-center gap-1 text-[10px] text-[#94a3b8]">
                 <Lock size={9} className="shrink-0" />Cerrado
               </span>
             </div>
@@ -155,11 +155,11 @@ export default function MatchRowInGroup({ match, error, onDirty }: MatchRowInGro
 
           {/* Status row */}
           <div className="flex items-center justify-between mb-2.5">
-            <span className="text-[10px] font-semibold text-[#64748b] uppercase tracking-widest">
+            <span className="text-[10px] font-semibold text-[#94a3b8] uppercase tracking-widest">
               FINALIZADO
             </span>
             {!isScored && (
-              <span className="text-[10px] text-[#64748b]">{formatKickoff(match.starts_at)}</span>
+              <span className="text-[10px] text-[#94a3b8]">{formatKickoff(match.starts_at)}</span>
             )}
           </div>
 
@@ -178,7 +178,7 @@ export default function MatchRowInGroup({ match, error, onDirty }: MatchRowInGro
           <div className="flex items-center justify-between pt-2.5 border-t border-[#1e1e35]">
             {hasPred ? (
               <div className="flex items-center gap-2">
-                <span className="text-[10px] text-[#64748b]">Mi pronóstico</span>
+                <span className="text-[10px] text-[#94a3b8]">Mi pronóstico</span>
                 <span className="font-mono font-bold text-xs text-[#94a3b8]">
                   {saved.home_score}–{saved.away_score}
                 </span>
@@ -201,7 +201,7 @@ export default function MatchRowInGroup({ match, error, onDirty }: MatchRowInGro
                 <span className="font-mono">{gotPoints ? `+${saved.points}` : "0"} pts</span>
               </div>
             ) : !hasPred ? (
-              <div className="flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-black border shrink-0 bg-[#1e1e35] text-[#64748b] border-[#2a2a45]">
+              <div className="flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-black border shrink-0 bg-[#1e1e35] text-[#94a3b8] border-[#2a2a45]">
                 <span>✕</span>
                 <span className="font-mono">0 pts</span>
               </div>
@@ -212,7 +212,7 @@ export default function MatchRowInGroup({ match, error, onDirty }: MatchRowInGro
           {isScored && saved.points_reason && (
             <p className={cn(
               "text-[10px] font-mono uppercase tracking-widest mt-1.5 text-right",
-              gotPoints ? "text-[#00c85a]/80" : "text-[#64748b]"
+              gotPoints ? "text-[#00c85a]/80" : "text-[#94a3b8]"
             )}>
               {saved.points_reason}
             </p>
@@ -266,7 +266,7 @@ export default function MatchRowInGroup({ match, error, onDirty }: MatchRowInGro
 
             <div className="shrink-0 flex items-center gap-1.5">
               <ScoreInput name={`home_${match.id}`} defaultValue={saved?.home_score} onChange={handleInputChange} />
-              <span className="text-[#64748b] text-sm font-light select-none">–</span>
+              <span className="text-[#94a3b8] text-sm font-light select-none">–</span>
               <ScoreInput name={`away_${match.id}`} defaultValue={saved?.away_score} onChange={handleInputChange} />
             </div>
 
@@ -279,7 +279,7 @@ export default function MatchRowInGroup({ match, error, onDirty }: MatchRowInGro
 
           {/* Date + saved indicator */}
           <div className="flex items-center justify-between">
-            <span className="text-[10px] text-[#64748b]">{formatKickoff(match.starts_at)}</span>
+            <span className="text-[10px] text-[#94a3b8]">{formatKickoff(match.starts_at)}</span>
             {isSaved && (
               <div className="flex items-center gap-1">
                 <Check size={9} className="text-[#00c85a] shrink-0" />
@@ -306,25 +306,25 @@ export default function MatchRowInGroup({ match, error, onDirty }: MatchRowInGro
       <div className="px-3 py-3">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-1.5">
-            <Lock size={9} className="text-[#64748b] shrink-0" />
-            <span className="text-[10px] font-semibold text-[#64748b] uppercase tracking-widest">CERRADO</span>
+            <Lock size={9} className="text-[#94a3b8] shrink-0" />
+            <span className="text-[10px] font-semibold text-[#94a3b8] uppercase tracking-widest">CERRADO</span>
           </div>
-          <span className="text-[10px] text-[#64748b]">{formatKickoff(match.starts_at)}</span>
+          <span className="text-[10px] text-[#94a3b8]">{formatKickoff(match.starts_at)}</span>
         </div>
         <div className="flex items-center gap-2">
           <TeamSide team={home_team} side="home" />
           {/* "vs" raised from near-invisible to readable */}
-          <span className="shrink-0 text-[10px] text-[#475569] w-14 text-center">vs</span>
+          <span className="shrink-0 text-[10px] text-[#64748b] w-14 text-center">vs</span>
           <TeamSide team={away_team} side="away" />
         </div>
         <div className="mt-2">
           {saved ? (
-            <span className="text-xs text-[#64748b]">
+            <span className="text-xs text-[#94a3b8]">
               Tu pronóstico:{" "}
               <span className="font-mono font-bold text-[#94a3b8]">{saved.home_score}–{saved.away_score}</span>
             </span>
           ) : (
-            <span className="text-xs text-[#475569]">Sin predicción</span>
+            <span className="text-xs text-[#64748b]">Sin predicción</span>
           )}
         </div>
       </div>

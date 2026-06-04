@@ -50,7 +50,7 @@ export default async function RulesPage() {
         <h1 className="text-2xl font-black text-[#f1f5f9]">
           Reglas de La Penúltima
         </h1>
-        <p className="text-sm text-[#475569] mt-1">
+        <p className="text-sm text-[#64748b] mt-1">
           Fase actual:{" "}
           <span className="font-semibold text-[#94a3b8]">{currentPhaseLabel}</span>
         </p>
@@ -62,7 +62,7 @@ export default async function RulesPage() {
         <div className="bg-[#11111c] border border-[#1e1e35] rounded-2xl overflow-hidden">
           {/* Header row */}
           <div className="grid grid-cols-[1fr_auto_auto] gap-4 px-4 py-2.5 border-b border-[#1e1e35]">
-            <span className="text-[10px] font-bold text-[#475569] uppercase tracking-widest">Fase</span>
+            <span className="text-[10px] font-bold text-[#64748b] uppercase tracking-widest">Fase</span>
             <span className="text-[10px] font-bold text-[#f59e0b]/70 uppercase tracking-widest text-right w-24">Exacto</span>
             <span className="text-[10px] font-bold text-[#00c85a]/70 uppercase tracking-widest text-right w-24">Ganador</span>
           </div>
@@ -96,13 +96,13 @@ export default async function RulesPage() {
                 </div>
                 <span className={cn(
                   "text-sm font-black tabular-nums text-right w-24",
-                  isCurrent ? "text-[#f59e0b]" : "text-[#64748b]"
+                  isCurrent ? "text-[#f59e0b]" : "text-[#94a3b8]"
                 )}>
                   {scoring.exact} pts
                 </span>
                 <span className={cn(
                   "text-sm font-black tabular-nums text-right w-24",
-                  isCurrent ? "text-[#00c85a]" : "text-[#64748b]"
+                  isCurrent ? "text-[#00c85a]" : "text-[#94a3b8]"
                 )}>
                   {scoring.result} pt{scoring.result !== 1 ? "s" : ""}
                 </span>
@@ -119,7 +119,7 @@ export default async function RulesPage() {
           {PHASE_EQUIV.map(({ phase, desc }) => (
             <div key={phase} className="flex items-center justify-between px-4 py-3">
               <span className="text-sm font-bold text-[#f1f5f9]">{phase}</span>
-              <span className="text-sm text-[#64748b]">{desc}</span>
+              <span className="text-sm text-[#94a3b8]">{desc}</span>
             </div>
           ))}
         </div>
@@ -185,7 +185,7 @@ export default async function RulesPage() {
           />
           <StateRow
             label="Finalizado"
-            color="text-[#64748b]"
+            color="text-[#94a3b8]"
             bg="bg-[#64748b]/10"
             desc="El partido terminó. Los puntos han sido calculados y asignados."
           />
@@ -217,7 +217,7 @@ function RuleItem({
     accent === "yellow" ? "text-[#f59e0b]" :
     accent === "green"  ? "text-[#00c85a]" :
     accent === "red"    ? "text-[#ef4444]" :
-    "text-[#475569]";
+    "text-[#64748b]";
 
   return (
     <div className="flex items-start gap-3">
@@ -246,7 +246,7 @@ function StateRow({
       )}>
         {label.toUpperCase()}
       </span>
-      <p className="text-sm text-[#64748b] leading-relaxed">{desc}</p>
+      <p className="text-sm text-[#94a3b8] leading-relaxed">{desc}</p>
     </div>
   );
 }

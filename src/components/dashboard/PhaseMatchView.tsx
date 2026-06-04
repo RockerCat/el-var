@@ -157,7 +157,7 @@ export default function PhaseMatchView({ matches }: PhaseMatchViewProps) {
       <div className="bg-[#18182a] border border-dashed border-[#2a2a45] rounded-2xl p-8 text-center">
         <p className="text-2xl mb-2">⚽</p>
         <p className="text-sm font-bold text-[#f1f5f9] mb-1">No hay partidos aún</p>
-        <p className="text-xs text-[#64748b]">
+        <p className="text-xs text-[#94a3b8]">
           Los partidos del Mundial 2026 aparecerán aquí cuando estén programados.
         </p>
       </div>
@@ -177,7 +177,7 @@ export default function PhaseMatchView({ matches }: PhaseMatchViewProps) {
                 "shrink-0 text-sm font-semibold pb-0.5 whitespace-nowrap transition-colors",
                 activeStage === stage
                   ? "text-[#00c85a]"
-                  : "text-[#475569] hover:text-[#94a3b8]"
+                  : "text-[#64748b] hover:text-[#94a3b8]"
               )}
             >
               {TAB_LABEL[stage]}
@@ -188,7 +188,7 @@ export default function PhaseMatchView({ matches }: PhaseMatchViewProps) {
 
       {/* 2-column grid of group blocks */}
       {blocks.length === 0 ? (
-        <p className="text-sm text-[#475569] text-center py-12">
+        <p className="text-sm text-[#64748b] text-center py-12">
           Sin partidos en esta fase.
         </p>
       ) : (

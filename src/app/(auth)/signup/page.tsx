@@ -22,7 +22,7 @@ export default async function SignupPage({ searchParams }: SignupPageProps) {
           <h1 className="text-xl font-black text-[#f1f5f9] mb-2">
             Acceso solo por invitación
           </h1>
-          <p className="text-sm text-[#64748b] leading-relaxed">
+          <p className="text-sm text-[#94a3b8] leading-relaxed">
             La Penúltima es un grupo privado.
             <br />
             Solicita el enlace de invitación al administrador.
@@ -30,7 +30,7 @@ export default async function SignupPage({ searchParams }: SignupPageProps) {
         </div>
 
         <div className="bg-[#11111c] border border-[#1e1e35] rounded-2xl p-5 text-left mb-4">
-          <p className="text-xs text-[#475569] leading-relaxed">
+          <p className="text-xs text-[#64748b] leading-relaxed">
             Si ya tienes una cuenta,{" "}
             <Link href="/login" className="text-[#00c85a] font-semibold hover:text-[#00e87a]">
               inicia sesión aquí

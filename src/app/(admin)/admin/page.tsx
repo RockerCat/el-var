@@ -14,7 +14,7 @@ export default async function AdminPage() {
 
       {/* Header */}
       <div>
-        <p className="text-[10px] text-[#475569] font-mono uppercase tracking-widest mb-1">
+        <p className="text-[10px] text-[#64748b] font-mono uppercase tracking-widest mb-1">
           Admin · La Penúltima
         </p>
         <h1 className="text-2xl font-black text-[#f1f5f9]">Dashboard</h1>
@@ -25,7 +25,7 @@ export default async function AdminPage() {
         <>
           {/* Users row */}
           <section>
-            <p className="text-[10px] text-[#475569] font-mono uppercase tracking-widest mb-3">
+            <p className="text-[10px] text-[#64748b] font-mono uppercase tracking-widest mb-3">
               Usuarios
             </p>
             <div className="grid grid-cols-3 gap-3">
@@ -51,7 +51,7 @@ export default async function AdminPage() {
 
           {/* Matches row */}
           <section>
-            <p className="text-[10px] text-[#475569] font-mono uppercase tracking-widest mb-3">
+            <p className="text-[10px] text-[#64748b] font-mono uppercase tracking-widest mb-3">
               Partidos
             </p>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -85,7 +85,7 @@ export default async function AdminPage() {
       {/* Invite card */}
       {group && (
         <section>
-          <p className="text-[10px] text-[#475569] font-mono uppercase tracking-widest mb-3">
+          <p className="text-[10px] text-[#64748b] font-mono uppercase tracking-widest mb-3">
             Invitaciones
           </p>
           <div className="bg-[#11111c] border border-[#1e1e35] rounded-2xl p-5">
@@ -99,7 +99,7 @@ export default async function AdminPage() {
               </span>
               <CopyInviteLinkButton inviteCode={group.invite_code} />
             </div>
-            <p className="text-[10px] text-[#475569] mt-3">
+            <p className="text-[10px] text-[#64748b] mt-3">
               Solo el administrador puede compartir este enlace. Los usuarios regulares no ven este código.
             </p>
           </div>
@@ -108,7 +108,7 @@ export default async function AdminPage() {
 
       {/* Quick links */}
       <section>
-        <p className="text-[10px] text-[#475569] font-mono uppercase tracking-widest mb-3">
+        <p className="text-[10px] text-[#64748b] font-mono uppercase tracking-widest mb-3">
           Accesos rápidos
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -158,12 +158,12 @@ function StatCard({
   return (
     <div className="bg-[#11111c] border border-[#1e1e35] rounded-xl p-4">
       <div className="flex items-center justify-between mb-2">
-        <span className="text-[#475569]">{icon}</span>
+        <span className="text-[#64748b]">{icon}</span>
         <p className={`text-2xl font-black tabular-nums leading-none ${valueColor}`}>
           {value}
         </p>
       </div>
-      <p className="text-[10px] text-[#475569] uppercase tracking-wide">{label}</p>
+      <p className="text-[10px] text-[#64748b] uppercase tracking-wide">{label}</p>
     </div>
   );
 }
@@ -184,14 +184,14 @@ function QuickLink({
       href={href}
       className="flex items-start gap-3 bg-[#11111c] border border-[#1e1e35] rounded-xl p-4 hover:border-[#00c85a]/30 transition-colors group"
     >
-      <span className="text-[#475569] group-hover:text-[#00c85a] transition-colors mt-0.5">
+      <span className="text-[#64748b] group-hover:text-[#00c85a] transition-colors mt-0.5">
         {icon}
       </span>
       <div>
         <p className="text-sm font-semibold text-[#f1f5f9] group-hover:text-[#00c85a] transition-colors">
           {label}
         </p>
-        <p className="text-[10px] text-[#475569] mt-0.5">{description}</p>
+        <p className="text-[10px] text-[#64748b] mt-0.5">{description}</p>
       </div>
     </Link>
   );

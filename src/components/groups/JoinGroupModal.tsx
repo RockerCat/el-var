@@ -36,7 +36,7 @@ export default function JoinGroupModal({
         <JoinSuccessView groupName={state.group.name} onClose={onClose} />
       ) : (
         <form ref={formRef} action={formAction} className="flex flex-col gap-4">
-          <p className="text-sm text-[#64748b]">
+          <p className="text-sm text-[#94a3b8]">
             Ingresa el código que te compartió el organizador del grupo.
           </p>
 
@@ -99,11 +99,11 @@ function JoinSuccessView({
           <h3 className="text-base font-black text-[#f1f5f9]">
             ¡Te uniste al grupo!
           </h3>
-          <p className="text-sm text-[#64748b] mt-0.5">{groupName}</p>
+          <p className="text-sm text-[#94a3b8] mt-0.5">{groupName}</p>
         </div>
       </div>
 
-      <p className="text-xs text-[#475569]">
+      <p className="text-xs text-[#64748b]">
         Ya puedes ver los partidos y empezar a predecir los marcadores.
       </p>
 
