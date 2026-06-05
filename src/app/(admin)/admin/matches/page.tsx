@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getMatchesForAdmin } from "@/lib/db/admin";
-import MatchEditorCard from "@/components/admin/MatchEditorCard";
+import AdminMatchesViewToggle from "@/components/admin/AdminMatchesViewToggle";
 
 const GROUPS = ["A","B","C","D","E","F","G","H","I","J","K","L"] as const;
 
@@ -96,18 +96,8 @@ export default async function AdminMatchesPage({ searchParams }: PageProps) {
         </div>
       </div>
 
-      {/* Match editor cards */}
-      {matches.length === 0 ? (
-        <div className="text-center py-12 text-sm text-[#94a3b8]">
-          No hay partidos con los filtros seleccionados.
-        </div>
-      ) : (
-        <div className="flex flex-col gap-4">
-          {matches.map((match) => (
-            <MatchEditorCard key={match.id} match={match} />
-          ))}
-        </div>
-      )}
+      {/* Calendario / Tarjetas toggle */}
+      <AdminMatchesViewToggle matches={matches} />
 
       <div className="h-4" />
     </div>
