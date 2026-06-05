@@ -212,8 +212,23 @@ function PrizeSummary({
   pool: import("@/lib/groups").PrizePool;
   leaderboard: import("@/lib/groups").LeaderboardEntry[];
 }) {
-  const first  = leaderboard.find((e) => e.rank === 1);
-  const second = leaderboard.find((e) => e.rank === 2);
+  const allZero = leaderboard.every((e) => e.total_points === 0);
+  const rank1   = allZero ? [] : leaderboard.filter((e) => e.rank === 1);
+  const rank2   = allZero ? [] : leaderboard.filter((e) => e.rank === 2);
+
+  const firstAmount  = rank1.length > 1
+    ? Math.round(pool.first_prize / rank1.length)
+    : rank1.length === 1 ? pool.first_prize : null;
+  const firstSplit   = rank1.length > 1;
+  const firstNames   = rank1.map((e) => e.display_name);
+
+  // No 2nd prize when 1st is split (SQL RANK() skips rank 2 in that case)
+  const showSecond   = rank1.length <= 1;
+  const secondAmount = showSecond && rank2.length > 1
+    ? Math.round(pool.second_prize / rank2.length)
+    : showSecond && rank2.length === 1 ? pool.second_prize : null;
+  const secondSplit  = showSecond && rank2.length > 1;
+  const secondNames  = showSecond ? rank2.map((e) => e.display_name) : [];
 
   return (
     <div className="bg-[#11111c] border border-[#1e1e35] rounded-2xl p-5 space-y-3">
@@ -222,23 +237,44 @@ function PrizeSummary({
         <span className="text-xl font-black text-[#f1f5f9] tabular-nums">{formatCOP(pool.total)}</span>
       </div>
       <div className="border-t border-[#1e1e35] pt-3 space-y-2">
+        {/* 1st prize */}
         <div className="flex items-center gap-2">
           <span className="text-base leading-none">🥇</span>
           <div className="flex-1 min-w-0">
             <p className="text-[10px] text-[#64748b]">1er lugar ({pool.config.first_place_pct}%)</p>
-            {first && <p className="text-xs font-semibold text-[#94a3b8] truncate">{first.display_name}</p>}
+            {firstNames.length > 0 && (
+              <p className="text-xs font-semibold text-[#94a3b8] truncate">{firstNames.join(", ")}</p>
+            )}
+            {firstSplit && (
+              <p className="text-[10px] text-[#64748b]">Dividido por empate</p>
+            )}
           </div>
-          <span className="text-sm font-black text-[#f59e0b] tabular-nums shrink-0">{formatCOP(pool.first_prize)}</span>
+          <span className={`text-sm font-black tabular-nums shrink-0 ${firstAmount !== null ? "text-[#f59e0b]" : "text-[#475569]"}`}>
+            {firstAmount !== null ? formatCOP(firstAmount) : "—"}
+          </span>
         </div>
+        {/* 2nd prize */}
         <div className="flex items-center gap-2">
           <span className="text-base leading-none">🥈</span>
           <div className="flex-1 min-w-0">
             <p className="text-[10px] text-[#64748b]">2do lugar ({pool.config.second_place_pct}%)</p>
-            {second && <p className="text-xs font-semibold text-[#94a3b8] truncate">{second.display_name}</p>}
+            {secondNames.length > 0 && (
+              <p className="text-xs font-semibold text-[#94a3b8] truncate">{secondNames.join(", ")}</p>
+            )}
+            {secondSplit && (
+              <p className="text-[10px] text-[#64748b]">Dividido por empate</p>
+            )}
           </div>
-          <span className="text-sm font-black text-[#94a3b8] tabular-nums shrink-0">{formatCOP(pool.second_prize)}</span>
+          <span className={`text-sm font-black tabular-nums shrink-0 ${secondAmount !== null ? "text-[#94a3b8]" : "text-[#475569]"}`}>
+            {secondAmount !== null ? formatCOP(secondAmount) : "—"}
+          </span>
         </div>
       </div>
+      {allZero && (
+        <p className="text-[10px] text-[#64748b] leading-relaxed border-t border-[#1e1e35] pt-3">
+          Los premios proyectados aparecerán cuando haya resultados puntuados.
+        </p>
+      )}
       <p className="text-[10px] text-[#475569] leading-relaxed border-t border-[#1e1e35] pt-3">
         La Penúltima no procesa pagos ni administra dinero. Los aportes y premios son gestionados directamente por los participantes del grupo.
       </p>

@@ -4,7 +4,7 @@ import { getUserGroupsWithMeta, isGroupMember, getActivePlayerCount } from "@/li
 import { getGroupLeaderboard } from "@/lib/db/leaderboard";
 import { isAdmin, isUserDisabled } from "@/lib/db/admin";
 import { cn } from "@/lib/utils";
-import { computePrizePool, formatCOP, type LeaderboardEntry, type PrizePool } from "@/lib/groups";
+import { computePrizePool, formatCOP, computeProjectedPrizes, type LeaderboardEntry, type PrizePool } from "@/lib/groups";
 
 export default async function LeaderboardPage() {
   const supabase = await createClient();
@@ -78,12 +78,10 @@ function FullLeaderboard({
   const allZero  = entries.every((e) => e.total_points === 0);
   const hasPrize = prizePool !== null;
 
-  function prizeForRank(rank: number): number | null {
-    if (!prizePool) return null;
-    if (rank === 1) return prizePool.first_prize;
-    if (rank === 2) return prizePool.second_prize;
-    return null;
-  }
+  const projectedPrizes = prizePool ? computeProjectedPrizes(prizePool, entries) : null;
+  const hasSplits = projectedPrizes
+    ? [...projectedPrizes.values()].some((p) => p.isSplit)
+    : false;
 
   const desktopCols = hasPrize
     ? "grid-cols-[2rem_1fr_3rem_3rem_3rem_3rem_5rem]"
@@ -118,7 +116,8 @@ function FullLeaderboard({
           : isMe            ? "text-[#00c85a]"
           : entry.rank === 1 ? "text-[#f59e0b]"
           : "text-[#f1f5f9]";
-        const prize     = prizeForRank(entry.rank);
+        const prize       = projectedPrizes?.get(entry.user_id) ?? null;
+        const prizeAmount = prize?.amount ?? null;
         const medal     = MEDALS[entry.rank];
 
         return (
@@ -159,9 +158,9 @@ function FullLeaderboard({
               {hasPrize && (
                 <span className={cn(
                   "text-xs font-black tabular-nums text-right",
-                  prize !== null ? (entry.rank === 1 ? "text-[#f59e0b]" : "text-[#94a3b8]") : "text-[#475569]"
+                  prizeAmount !== null ? (entry.rank === 1 ? "text-[#f59e0b]" : "text-[#94a3b8]") : "text-[#475569]"
                 )}>
-                  {prize !== null ? formatCOP(prize) : "—"}
+                  {prizeAmount !== null ? formatCOP(prizeAmount) : "—"}
                 </span>
               )}
             </div>
@@ -185,9 +184,9 @@ function FullLeaderboard({
                 {hasPrize && (
                   <span className={cn(
                     "text-sm font-black tabular-nums shrink-0",
-                    prize !== null ? (entry.rank === 1 ? "text-[#f59e0b]" : "text-[#94a3b8]") : "text-[#475569]"
+                    prizeAmount !== null ? (entry.rank === 1 ? "text-[#f59e0b]" : "text-[#94a3b8]") : "text-[#475569]"
                   )}>
-                    {prize !== null ? formatCOP(prize) : "—"}
+                    {prizeAmount !== null ? formatCOP(prizeAmount) : "—"}
                   </span>
                 )}
               </div>
@@ -214,7 +213,12 @@ function FullLeaderboard({
 
       {allZero && (
         <p className="text-[11px] text-[#64748b] text-center pt-2 font-mono">
-          Los puntos aparecerán cuando se confirmen resultados de partidos.
+          Los puntos y premios proyectados aparecerán cuando se confirmen resultados de partidos.
+        </p>
+      )}
+      {!allZero && hasSplits && (
+        <p className="text-[11px] text-[#64748b] text-center pt-2 font-mono">
+          Premio dividido por empate entre jugadores con el mismo puntaje.
         </p>
       )}
 

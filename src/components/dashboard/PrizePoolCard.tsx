@@ -1,6 +1,4 @@
-import Link from "next/link";
-import { type PrizePool, formatCOP } from "@/lib/groups";
-import { type LeaderboardEntry } from "@/lib/groups";
+import { type PrizePool, formatCOP, type LeaderboardEntry } from "@/lib/groups";
 
 interface PrizePoolCardProps {
   pool:        PrizePool;
@@ -8,8 +6,24 @@ interface PrizePoolCardProps {
 }
 
 export default function PrizePoolCard({ pool, leaderboard }: PrizePoolCardProps) {
-  const first  = leaderboard.find((e) => e.rank === 1);
-  const second = leaderboard.find((e) => e.rank === 2);
+  const allZero = leaderboard.every((e) => e.total_points === 0);
+  const rank1   = allZero ? [] : leaderboard.filter((e) => e.rank === 1);
+  const rank2   = allZero ? [] : leaderboard.filter((e) => e.rank === 2);
+
+  // 1st prize: split when multiple players share rank 1
+  const firstAmount  = rank1.length > 1
+    ? Math.round(pool.first_prize / rank1.length)
+    : rank1.length === 1 ? pool.first_prize : null;
+  const firstSplit   = rank1.length > 1;
+  const firstNames   = rank1.map((e) => e.display_name);
+
+  // 2nd prize: only shown when 1st is not split (SQL RANK() skips rank 2 when rank 1 ties)
+  const showSecond   = rank1.length <= 1;
+  const secondAmount = showSecond && rank2.length > 1
+    ? Math.round(pool.second_prize / rank2.length)
+    : showSecond && rank2.length === 1 ? pool.second_prize : null;
+  const secondSplit  = showSecond && rank2.length > 1;
+  const secondNames  = showSecond ? rank2.map((e) => e.display_name) : [];
 
   return (
     <div className="bg-[#11111c] border border-[#1e1e35] rounded-2xl p-5">
@@ -39,17 +53,25 @@ export default function PrizePoolCard({ pool, leaderboard }: PrizePoolCardProps)
         <PrizeLine
           medal="🥇"
           label={`1er lugar (${pool.config.first_place_pct}%)`}
-          amount={pool.first_prize}
-          leader={first?.display_name}
+          amount={firstAmount}
+          names={firstNames}
+          isSplit={firstSplit}
           highlight
         />
         <PrizeLine
           medal="🥈"
           label={`2do lugar (${pool.config.second_place_pct}%)`}
-          amount={pool.second_prize}
-          leader={second?.display_name}
+          amount={secondAmount}
+          names={secondNames}
+          isSplit={secondSplit}
         />
       </div>
+
+      {allZero && (
+        <p className="text-[10px] text-[#64748b] text-center -mt-1 pb-3">
+          Los premios proyectados aparecerán cuando haya resultados puntuados.
+        </p>
+      )}
 
       {/* Disclaimer */}
       <p className="text-[10px] text-[#475569] leading-relaxed border-t border-[#1e1e35] pt-3">
@@ -64,13 +86,15 @@ function PrizeLine({
   medal,
   label,
   amount,
-  leader,
+  names,
+  isSplit = false,
   highlight = false,
 }: {
   medal:      string;
   label:      string;
-  amount:     number;
-  leader?:    string;
+  amount:     number | null;
+  names:      string[];
+  isSplit?:   boolean;
   highlight?: boolean;
 }) {
   return (
@@ -78,12 +102,19 @@ function PrizeLine({
       <span className="text-base leading-none shrink-0">{medal}</span>
       <div className="flex-1 min-w-0">
         <p className="text-[10px] text-[#64748b]">{label}</p>
-        {leader && (
-          <p className="text-xs font-semibold text-[#94a3b8] truncate">{leader}</p>
+        {names.length > 0 && (
+          <p className="text-xs font-semibold text-[#94a3b8] truncate">{names.join(", ")}</p>
+        )}
+        {isSplit && (
+          <p className="text-[10px] text-[#64748b]">Dividido por empate</p>
         )}
       </div>
-      <span className={`text-sm font-black tabular-nums shrink-0 ${highlight ? "text-[#f59e0b]" : "text-[#f1f5f9]"}`}>
-        {formatCOP(amount)}
+      <span className={`text-sm font-black tabular-nums shrink-0 ${
+        amount !== null
+          ? highlight ? "text-[#f59e0b]" : "text-[#94a3b8]"
+          : "text-[#475569]"
+      }`}>
+        {amount !== null ? formatCOP(amount) : "—"}
       </span>
     </div>
   );
