@@ -10,6 +10,7 @@ export type ToggleUserState    = { error: string } | { success: true } | null;
 export type UpdateMatchState   = { error: string } | { success: true; scored: number } | null;
 export type UpdateFixtureState = { error: string } | { success: true } | null;
 export type UpdatePrizeState   = { error: string } | { success: true } | null;
+export type AdvancedEditState  = { error: string } | { success: true; scored: number } | null;
 export type RecalculateState   =
   | { error: string }
   | { success: true; matches_processed: number; predictions_scored: number }
@@ -291,6 +292,125 @@ export async function updateMatchFixtureAction(
   revalidatePath("/admin/matches");
   revalidatePath("/dashboard");
   return { success: true };
+}
+
+// ── advancedEditMatchAction ───────────────────────────────────────────
+// Full-field match editor for emergency corrections.
+// Calls admin_edit_match_full SECURITY DEFINER — all validation lives
+// in the database function; this layer handles parsing and audit writing.
+
+export async function advancedEditMatchAction(
+  _prev: AdvancedEditState,
+  formData: FormData
+): Promise<AdvancedEditState> {
+  const matchId          = (formData.get("match_id")          as string | null)?.trim() ?? "";
+  const matchLabel       = (formData.get("match_label")        as string | null)?.trim() ?? "";
+  const homeTeamRaw      = (formData.get("home_team_id")       as string | null)?.trim() || null;
+  const awayTeamRaw      = (formData.get("away_team_id")       as string | null)?.trim() || null;
+  const homePlaceholder  = (formData.get("home_placeholder")   as string | null)?.trim() || null;
+  const awayPlaceholder  = (formData.get("away_placeholder")   as string | null)?.trim() || null;
+  const startsAtRaw      = (formData.get("starts_at")          as string | null)?.trim() ?? "";
+  const stage            = (formData.get("stage")              as string | null)?.trim() ?? "";
+  const status           = (formData.get("status")             as string | null)?.trim() ?? "";
+  const homeScoreRaw     = (formData.get("home_score")         as string | null)?.trim() ?? "";
+  const awayScoreRaw     = (formData.get("away_score")         as string | null)?.trim() ?? "";
+  const groupCodeRaw     = (formData.get("group_code")         as string | null)?.trim() || null;
+  const matchNumberRaw   = (formData.get("match_number")       as string | null)?.trim() ?? "";
+  const venueRaw         = (formData.get("venue")              as string | null)?.trim() || null;
+
+  if (!matchId)    return { error: "match_id requerido." };
+  if (!startsAtRaw) return { error: "Fecha/hora requerida." };
+  if (!stage)      return { error: "Etapa requerida." };
+  if (!status)     return { error: "Estado requerido." };
+
+  // Parse starts_at — input comes as datetime-local (no timezone), treat as UTC
+  let startsAt: string;
+  try {
+    const raw  = startsAtRaw.includes("Z") ? startsAtRaw : startsAtRaw + "Z";
+    const date = new Date(raw);
+    if (isNaN(date.getTime())) throw new Error("invalid");
+    startsAt = date.toISOString();
+  } catch {
+    return { error: "Fecha/hora inválida. Usa el formato AAAA-MM-DDTHH:mm." };
+  }
+
+  const homeScore   = homeScoreRaw   !== "" ? parseInt(homeScoreRaw,   10) : null;
+  const awayScore   = awayScoreRaw   !== "" ? parseInt(awayScoreRaw,   10) : null;
+  const matchNumber = matchNumberRaw !== "" ? parseInt(matchNumberRaw, 10) : null;
+
+  if (homeScore   !== null && isNaN(homeScore))   return { error: "Marcador local inválido." };
+  if (awayScore   !== null && isNaN(awayScore))   return { error: "Marcador visitante inválido." };
+  if (matchNumber !== null && isNaN(matchNumber)) return { error: "Número de partido inválido." };
+
+  if (homeTeamRaw && awayTeamRaw && homeTeamRaw === awayTeamRaw) {
+    return { error: "El equipo local y visitante no pueden ser el mismo." };
+  }
+
+  const supabase = await createClient();
+  const { data: { user }, error: authErr } = await supabase.auth.getUser();
+  if (authErr || !user) return { error: "No autenticado." };
+  if (!(await isAdmin(user.id))) return { error: "Sin permisos de administrador." };
+
+  const { data: oldMatch } = await supabase
+    .from("matches")
+    .select("home_team_id, away_team_id, home_placeholder, away_placeholder, starts_at, stage, status, home_score, away_score, group_code, match_number, venue")
+    .eq("id", matchId)
+    .single();
+
+  const { data: rpcData, error: rpcErr } = await supabase.rpc("admin_edit_match_full", {
+    p_match_id:          matchId,
+    p_home_team_id:      homeTeamRaw,
+    p_away_team_id:      awayTeamRaw,
+    p_home_placeholder:  homePlaceholder,
+    p_away_placeholder:  awayPlaceholder,
+    p_starts_at:         startsAt,
+    p_stage:             stage,
+    p_status:            status,
+    p_home_score:        homeScore,
+    p_away_score:        awayScore,
+    p_group_code:        groupCodeRaw,
+    p_match_number:      matchNumber,
+    p_venue:             venueRaw,
+  });
+
+  if (rpcErr) {
+    const msg = rpcErr.message;
+    if (msg === "not_admin")                return { error: "Sin permisos de administrador." };
+    if (msg === "match_not_found")          return { error: "Partido no encontrado." };
+    if (msg === "invalid_status")           return { error: "Estado inválido." };
+    if (msg === "invalid_stage")            return { error: "Etapa inválida." };
+    if (msg === "same_team_both_sides")     return { error: "El equipo local y visitante no pueden ser el mismo." };
+    if (msg === "finished_requires_scores") return { error: "Un partido finalizado debe tener marcador." };
+    if (msg === "invalid_scores")           return { error: "Marcador fuera de rango (0–30)." };
+    return { error: `Error: ${msg}` };
+  }
+
+  const newValues = {
+    home_team_id: homeTeamRaw, away_team_id: awayTeamRaw,
+    home_placeholder: homePlaceholder, away_placeholder: awayPlaceholder,
+    starts_at: startsAt, stage, status,
+    home_score: homeScore, away_score: awayScore,
+    group_code: groupCodeRaw, match_number: matchNumber, venue: venueRaw,
+  };
+
+  void writeActivity(supabase, {
+    admin_id:     user.id,
+    action:       "advanced_edit",
+    entity_type:  "match",
+    entity_id:    matchId,
+    entity_label: matchLabel || matchId,
+    old_values:   oldMatch ?? null,
+    new_values:   newValues,
+  });
+
+  revalidatePath("/admin/matches");
+  revalidatePath(`/admin/matches/${matchId}`);
+  revalidatePath(`/admin/matches/${matchId}/advanced`);
+  revalidatePath("/dashboard");
+  revalidatePath("/groups", "layout");
+
+  const scored = (rpcData as { scored?: number } | null)?.scored ?? 0;
+  return { success: true, scored };
 }
 
 // ── updateGroupPrizeAction ────────────────────────────────────────────

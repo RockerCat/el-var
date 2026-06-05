@@ -1,7 +1,8 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
-import { Loader2, Check, AlertCircle, ChevronDown, ChevronUp, Users } from "lucide-react";
+import Link from "next/link";
+import { Loader2, Check, AlertCircle, ChevronDown, ChevronUp, Users, Settings2 } from "lucide-react";
 import {
   updateMatchResultAction,
   updateMatchFixtureAction,
@@ -351,6 +352,17 @@ export default function MatchEditorCard({ match }: { match: Match }) {
 
         {/* ── Section 3: Predictions (expandable) ─────────────────── */}
         <PredictionsPanel matchId={match.id} />
+
+        {/* ── Section 4: Advanced edit link ───────────────────────── */}
+        <div className="border-t border-[#1e1e35] px-5 py-3">
+          <Link
+            href={`/admin/matches/${match.id}/advanced`}
+            className="inline-flex items-center gap-1.5 text-xs text-[#64748b] hover:text-[#f59e0b] transition-colors"
+          >
+            <Settings2 size={12} />
+            Edición avanzada
+          </Link>
+        </div>
 
       </div>
     </div>
