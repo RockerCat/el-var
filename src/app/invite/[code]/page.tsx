@@ -229,13 +229,19 @@ function InviteLayout({
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-[10px] text-[#64748b] uppercase tracking-wide mb-0.5">
-                  Aporte de participación
+                  Inscripción única
                 </p>
                 <p className="text-xl font-black text-[#f1f5f9] tabular-nums">
                   {formatCOP(group.entry_fee)}
                 </p>
+                <p className="text-xs text-[#94a3b8] mt-1 leading-snug">
+                  Pago único para participar durante todo el Mundial 2026.
+                </p>
+                <p className="text-xs text-[#64748b]">
+                  No se cobra por partido ni por ronda.
+                </p>
                 {group.payment_key && (
-                  <p className="text-xs text-[#64748b] mt-0.5">
+                  <p className="text-xs text-[#64748b] mt-1">
                     Llave:{" "}
                     <span className="font-mono text-[#94a3b8]">{group.payment_key}</span>
                   </p>

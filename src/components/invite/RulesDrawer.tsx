@@ -106,6 +106,25 @@ export default function RulesDrawer({
             {/* Scrollable content */}
             <div className="overflow-y-auto flex-1 px-5 py-5 space-y-6">
 
+              {/* Entry fee clarification */}
+              {entryFee && (
+                <section>
+                  <h3 className="text-xs font-bold text-[#64748b] uppercase tracking-wide mb-3">
+                    Inscripción
+                  </h3>
+                  <div className="bg-[#0d0d1a] border border-[#1e1e35] rounded-2xl p-4 space-y-2.5">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-sm font-semibold text-[#f1f5f9]">Inscripción única por jugador</span>
+                      <span className="text-sm font-black text-[#f59e0b] tabular-nums shrink-0">{formatCOP(entryFee)}</span>
+                    </div>
+                    <p className="text-xs text-[#64748b] leading-relaxed">
+                      Este valor cubre todo el torneo (los 104 partidos del Mundial 2026).
+                      No existen cobros adicionales por partido, por fase ni por pronóstico.
+                    </p>
+                  </div>
+                </section>
+              )}
+
               {/* Scoring table */}
               <section>
                 <h3 className="text-xs font-bold text-[#64748b] uppercase tracking-wide mb-3">
@@ -148,7 +167,7 @@ export default function RulesDrawer({
 
                     {/* Entry fee */}
                     <div className="flex items-center justify-between px-4 py-3 border-b border-[#1e1e35]">
-                      <span className="text-sm text-[#94a3b8]">Aporte de participación</span>
+                      <span className="text-sm text-[#94a3b8]">Inscripción única por jugador</span>
                       <span className="text-sm font-black text-[#f1f5f9] tabular-nums">
                         {formatCOP(entryFee)}
                       </span>

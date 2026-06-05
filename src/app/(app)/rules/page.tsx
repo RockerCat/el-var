@@ -69,6 +69,28 @@ export default async function RulesPage() {
         </p>
       </div>
 
+      {/* ── Entry fee clarification ──────────────────────────────────── */}
+      {prizePool && (
+        <section>
+          <SectionHeader title="💰 Inscripción" />
+          <div className="bg-[#11111c] border border-[#1e1e35] rounded-2xl p-5 space-y-3">
+            <RuleItem
+              icon="💰"
+              text={`La participación tiene un costo único de ${formatCOP(prizePool.config.entry_fee)} COP por jugador.`}
+            />
+            <RuleItem
+              icon="🏆"
+              text="Este valor cubre todo el torneo (los 104 partidos del Mundial 2026)."
+            />
+            <RuleItem
+              icon="✓"
+              text="No existen pagos adicionales por partido, por fase ni por pronóstico."
+              accent="green"
+            />
+          </div>
+        </section>
+      )}
+
       {/* ── Prize pool ────────────────────────────────────────────────── */}
       {prizePool && (
         <section>
