@@ -10,7 +10,7 @@ import {
   type UpdateFixtureState,
   type MatchPrediction,
 } from "@/app/actions/admin";
-import type { Match } from "@/lib/matches";
+import { matchTeamName, matchTeamCode, matchTeamFlag, type Match } from "@/lib/matches";
 
 // ── Helpers ───────────────────────────────────────────────────────────
 
@@ -209,7 +209,7 @@ export default function MatchEditorCard({ match }: { match: Match }) {
   useEffect(() => { setGroupCodeVal(match.group_code ?? ""); },          [match.group_code]);
 
   // Human-readable label passed to server actions for activity logging
-  const matchLabel = `${match.home_team.code} vs ${match.away_team.code}${match.group_code ? ` · Grupo ${match.group_code}` : ""}`;
+  const matchLabel = `${matchTeamCode(match.home_team, match.home_placeholder)} vs ${matchTeamCode(match.away_team, match.away_placeholder)}${match.group_code ? ` · Grupo ${match.group_code}` : ""}`;
 
   return (
     <div className="bg-[#11111c] border border-[#1e1e35] rounded-2xl overflow-hidden">
@@ -218,8 +218,8 @@ export default function MatchEditorCard({ match }: { match: Match }) {
       <div className="px-5 py-4 border-b border-[#1e1e35]">
         <div className="flex items-center gap-3 mb-1.5">
           <div className="flex items-center gap-2 flex-1 min-w-0">
-            <span className="text-xl leading-none">{match.home_team.flag_emoji ?? "🏴"}</span>
-            <span className="text-sm font-bold text-[#f1f5f9] truncate">{match.home_team.name}</span>
+            <span className="text-xl leading-none">{matchTeamFlag(match.home_team)}</span>
+            <span className="text-sm font-bold text-[#f1f5f9] truncate">{matchTeamName(match.home_team, match.home_placeholder)}</span>
           </div>
           <div className="shrink-0 text-center px-2">
             {match.home_score !== null && match.away_score !== null ? (
@@ -231,8 +231,8 @@ export default function MatchEditorCard({ match }: { match: Match }) {
             )}
           </div>
           <div className="flex items-center gap-2 flex-1 flex-row-reverse min-w-0">
-            <span className="text-xl leading-none">{match.away_team.flag_emoji ?? "🏴"}</span>
-            <span className="text-sm font-bold text-[#f1f5f9] truncate text-right">{match.away_team.name}</span>
+            <span className="text-xl leading-none">{matchTeamFlag(match.away_team)}</span>
+            <span className="text-sm font-bold text-[#f1f5f9] truncate text-right">{matchTeamName(match.away_team, match.away_placeholder)}</span>
           </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -273,7 +273,7 @@ export default function MatchEditorCard({ match }: { match: Match }) {
 
             <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-1.5">
-                <FieldLabel>{match.home_team.code} (local)</FieldLabel>
+                <FieldLabel>{matchTeamCode(match.home_team, match.home_placeholder)} (local)</FieldLabel>
                 <AdminInput
                   type="number" name="home_score"
                   value={homeScoreVal} onChange={(e) => setHomeScoreVal(e.target.value)}
@@ -282,7 +282,7 @@ export default function MatchEditorCard({ match }: { match: Match }) {
                 />
               </div>
               <div className="flex flex-col gap-1.5">
-                <FieldLabel>{match.away_team.code} (visitante)</FieldLabel>
+                <FieldLabel>{matchTeamCode(match.away_team, match.away_placeholder)} (visitante)</FieldLabel>
                 <AdminInput
                   type="number" name="away_score"
                   value={awayScoreVal} onChange={(e) => setAwayScoreVal(e.target.value)}

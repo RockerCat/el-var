@@ -4,7 +4,9 @@ import { Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import Navbar from "@/components/layout/Navbar";
 import InviteJoinForm from "@/components/invite/InviteJoinForm";
+import RulesDrawer from "@/components/invite/RulesDrawer";
 import Card from "@/components/ui/Card";
+import { formatCOP } from "@/lib/groups";
 import type { Metadata } from "next";
 
 interface InvitePageProps {
@@ -52,6 +54,19 @@ export async function generateMetadata({ params }: InvitePageProps): Promise<Met
   };
 }
 
+type InviteGroup = {
+  id:               string;
+  name:             string;
+  invite_code:      string;
+  owner_id:         string;
+  created_at:       string;
+  entry_fee:        number | null;
+  first_place_pct:  number | null;
+  second_place_pct: number | null;
+  payment_key:      string | null;
+  active_players:   number;
+};
+
 export default async function InvitePage({ params }: InvitePageProps) {
   const { code } = await params;
   const upperCode = code.toUpperCase();
@@ -70,13 +85,7 @@ export default async function InvitePage({ params }: InvitePageProps) {
     return <InvalidCodePage code={upperCode} />;
   }
 
-  const group = groups[0] as {
-    id: string;
-    name: string;
-    invite_code: string;
-    owner_id: string;
-    created_at: string;
-  };
+  const group = groups[0] as InviteGroup;
 
   // Check auth — determines which CTA to show
   const {
@@ -88,7 +97,7 @@ export default async function InvitePage({ params }: InvitePageProps) {
     return (
       <>
         <Navbar />
-        <InviteLayout groupName={group.name}>
+        <InviteLayout group={group}>
           <p className="text-sm text-[#94a3b8] text-center mb-5">
             Crea tu cuenta, únete al grupo y demuestra que sabes más fútbol que tus amigos.
           </p>
@@ -126,7 +135,7 @@ export default async function InvitePage({ params }: InvitePageProps) {
     return (
       <>
         <Navbar />
-        <InviteLayout groupName={group.name}>
+        <InviteLayout group={group}>
           <div className="text-center">
             <p className="text-sm text-[#94a3b8] mb-5">
               Ya eres parte de este grupo. ¡Ve a ver los partidos y tus predicciones!
@@ -150,7 +159,7 @@ export default async function InvitePage({ params }: InvitePageProps) {
   return (
     <>
       <Navbar />
-      <InviteLayout groupName={group.name}>
+      <InviteLayout group={group}>
         <p className="text-sm text-[#94a3b8] text-center mb-1">
           Ingresando como{" "}
           <span className="text-[#94a3b8] font-semibold">{displayName}</span>
@@ -173,10 +182,10 @@ export default async function InvitePage({ params }: InvitePageProps) {
 // ── Shared layout wrapper ──────────────────────────────────────────────
 
 function InviteLayout({
-  groupName,
+  group,
   children,
 }: {
-  groupName: string;
+  group: InviteGroup;
   children: React.ReactNode;
 }) {
   return (
@@ -192,17 +201,17 @@ function InviteLayout({
             Te invitaron a jugar La Penúltima
           </div>
           <p className="text-sm text-[#94a3b8] mb-2">Únete al grupo y demuestra que sabes más fútbol que tus amigos.</p>
-          <h1 className="text-2xl font-black text-[#f1f5f9]">{groupName}</h1>
+          <h1 className="text-2xl font-black text-[#f1f5f9]">{group.name}</h1>
         </div>
 
         {/* Group card */}
-        <Card className="p-5 mb-5">
+        <Card className="p-5 mb-3">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-[#00c85a]/10 flex items-center justify-center shrink-0 text-xl">
               ⚽
             </div>
             <div>
-              <p className="text-sm font-bold text-[#f1f5f9]">{groupName}</p>
+              <p className="text-sm font-bold text-[#f1f5f9]">{group.name}</p>
               <div className="flex items-center gap-1.5 text-xs text-[#64748b] mt-0.5">
                 <Users size={11} strokeWidth={1.8} />
                 <span>Polla Mundialista · Mundial 2026</span>
@@ -210,6 +219,38 @@ function InviteLayout({
             </div>
           </div>
         </Card>
+
+        {/* Participation card */}
+        {group.entry_fee && (
+          <Card className="p-4 mb-3">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-[#f59e0b]/10 flex items-center justify-center shrink-0 text-lg">
+                💰
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[10px] text-[#64748b] uppercase tracking-wide mb-0.5">
+                  Aporte de participación
+                </p>
+                <p className="text-xl font-black text-[#f1f5f9] tabular-nums">
+                  {formatCOP(group.entry_fee)}
+                </p>
+                {group.payment_key && (
+                  <p className="text-xs text-[#64748b] mt-0.5">
+                    Llave:{" "}
+                    <span className="font-mono text-[#94a3b8]">{group.payment_key}</span>
+                  </p>
+                )}
+              </div>
+            </div>
+          </Card>
+        )}
+
+        {/* Rules card with drawer */}
+        <RulesDrawer
+          entryFee={group.entry_fee}
+          firstPlacePct={group.first_place_pct}
+          secondPlacePct={group.second_place_pct}
+        />
 
         {children}
       </div>

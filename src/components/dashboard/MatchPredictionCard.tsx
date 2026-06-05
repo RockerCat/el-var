@@ -2,6 +2,9 @@ import { cn } from "@/lib/utils";
 import {
   formatKickoff,
   matchClosedReason,
+  matchTeamName,
+  matchTeamCode,
+  matchTeamFlag,
   STAGE_LABELS,
   type MatchWithPrediction,
 } from "@/lib/matches";
@@ -51,11 +54,11 @@ export default function MatchPredictionCard({ match }: MatchPredictionCardProps)
         {/* Home */}
         <div className="flex-1 flex items-center gap-1.5 min-w-0">
           <span className="text-xl leading-none shrink-0">
-            {home_team.flag_emoji ?? "🏴"}
+            {matchTeamFlag(home_team)}
           </span>
           <div className="min-w-0">
-            <p className="text-sm font-bold text-[#f1f5f9] truncate">{home_team.name}</p>
-            <p className="text-[10px] text-[#64748b] font-mono">{home_team.code}</p>
+            <p className="text-sm font-bold text-[#f1f5f9] truncate">{matchTeamName(home_team, match.home_placeholder)}</p>
+            <p className="text-[10px] text-[#64748b] font-mono">{matchTeamCode(home_team, match.home_placeholder)}</p>
           </div>
         </div>
 
@@ -81,11 +84,11 @@ export default function MatchPredictionCard({ match }: MatchPredictionCardProps)
         {/* Away */}
         <div className="flex-1 flex items-center gap-1.5 flex-row-reverse min-w-0">
           <span className="text-xl leading-none shrink-0">
-            {away_team.flag_emoji ?? "🏴"}
+            {matchTeamFlag(away_team)}
           </span>
           <div className="min-w-0 text-right">
-            <p className="text-sm font-bold text-[#f1f5f9] truncate">{away_team.name}</p>
-            <p className="text-[10px] text-[#64748b] font-mono">{away_team.code}</p>
+            <p className="text-sm font-bold text-[#f1f5f9] truncate">{matchTeamName(away_team, match.away_placeholder)}</p>
+            <p className="text-[10px] text-[#64748b] font-mono">{matchTeamCode(away_team, match.away_placeholder)}</p>
           </div>
         </div>
       </div>

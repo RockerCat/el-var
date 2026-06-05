@@ -9,6 +9,8 @@ import {
   matchClosedReason,
   formatKickoff,
   detectCurrentStage,
+  matchTeamName,
+  matchTeamFlag,
   PHASE_LABELS,
   PHASE_SCORING,
   type MatchWithPrediction,
@@ -186,13 +188,13 @@ function FeaturedMatchCard({ match }: { match: MatchWithPrediction }) {
               Último partido
             </p>
             <div className="flex items-center gap-1.5 mb-1">
-              <span className="text-lg leading-none">{match.home_team.flag_emoji ?? "🏴"}</span>
-              <span className="text-sm font-bold text-[#f1f5f9] truncate">{match.home_team.name}</span>
+              <span className="text-lg leading-none">{matchTeamFlag(match.home_team)}</span>
+              <span className="text-sm font-bold text-[#f1f5f9] truncate">{matchTeamName(match.home_team, match.home_placeholder)}</span>
               <span className="text-sm font-black text-[#f1f5f9] tabular-nums mx-1">
                 {match.home_score}–{match.away_score}
               </span>
-              <span className="text-sm font-bold text-[#f1f5f9] truncate">{match.away_team.name}</span>
-              <span className="text-lg leading-none">{match.away_team.flag_emoji ?? "🏴"}</span>
+              <span className="text-sm font-bold text-[#f1f5f9] truncate">{matchTeamName(match.away_team, match.away_placeholder)}</span>
+              <span className="text-lg leading-none">{matchTeamFlag(match.away_team)}</span>
             </div>
             <p className="text-[10px] text-[#94a3b8]">{formatKickoff(match.starts_at)}</p>
           </div>
@@ -229,11 +231,11 @@ function FeaturedMatchCard({ match }: { match: MatchWithPrediction }) {
           ⚽ Próximo partido
         </p>
         <div className="flex items-center gap-1.5 mb-1">
-          <span className="text-lg leading-none">{match.home_team.flag_emoji ?? "🏴"}</span>
-          <span className="text-sm font-bold text-[#f1f5f9] truncate">{match.home_team.name}</span>
+          <span className="text-lg leading-none">{matchTeamFlag(match.home_team)}</span>
+          <span className="text-sm font-bold text-[#f1f5f9] truncate">{matchTeamName(match.home_team, match.home_placeholder)}</span>
           <span className="text-[10px] text-[#64748b] font-bold shrink-0">vs</span>
-          <span className="text-sm font-bold text-[#f1f5f9] truncate">{match.away_team.name}</span>
-          <span className="text-lg leading-none">{match.away_team.flag_emoji ?? "🏴"}</span>
+          <span className="text-sm font-bold text-[#f1f5f9] truncate">{matchTeamName(match.away_team, match.away_placeholder)}</span>
+          <span className="text-lg leading-none">{matchTeamFlag(match.away_team)}</span>
         </div>
         <p className="text-[10px] text-[#94a3b8]">{formatKickoff(match.starts_at)}</p>
       </div>

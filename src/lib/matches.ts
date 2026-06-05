@@ -19,17 +19,21 @@ export type MatchStage =
 
 export type Match = {
   id: string;
-  home_team_id: string;
-  away_team_id: string;
+  home_team_id: string | null;
+  away_team_id: string | null;
+  match_number: number | null;
   starts_at: string;
   stage: MatchStage;
   group_code: string | null;
   status: MatchStatus;
   home_score: number | null;
   away_score: number | null;
+  home_placeholder: string | null;
+  away_placeholder: string | null;
+  venue: string | null;
   created_at: string;
-  home_team: Team;
-  away_team: Team;
+  home_team: Team | null;
+  away_team: Team | null;
 };
 
 export type Prediction = {
@@ -77,6 +81,16 @@ export function matchClosedReason(
 /** True if the prediction window is still open. Mirrors backend cutoff exactly. */
 export function isMatchOpen(match: Pick<Match, "starts_at" | "status">): boolean {
   return matchClosedReason(match) === null;
+}
+
+export function matchTeamName(team: Team | null, placeholder: string | null): string {
+  return team?.name ?? placeholder ?? "Por definir";
+}
+export function matchTeamCode(team: Team | null, placeholder: string | null): string {
+  return team?.code ?? placeholder ?? "TBD";
+}
+export function matchTeamFlag(team: Team | null): string {
+  return team?.flag_emoji ?? "🏳️";
 }
 
 /** Human-readable date/time label for a match. */

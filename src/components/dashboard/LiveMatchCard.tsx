@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { type MatchWithPrediction } from "@/lib/matches";
+import { matchTeamName, matchTeamFlag, type MatchWithPrediction } from "@/lib/matches";
 import { useGoalCelebration } from "@/hooks/useGoalCelebration";
 import GoalCelebrationOverlay from "./GoalCelebrationOverlay";
 
@@ -39,8 +39,8 @@ export default function LiveMatchCard({ match }: { match: MatchWithPrediction })
       {/* Teams + score */}
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-1.5 flex-1 min-w-0">
-          <span className="text-xl leading-none shrink-0">{match.home_team.flag_emoji ?? "🏴"}</span>
-          <span className="text-sm font-bold text-[#f1f5f9] truncate">{match.home_team.name}</span>
+          <span className="text-xl leading-none shrink-0">{matchTeamFlag(match.home_team)}</span>
+          <span className="text-sm font-bold text-[#f1f5f9] truncate">{matchTeamName(match.home_team, match.home_placeholder)}</span>
         </div>
         <div className="shrink-0 text-center px-1">
           {hasScore ? (
@@ -54,8 +54,8 @@ export default function LiveMatchCard({ match }: { match: MatchWithPrediction })
           )}
         </div>
         <div className="flex items-center gap-1.5 flex-1 flex-row-reverse min-w-0">
-          <span className="text-xl leading-none shrink-0">{match.away_team.flag_emoji ?? "🏴"}</span>
-          <span className="text-sm font-bold text-[#f1f5f9] truncate text-right">{match.away_team.name}</span>
+          <span className="text-xl leading-none shrink-0">{matchTeamFlag(match.away_team)}</span>
+          <span className="text-sm font-bold text-[#f1f5f9] truncate text-right">{matchTeamName(match.away_team, match.away_placeholder)}</span>
         </div>
       </div>
 

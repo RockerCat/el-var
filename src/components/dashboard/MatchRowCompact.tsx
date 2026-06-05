@@ -5,6 +5,8 @@ import { cn } from "@/lib/utils";
 import {
   formatKickoff,
   matchClosedReason,
+  matchTeamName,
+  matchTeamFlag,
   type MatchWithPrediction,
   type PredictionActionState,
   type Team,
@@ -73,8 +75,8 @@ export default function MatchRowCompact({ match }: { match: MatchWithPrediction 
           {/* Teams + live score — score is the largest element */}
           <div className="flex items-center gap-3 mb-3">
             <div className="flex items-center gap-2 flex-1 min-w-0">
-              <span className="text-2xl leading-none shrink-0">{home_team.flag_emoji ?? "🏴"}</span>
-              <span className="text-sm font-bold text-[#f1f5f9] truncate">{home_team.name}</span>
+              <span className="text-2xl leading-none shrink-0">{matchTeamFlag(home_team)}</span>
+              <span className="text-sm font-bold text-[#f1f5f9] truncate">{matchTeamName(home_team, match.home_placeholder)}</span>
             </div>
 
             <div className="shrink-0 text-center px-1">
@@ -90,9 +92,9 @@ export default function MatchRowCompact({ match }: { match: MatchWithPrediction 
             </div>
 
             <div className="flex items-center gap-2 flex-1 flex-row-reverse min-w-0">
-              <span className="text-2xl leading-none shrink-0">{away_team.flag_emoji ?? "🏴"}</span>
+              <span className="text-2xl leading-none shrink-0">{matchTeamFlag(away_team)}</span>
               <span className="text-sm font-bold text-[#f1f5f9] truncate text-right">
-                {away_team.name}
+                {matchTeamName(away_team, match.away_placeholder)}
               </span>
             </div>
           </div>
@@ -161,6 +163,8 @@ export default function MatchRowCompact({ match }: { match: MatchWithPrediction 
           <TeamsWithScore
             homeTeam={home_team}
             awayTeam={away_team}
+            homePlaceholder={match.home_placeholder}
+            awayPlaceholder={match.away_placeholder}
             homeScore={match.home_score}
             awayScore={match.away_score}
           />
@@ -223,7 +227,7 @@ export default function MatchRowCompact({ match }: { match: MatchWithPrediction 
         </div>
 
         {/* Teams */}
-        <TeamsVs homeTeam={home_team} awayTeam={away_team} />
+        <TeamsVs homeTeam={home_team} awayTeam={away_team} homePlaceholder={match.home_placeholder} awayPlaceholder={match.away_placeholder} />
 
         {/* Prediction area */}
         {isOpen ? (
@@ -311,19 +315,18 @@ export default function MatchRowCompact({ match }: { match: MatchWithPrediction 
 // ── Sub-components ────────────────────────────────────────────────────
 
 function TeamsWithScore({
-  homeTeam,
-  awayTeam,
-  homeScore,
-  awayScore,
+  homeTeam, awayTeam, homePlaceholder, awayPlaceholder, homeScore, awayScore,
 }: {
-  homeTeam: Team;
-  awayTeam: Team;
+  homeTeam: Team | null;
+  awayTeam: Team | null;
+  homePlaceholder: string | null;
+  awayPlaceholder: string | null;
   homeScore: number | null;
   awayScore: number | null;
 }) {
   return (
     <div className="flex items-center gap-2">
-      <TeamSide team={homeTeam} side="home" />
+      <TeamSide team={homeTeam} placeholder={homePlaceholder} side="home" />
       <div className="shrink-0 w-14 text-center">
         {homeScore !== null && awayScore !== null ? (
           <span className="text-base font-black text-[#f1f5f9] tabular-nums">
@@ -333,35 +336,40 @@ function TeamsWithScore({
           <span className="text-xs text-[#64748b]">···</span>
         )}
       </div>
-      <TeamSide team={awayTeam} side="away" />
+      <TeamSide team={awayTeam} placeholder={awayPlaceholder} side="away" />
     </div>
   );
 }
 
-function TeamsVs({ homeTeam, awayTeam }: { homeTeam: Team; awayTeam: Team }) {
+function TeamsVs({ homeTeam, awayTeam, homePlaceholder, awayPlaceholder }: {
+  homeTeam: Team | null;
+  awayTeam: Team | null;
+  homePlaceholder: string | null;
+  awayPlaceholder: string | null;
+}) {
   return (
     <div className="flex items-center gap-2">
-      <TeamSide team={homeTeam} side="home" />
+      <TeamSide team={homeTeam} placeholder={homePlaceholder} side="home" />
       <span className="shrink-0 text-[10px] text-[#2a2a45] font-bold w-14 text-center">
         vs
       </span>
-      <TeamSide team={awayTeam} side="away" />
+      <TeamSide team={awayTeam} placeholder={awayPlaceholder} side="away" />
     </div>
   );
 }
 
-function TeamSide({ team, side }: { team: Team; side: "home" | "away" }) {
+function TeamSide({ team, placeholder, side }: { team: Team | null; placeholder: string | null; side: "home" | "away" }) {
   return (
     <div className={cn(
       "flex items-center gap-1.5 flex-1 min-w-0",
       side === "away" && "flex-row-reverse"
     )}>
-      <span className="text-lg leading-none shrink-0">{team.flag_emoji ?? "🏴"}</span>
+      <span className="text-lg leading-none shrink-0">{matchTeamFlag(team)}</span>
       <span className={cn(
         "text-xs font-semibold text-[#f1f5f9] truncate",
         side === "away" && "text-right"
       )}>
-        {team.name}
+        {matchTeamName(team, placeholder)}
       </span>
     </div>
   );

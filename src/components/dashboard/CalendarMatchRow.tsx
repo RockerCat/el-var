@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
   matchClosedReason,
+  matchTeamName,
+  matchTeamFlag,
   type MatchWithPrediction,
   type PredictionActionState,
 } from "@/lib/matches";
@@ -101,8 +103,8 @@ export default function CalendarMatchRow({ match }: { match: MatchWithPrediction
               {time}
             </span>
             <div className="flex items-center gap-1 min-w-0 flex-1">
-              <span className="text-sm leading-none shrink-0">{home_team.flag_emoji ?? "🏴"}</span>
-              <span className="text-xs font-semibold text-[#f1f5f9] truncate">{home_team.name}</span>
+              <span className="text-sm leading-none shrink-0">{matchTeamFlag(home_team)}</span>
+              <span className="text-xs font-semibold text-[#f1f5f9] truncate">{matchTeamName(home_team, match.home_placeholder)}</span>
             </div>
             <div className="shrink-0 text-center px-1">
               {isLive && hasScore ? (
@@ -118,8 +120,8 @@ export default function CalendarMatchRow({ match }: { match: MatchWithPrediction
               )}
             </div>
             <div className="flex items-center gap-1 flex-row-reverse min-w-0 flex-1">
-              <span className="text-sm leading-none shrink-0">{away_team.flag_emoji ?? "🏴"}</span>
-              <span className="text-xs font-semibold text-[#f1f5f9] truncate text-right">{away_team.name}</span>
+              <span className="text-sm leading-none shrink-0">{matchTeamFlag(away_team)}</span>
+              <span className="text-xs font-semibold text-[#f1f5f9] truncate text-right">{matchTeamName(away_team, match.away_placeholder)}</span>
             </div>
             <StatusPill match={match} />
           </div>
@@ -178,8 +180,8 @@ export default function CalendarMatchRow({ match }: { match: MatchWithPrediction
                 {/* Teams with centered inputs — mirrors MatchRowInGroup open layout */}
                 <div className="flex items-center gap-1.5 w-full">
                   <div className="flex items-center gap-1 min-w-0 flex-1">
-                    <span className="text-sm leading-none shrink-0">{home_team.flag_emoji ?? "🏴"}</span>
-                    <span className="text-xs font-semibold text-[#f1f5f9] truncate">{home_team.name}</span>
+                    <span className="text-sm leading-none shrink-0">{matchTeamFlag(home_team)}</span>
+                    <span className="text-xs font-semibold text-[#f1f5f9] truncate">{matchTeamName(home_team, match.home_placeholder)}</span>
                   </div>
                   <div className="shrink-0 flex items-center gap-1">
                     <ScoreInput name="home_score" defaultValue={saved?.home_score} disabled={isPending} />
@@ -187,8 +189,8 @@ export default function CalendarMatchRow({ match }: { match: MatchWithPrediction
                     <ScoreInput name="away_score" defaultValue={saved?.away_score} disabled={isPending} />
                   </div>
                   <div className="flex items-center gap-1 flex-row-reverse min-w-0 flex-1">
-                    <span className="text-sm leading-none shrink-0">{away_team.flag_emoji ?? "🏴"}</span>
-                    <span className="text-xs font-semibold text-[#f1f5f9] truncate text-right">{away_team.name}</span>
+                    <span className="text-sm leading-none shrink-0">{matchTeamFlag(away_team)}</span>
+                    <span className="text-xs font-semibold text-[#f1f5f9] truncate text-right">{matchTeamName(away_team, match.away_placeholder)}</span>
                   </div>
                 </div>
 

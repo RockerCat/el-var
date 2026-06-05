@@ -131,6 +131,17 @@ export default async function RulesPage() {
         </section>
       )}
 
+      {/* ── Payment note ──────────────────────────────────────────────── */}
+      <section>
+        <SectionHeader title="Nota" />
+        <div className="bg-[#11111c] border border-[#1e1e35] rounded-2xl p-5">
+          <p className="text-sm text-[#94a3b8] leading-relaxed">
+            La administración de pagos se realiza directamente entre los integrantes del grupo.
+            La plataforma no procesa pagos ni recauda dinero.
+          </p>
+        </div>
+      </section>
+
       {/* ── Scoring table ─────────────────────────────────────────────── */}
       <section>
         <SectionHeader title="Sistema de puntos" />

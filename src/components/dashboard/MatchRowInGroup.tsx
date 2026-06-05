@@ -6,6 +6,8 @@ import { cn } from "@/lib/utils";
 import {
   formatKickoff,
   matchClosedReason,
+  matchTeamName,
+  matchTeamFlag,
   type MatchWithPrediction,
   type Team,
 } from "@/lib/matches";
@@ -79,7 +81,7 @@ export default function MatchRowInGroup({ match, error, onDirty }: MatchRowInGro
 
           {/* Teams + live score */}
           <div className="flex items-center gap-3 mb-3">
-            <TeamSide team={home_team} side="home" large />
+            <TeamSide team={home_team} placeholder={match.home_placeholder} side="home" large />
             <div className="shrink-0 text-center px-2">
               {hasScore ? (
                 <span className="text-2xl font-black text-[#ef4444] tabular-nums animate-live-pulse">
@@ -91,7 +93,7 @@ export default function MatchRowInGroup({ match, error, onDirty }: MatchRowInGro
                 <span className="text-xl font-black text-[#ef4444] animate-live-pulse">–</span>
               )}
             </div>
-            <TeamSide team={away_team} side="away" large />
+            <TeamSide team={away_team} placeholder={match.away_placeholder} side="away" large />
           </div>
 
           {/* Mi pronóstico — same visual weight as live score for instant comparison */}
@@ -165,13 +167,13 @@ export default function MatchRowInGroup({ match, error, onDirty }: MatchRowInGro
 
           {/* Teams + final score */}
           <div className="flex items-center gap-2 mb-3">
-            <TeamSide team={home_team} side="home" />
+            <TeamSide team={home_team} placeholder={match.home_placeholder} side="home" />
             <div className="shrink-0 w-14 text-center">
               <span className="text-base font-black text-[#f1f5f9] tabular-nums">
                 {match.home_score}–{match.away_score}
               </span>
             </div>
-            <TeamSide team={away_team} side="away" />
+            <TeamSide team={away_team} placeholder={match.away_placeholder} side="away" />
           </div>
 
           {/* Mi pronóstico + points badge */}
@@ -263,8 +265,8 @@ export default function MatchRowInGroup({ match, error, onDirty }: MatchRowInGro
 
             {/* Home team */}
             <div className="flex items-center gap-1 min-w-0 flex-1">
-              <span className="text-base leading-none shrink-0">{home_team.flag_emoji ?? "🏴"}</span>
-              <span className="text-xs font-semibold text-[#f1f5f9] truncate">{home_team.name}</span>
+              <span className="text-base leading-none shrink-0">{matchTeamFlag(home_team)}</span>
+              <span className="text-xs font-semibold text-[#f1f5f9] truncate">{matchTeamName(home_team, match.home_placeholder)}</span>
             </div>
 
             {/* Score inputs — fixed width prevents compression */}
@@ -276,8 +278,8 @@ export default function MatchRowInGroup({ match, error, onDirty }: MatchRowInGro
 
             {/* Away team */}
             <div className="flex items-center gap-1 flex-row-reverse min-w-0 flex-1">
-              <span className="text-base leading-none shrink-0">{away_team.flag_emoji ?? "🏴"}</span>
-              <span className="text-xs font-semibold text-[#f1f5f9] truncate text-right">{away_team.name}</span>
+              <span className="text-base leading-none shrink-0">{matchTeamFlag(away_team)}</span>
+              <span className="text-xs font-semibold text-[#f1f5f9] truncate text-right">{matchTeamName(away_team, match.away_placeholder)}</span>
             </div>
 
           </div>
@@ -317,10 +319,10 @@ export default function MatchRowInGroup({ match, error, onDirty }: MatchRowInGro
           <span className="text-[10px] text-[#94a3b8]">{formatKickoff(match.starts_at)}</span>
         </div>
         <div className="flex items-center gap-2">
-          <TeamSide team={home_team} side="home" />
+          <TeamSide team={home_team} placeholder={match.home_placeholder} side="home" />
           {/* "vs" raised from near-invisible to readable */}
           <span className="shrink-0 text-[10px] text-[#64748b] w-14 text-center">vs</span>
-          <TeamSide team={away_team} side="away" />
+          <TeamSide team={away_team} placeholder={match.away_placeholder} side="away" />
         </div>
         <div className="mt-2">
           {saved ? (
@@ -337,18 +339,18 @@ export default function MatchRowInGroup({ match, error, onDirty }: MatchRowInGro
   );
 }
 
-function TeamSide({ team, side, large = false }: { team: Team; side: "home" | "away"; large?: boolean }) {
+function TeamSide({ team, placeholder, side, large = false }: { team: Team | null; placeholder: string | null; side: "home" | "away"; large?: boolean }) {
   return (
     <div className={cn("flex items-center gap-1.5 flex-1 min-w-0", side === "away" && "flex-row-reverse")}>
       <span className={cn("leading-none shrink-0", large ? "text-2xl" : "text-lg")}>
-        {team.flag_emoji ?? "🏴"}
+        {matchTeamFlag(team)}
       </span>
       <span className={cn(
         "font-semibold text-[#f1f5f9] truncate",
         large ? "text-sm" : "text-xs",
         side === "away" && "text-right"
       )}>
-        {team.name}
+        {matchTeamName(team, placeholder)}
       </span>
     </div>
   );

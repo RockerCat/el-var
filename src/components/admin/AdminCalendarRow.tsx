@@ -7,7 +7,7 @@ import {
   updateMatchResultAction,
   type UpdateMatchState,
 } from "@/app/actions/admin";
-import type { Match } from "@/lib/matches";
+import { matchTeamName, matchTeamCode, matchTeamFlag, type Match } from "@/lib/matches";
 
 const STATUS_OPTIONS = [
   { value: "scheduled", label: "🗓 Programado" },
@@ -46,7 +46,7 @@ export default function AdminCalendarRow({ match }: { match: Match }) {
   useEffect(() => { setHomeScoreVal(match.home_score ?? ""); }, [match.home_score]);
   useEffect(() => { setAwayScoreVal(match.away_score ?? ""); }, [match.away_score]);
 
-  const matchLabel = `${match.home_team.code} vs ${match.away_team.code}${match.group_code ? ` · G${match.group_code}` : ""}`;
+  const matchLabel = `${matchTeamCode(match.home_team, match.home_placeholder)} vs ${matchTeamCode(match.away_team, match.away_placeholder)}${match.group_code ? ` · G${match.group_code}` : ""}`;
 
   const kickoffTime = new Date(match.starts_at).toLocaleTimeString("es-CO", {
     hour:     "2-digit",
@@ -81,8 +81,8 @@ export default function AdminCalendarRow({ match }: { match: Match }) {
       {/* ── Row 2: teams + current score ───────────────────────────── */}
       <div className="flex items-center gap-2 mb-2.5">
         <div className="flex items-center gap-1 flex-1 min-w-0">
-          <span className="text-sm leading-none shrink-0">{match.home_team.flag_emoji ?? "🏴"}</span>
-          <span className="text-xs font-semibold text-[#f1f5f9] truncate">{match.home_team.name}</span>
+          <span className="text-sm leading-none shrink-0">{matchTeamFlag(match.home_team)}</span>
+          <span className="text-xs font-semibold text-[#f1f5f9] truncate">{matchTeamName(match.home_team, match.home_placeholder)}</span>
         </div>
         <div className="shrink-0 text-center w-12">
           {match.home_score !== null && match.away_score !== null ? (
@@ -94,8 +94,8 @@ export default function AdminCalendarRow({ match }: { match: Match }) {
           )}
         </div>
         <div className="flex items-center gap-1 flex-row-reverse flex-1 min-w-0">
-          <span className="text-sm leading-none shrink-0">{match.away_team.flag_emoji ?? "🏴"}</span>
-          <span className="text-xs font-semibold text-[#f1f5f9] truncate text-right">{match.away_team.name}</span>
+          <span className="text-sm leading-none shrink-0">{matchTeamFlag(match.away_team)}</span>
+          <span className="text-xs font-semibold text-[#f1f5f9] truncate text-right">{matchTeamName(match.away_team, match.away_placeholder)}</span>
         </div>
       </div>
 
@@ -124,14 +124,14 @@ export default function AdminCalendarRow({ match }: { match: Match }) {
               name="home_score"
               value={homeScoreVal}
               onChange={setHomeScoreVal}
-              placeholder={match.home_team.code}
+              placeholder={matchTeamCode(match.home_team, match.home_placeholder)}
             />
             <span className="text-[#475569] text-xs select-none">–</span>
             <ScoreInput
               name="away_score"
               value={awayScoreVal}
               onChange={setAwayScoreVal}
-              placeholder={match.away_team.code}
+              placeholder={matchTeamCode(match.away_team, match.away_placeholder)}
             />
           </div>
 
@@ -148,7 +148,7 @@ export default function AdminCalendarRow({ match }: { match: Match }) {
 
           {/* Predictions link */}
           <Link
-            href={`/admin/matches?match=${match.id}`}
+            href={`/admin/matches/${match.id}`}
             className="h-8 w-8 flex items-center justify-center rounded-lg border border-[#2a2a45] text-[#64748b] hover:text-[#94a3b8] hover:border-[#3a3a60] transition-colors shrink-0"
             title="Ver partido completo"
           >
