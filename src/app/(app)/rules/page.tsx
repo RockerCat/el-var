@@ -7,29 +7,13 @@ import {
   detectCurrentStage,
   PHASE_LABELS,
   PHASE_SCORING,
+  SCORING_TABLE_ROWS,
+  PHASE_EQUIV_ROWS,
   type MatchStage,
 } from "@/lib/matches";
 import { computePrizePool, formatCOP } from "@/lib/groups";
 import { cn } from "@/lib/utils";
 
-// Ordered rows for the scoring table (third_place shares Semifinal tier)
-const SCORING_ROWS: { stage: MatchStage; label: string }[] = [
-  { stage: "group",         label: "Fase 1"    },
-  { stage: "round_of_32",   label: "Fase 2"    },
-  { stage: "round_of_16",   label: "Fase 3"    },
-  { stage: "quarter_final", label: "Fase 4"    },
-  { stage: "semi_final",    label: "Semifinal" },
-  { stage: "final",         label: "Final"     },
-];
-
-const PHASE_EQUIV = [
-  { phase: "Fase 1",    desc: "Fase de grupos" },
-  { phase: "Fase 2",    desc: "Primera ronda eliminatoria" },
-  { phase: "Fase 3",    desc: "Segunda ronda eliminatoria" },
-  { phase: "Fase 4",    desc: "Cuartos de final" },
-  { phase: "Semifinal", desc: "Semifinal" },
-  { phase: "Final",     desc: "Final" },
-];
 
 export default async function RulesPage() {
   const supabase = await createClient();
@@ -153,7 +137,7 @@ export default async function RulesPage() {
             <span className="text-[10px] font-bold text-[#00c85a]/70 uppercase tracking-widest text-right w-24">Ganador</span>
           </div>
 
-          {SCORING_ROWS.map(({ stage, label }) => {
+          {SCORING_TABLE_ROWS.map(({ stage, label }) => {
             const scoring   = PHASE_SCORING[stage];
             const isCurrent = PHASE_LABELS[stage] === currentPhaseLabel;
 
@@ -202,7 +186,7 @@ export default async function RulesPage() {
       <section>
         <SectionHeader title="Equivalencia de fases" />
         <div className="bg-[#11111c] border border-[#1e1e35] rounded-2xl divide-y divide-[#1e1e35]">
-          {PHASE_EQUIV.map(({ phase, desc }) => (
+          {PHASE_EQUIV_ROWS.map(({ phase, desc }) => (
             <div key={phase} className="flex items-center justify-between px-4 py-3">
               <span className="text-sm font-bold text-[#f1f5f9]">{phase}</span>
               <span className="text-sm text-[#94a3b8]">{desc}</span>
@@ -230,6 +214,72 @@ export default async function RulesPage() {
             text="Si no aciertas ni el marcador ni el ganador/empate, recibes 0 puntos."
             accent="red"
           />
+        </div>
+      </section>
+
+      {/* ── Knockout matches ──────────────────────────────────────────── */}
+      <section>
+        <SectionHeader title="Partidos de eliminación directa" />
+        <div className="bg-[#11111c] border border-[#1e1e35] rounded-2xl p-5 space-y-3">
+          <RuleItem
+            icon="⚽"
+            text="En las rondas eliminatorias (Fase 2 en adelante), los puntos se calculan usando únicamente el marcador al final del tiempo reglamentario y, si aplica, el tiempo suplementario."
+          />
+          <RuleItem
+            icon="⚽"
+            text="Las tandas de penales NO hacen parte del marcador oficial para efectos de los pronósticos y no otorgan puntos adicionales."
+            accent="yellow"
+          />
+          <RuleItem
+            icon="⚽"
+            text="Si un partido termina empatado después del tiempo reglamentario y/o suplementario, se considera empate para el cálculo de puntos, independientemente de quien gane los penales."
+          />
+
+          {/* Example box */}
+          <div className="mt-2 bg-[#080810] border border-[#1e1e35] rounded-xl p-4 space-y-4">
+
+            {/* Scores */}
+            <div className="space-y-2">
+              <p className="text-[10px] font-semibold text-[#64748b] uppercase tracking-widest">
+                Ejemplo
+              </p>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <div className="flex-1 bg-[#11111c] border border-[#1e1e35] rounded-lg px-3 py-2.5">
+                  <p className="text-[9px] font-mono text-[#64748b] uppercase tracking-widest mb-1">
+                    Resultado oficial
+                  </p>
+                  <p className="text-sm font-black text-[#f1f5f9] tabular-nums tracking-wide">
+                    Argentina &nbsp;1 – 1&nbsp; Francia
+                  </p>
+                </div>
+                <div className="flex-1 bg-[#11111c] border border-[#1e1e35] rounded-lg px-3 py-2.5 opacity-40">
+                  <p className="text-[9px] font-mono text-[#64748b] uppercase tracking-widest mb-1">
+                    Penales (no cuenta)
+                  </p>
+                  <p className="text-sm font-black text-[#64748b] line-through tabular-nums tracking-wide">
+                    Argentina &nbsp;4 – 2&nbsp; Francia
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Prediction outcomes */}
+            <div className="space-y-2">
+              <p className="text-[10px] font-semibold text-[#64748b] uppercase tracking-widest">
+                Pronósticos
+              </p>
+              <div className="space-y-1.5">
+                <PredictionRow kind="exact"   score="Argentina 1 – 1 Francia" label="Marcador exacto" />
+                <PredictionRow kind="correct" score="Argentina 0 – 0 Francia" label="Ganador / Empate correcto" />
+                <PredictionRow kind="wrong"   score="Argentina 2 – 1 Francia" label="Sin puntos" />
+                <PredictionRow kind="wrong"   score="Argentina 1 – 2 Francia" label="Sin puntos" />
+              </div>
+            </div>
+
+            <p className="text-[10px] text-[#475569] pt-1 border-t border-[#1e1e35]">
+              La clasificación a la siguiente ronda mediante penales no afecta el cálculo de los puntos de La Penúltima.
+            </p>
+          </div>
         </div>
       </section>
 
@@ -339,6 +389,37 @@ function RuleItem({
     <div className="flex items-start gap-3">
       <span className={cn("text-sm shrink-0 mt-0.5", iconColor)}>{icon}</span>
       <p className="text-sm text-[#94a3b8] leading-relaxed">{text}</p>
+    </div>
+  );
+}
+
+function PredictionRow({
+  kind,
+  score,
+  label,
+}: {
+  kind: "exact" | "correct" | "wrong";
+  score: string;
+  label: string;
+}) {
+  const icon  = kind === "wrong" ? "✕" : "✓";
+  const iconColor =
+    kind === "exact"   ? "text-[#f59e0b]" :
+    kind === "correct" ? "text-[#00c85a]" :
+    "text-[#ef4444]";
+  const scoreColor = kind === "wrong" ? "text-[#475569]" : "text-[#f1f5f9]";
+  const labelColor =
+    kind === "exact"   ? "text-[#f59e0b]" :
+    kind === "correct" ? "text-[#00c85a]" :
+    "text-[#475569]";
+
+  return (
+    <div className="flex items-center gap-2 flex-wrap">
+      <span className={cn("text-xs font-bold shrink-0 w-4 text-center", iconColor)}>{icon}</span>
+      <span className={cn("text-xs font-mono font-semibold tabular-nums shrink-0", scoreColor)}>
+        {score}
+      </span>
+      <span className={cn("text-[10px] shrink-0", labelColor)}>→ {label}</span>
     </div>
   );
 }

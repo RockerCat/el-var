@@ -157,7 +157,7 @@ export function matchDayKey(startsAt: string): string {
 
 export const STAGE_LABELS: Record<MatchStage, string> = {
   group:         "Fase de grupos",
-  round_of_32:   "Ronda de 32",
+  round_of_32:   "Dieciseisavos de final",
   round_of_16:   "Octavos de final",
   quarter_final: "Cuartos de final",
   semi_final:    "Semifinal",
@@ -176,6 +176,40 @@ export const PHASE_LABELS: Record<MatchStage, string> = {
   third_place:   "Semifinal",
   final:         "Final",
 };
+
+// ── Short labels for tabs (dashboard phase selector) ──────────────────
+
+export const STAGE_SHORT_LABELS: Record<MatchStage, string> = {
+  group:         "Grupos",
+  round_of_32:   "Dieciseisavos",
+  round_of_16:   "Octavos",
+  quarter_final: "Cuartos",
+  semi_final:    "Semifinal",
+  third_place:   "3er puesto",
+  final:         "Final",
+};
+
+// ── Scoring table rows — single source of truth for rules + drawer ────
+
+export const SCORING_TABLE_ROWS: { stage: MatchStage; label: string }[] = [
+  { stage: "group",         label: "Fase 1 — Grupos"         },
+  { stage: "round_of_32",   label: "Fase 2 — Dieciseisavos"  },
+  { stage: "round_of_16",   label: "Fase 3 — Octavos"        },
+  { stage: "quarter_final", label: "Fase 4 — Cuartos"        },
+  { stage: "semi_final",    label: "Semifinal"                },
+  { stage: "final",         label: "Final"                    },
+];
+
+// ── Phase equivalency rows — single source of truth for rules page ────
+
+export const PHASE_EQUIV_ROWS: { phase: string; desc: string }[] = [
+  { phase: "Fase 1",    desc: "Fase de grupos"   },
+  { phase: "Fase 2",    desc: "Dieciseisavos"    },
+  { phase: "Fase 3",    desc: "Octavos de final" },
+  { phase: "Fase 4",    desc: "Cuartos de final" },
+  { phase: "Semifinal", desc: "Semifinal"        },
+  { phase: "Final",     desc: "Final"            },
+];
 
 export type ScoringRule = { exact: number; result: number };
 

@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { cn } from "@/lib/utils";
-import { STAGE_LABELS, type MatchWithPrediction, type MatchStage } from "@/lib/matches";
+import { STAGE_LABELS, STAGE_SHORT_LABELS, type MatchWithPrediction, type MatchStage } from "@/lib/matches";
 import GroupMatchBlock from "./GroupMatchBlock";
 
 const STAGE_ORDER: MatchStage[] = [
@@ -15,16 +15,6 @@ const STAGE_ORDER: MatchStage[] = [
   "final",
 ];
 
-// Short tab labels (concise but named, not "Fase 1/2/3")
-const TAB_LABEL: Record<MatchStage, string> = {
-  group:         "Grupos",
-  round_of_32:   "Ronda 32",
-  round_of_16:   "Octavos",
-  quarter_final: "Cuartos",
-  semi_final:    "Semifinal",
-  third_place:   "3er puesto",
-  final:         "Final",
-};
 
 function defaultStage(matches: MatchWithPrediction[]): MatchStage {
   for (const m of matches) {
@@ -180,7 +170,7 @@ export default function PhaseMatchView({ matches }: PhaseMatchViewProps) {
                   : "text-[#64748b] hover:text-[#94a3b8]"
               )}
             >
-              {TAB_LABEL[stage]}
+              {STAGE_SHORT_LABELS[stage]}
             </button>
           ))}
         </div>

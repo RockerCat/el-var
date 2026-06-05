@@ -182,12 +182,13 @@ export const es = {
 
   // ─── Match stages ─────────────────────────────────────────────────────────
   stages: {
-    group: "Fase de grupos",
-    round_of_16: "Octavos de final",
+    group:         "Fase de grupos",
+    round_of_32:   "Dieciseisavos de final",
+    round_of_16:   "Octavos de final",
     quarter_final: "Cuartos de final",
-    semi_final: "Semifinal",
-    third_place: "Tercer puesto",
-    final: "Final",
+    semi_final:    "Semifinal",
+    third_place:   "Tercer puesto",
+    final:         "Final",
   },
 
   // ─── Metadata ─────────────────────────────────────────────────────────────

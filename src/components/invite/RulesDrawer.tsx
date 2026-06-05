@@ -2,17 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { X, BookOpen } from "lucide-react";
-import { PHASE_SCORING } from "@/lib/matches";
+import { PHASE_SCORING, SCORING_TABLE_ROWS } from "@/lib/matches";
 import { formatCOP } from "@/lib/groups";
 
-const SCORING_ROWS = [
-  { stage: "group"         as const, label: "Fase 1 — Grupos"          },
-  { stage: "round_of_32"   as const, label: "Fase 2 — Ronda de 32"     },
-  { stage: "round_of_16"   as const, label: "Fase 3 — Octavos"         },
-  { stage: "quarter_final" as const, label: "Fase 4 — Cuartos"         },
-  { stage: "semi_final"    as const, label: "Semifinal"                 },
-  { stage: "final"         as const, label: "Final"                     },
-];
 
 const EXAMPLE_PLAYERS = 10;
 
@@ -126,7 +118,7 @@ export default function RulesDrawer({
                     <span className="text-[10px] font-bold text-[#00c85a]/70 uppercase tracking-widest text-right w-[72px]">Ganador</span>
                   </div>
 
-                  {SCORING_ROWS.map(({ stage, label }) => {
+                  {SCORING_TABLE_ROWS.map(({ stage, label }) => {
                     const scoring = PHASE_SCORING[stage];
                     return (
                       <div
