@@ -16,6 +16,7 @@ import {
 import { cn } from "@/lib/utils";
 import LiveMatchPoller from "@/components/dashboard/LiveMatchPoller";
 import MatchDetailHeaderWrapper from "@/components/dashboard/MatchDetailHeaderWrapper";
+import MyPredictionCard from "@/components/dashboard/MyPredictionCard";
 
 // ── Data types ────────────────────────────────────────────────────────
 
@@ -156,11 +157,15 @@ export default async function MatchDetailPage({
 
       {/* ── Mi Pronóstico ─────────────────────────────────────────── */}
       <MyPredictionCard
-        match={match}
+        matchId={match.id}
         myPrediction={myPrediction}
         mySim={mySim}
-        isFinished={isFinished}
+        isScheduled={match.status === "scheduled"}
         isLive={isLive}
+        isFinished={isFinished}
+        hasScore={hasScore}
+        homeScore={match.home_score}
+        awayScore={match.away_score}
       />
 
       {/* ── Pre-kickoff message ────────────────────────────────────── */}
@@ -422,104 +427,6 @@ function TeamDisplay({
         {team.name}
       </span>
     </div>
-  );
-}
-
-// ── My prediction + situation ─────────────────────────────────────────
-
-function MyPredictionCard({
-  match,
-  myPrediction,
-  mySim,
-  isLive,
-  isFinished,
-}: {
-  match: MatchWithTeams;
-  myPrediction: Prediction | null;
-  mySim: ScoringResult | null;
-  isLive: boolean;
-  isFinished: boolean;
-}) {
-  const hasScore = match.home_score !== null;
-
-  return (
-    <div className="bg-[#11111c] border border-[#1e1e35] rounded-2xl p-5 space-y-4">
-
-      {/* Mi pronóstico */}
-      <div>
-        <p className="text-[10px] font-bold text-[#64748b] uppercase tracking-widest mb-2">
-          Mi pronóstico
-        </p>
-        {myPrediction ? (
-          <p className="text-2xl font-black font-mono text-[#f1f5f9] tabular-nums">
-            {myPrediction.home_score}
-            <span className="text-[#64748b] mx-2 font-light">–</span>
-            {myPrediction.away_score}
-          </p>
-        ) : (
-          <p className="text-sm text-[#64748b]">No ingresaste pronóstico</p>
-        )}
-      </div>
-
-      {/* Mi situación */}
-      {(isLive || isFinished) && (
-        <div className="border-t border-[#1e1e35] pt-4">
-          <p className="text-[10px] font-bold text-[#64748b] uppercase tracking-widest mb-2">
-            Mi situación
-          </p>
-          <MySituationLine
-            myPrediction={myPrediction}
-            mySim={mySim}
-            hasScore={hasScore}
-            isFinished={isFinished}
-          />
-        </div>
-      )}
-    </div>
-  );
-}
-
-function MySituationLine({
-  myPrediction,
-  mySim,
-  hasScore,
-  isFinished,
-}: {
-  myPrediction: Prediction | null;
-  mySim: ScoringResult | null;
-  hasScore: boolean;
-  isFinished: boolean;
-}) {
-  if (!myPrediction) {
-    return (
-      <p className="text-sm text-[#64748b]">
-        ⚪ No ingresaste pronóstico para este partido
-      </p>
-    );
-  }
-  if (!hasScore || !mySim) {
-    return <p className="text-sm text-[#64748b]">Esperando marcador…</p>;
-  }
-  if (mySim.reason === "Marcador exacto") {
-    return (
-      <p className="text-sm text-[#00c85a] font-semibold">
-        🟢 {isFinished ? "Acertaste el marcador exacto" : "Vas sumando marcador exacto"}
-        {" "}· <span className="font-black">+{mySim.points} pts</span>
-      </p>
-    );
-  }
-  if (mySim.reason === "Resultado acertado") {
-    return (
-      <p className="text-sm text-[#f59e0b] font-semibold">
-        🟡 {isFinished ? "Acertaste el ganador" : "Vas sumando ganador correcto"}
-        {" "}· <span className="font-black">+{mySim.points} pts</span>
-      </p>
-    );
-  }
-  return (
-    <p className="text-sm text-[#ef4444]/80 font-semibold">
-      🔴 {isFinished ? "No acertaste" : "Tu pronóstico ya no puede cumplirse"}
-    </p>
   );
 }
 

@@ -75,51 +75,58 @@ export default function CalendarMatchRow({ match }: { match: MatchWithPrediction
 
       <div className="px-3 pt-3 pb-2.5">
 
-        {/* ── Row 1: time · teams · score/vs · status ─────────────── */}
-        <div className="flex items-center gap-2 mb-2">
-
-          {/* Time */}
-          <span className={cn(
-            "text-[10px] font-mono tabular-nums shrink-0 w-10",
-            isLive ? "text-[#ef4444]" : "text-[#94a3b8]"
-          )}>
-            {time}
-          </span>
-
-          {/* Home team */}
-          <div className="flex items-center gap-1 min-w-0 flex-1">
-            <span className="text-sm leading-none shrink-0">{home_team.flag_emoji ?? "🏴"}</span>
-            <span className="text-xs font-semibold text-[#f1f5f9] truncate">{home_team.name}</span>
-          </div>
-
-          {/* Score or vs */}
-          <div className="shrink-0 text-center px-1">
-            {isLive && hasScore ? (
-              <span className="text-base font-black text-[#ef4444] tabular-nums animate-live-pulse">
-                {match.home_score}<span className="text-[#ef4444]/40 mx-0.5 font-light">–</span>{match.away_score}
-              </span>
-            ) : isFinished && hasScore ? (
-              <span className={cn("text-base font-black tabular-nums", gotPoints ? "text-[#00c85a]" : "text-[#f1f5f9]")}>
-                {match.home_score}<span className="text-[#475569] mx-0.5 font-light">–</span>{match.away_score}
-              </span>
-            ) : (
-              <span className="text-[10px] text-[#475569] font-bold">vs</span>
+        {/* ── Row 1 ────────────────────────────────────────────────── */}
+        {isOpen && isEditing ? (
+          /* Meta row — teams appear only in the form below, no duplication */
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-[10px] font-mono tabular-nums text-[#94a3b8] shrink-0">
+              {time}
+            </span>
+            {match.group_code && (
+              <span className="text-[10px] text-[#475569]">· Grupo {match.group_code}</span>
             )}
+            <div className="flex-1" />
+            {/* Status indicator: ⚠ pending or ✓ saved */}
+            {saved
+              ? <Check size={12} className="text-[#00c85a] shrink-0" />
+              : <span className="text-[#f59e0b] text-xs shrink-0">⚠</span>}
           </div>
-
-          {/* Away team */}
-          <div className="flex items-center gap-1 flex-row-reverse min-w-0 flex-1">
-            <span className="text-sm leading-none shrink-0">{away_team.flag_emoji ?? "🏴"}</span>
-            <span className="text-xs font-semibold text-[#f1f5f9] truncate text-right">{away_team.name}</span>
+        ) : (
+          /* Full teams row for live/finished/closed states */
+          <div className="flex items-center gap-2 mb-2">
+            <span className={cn(
+              "text-[10px] font-mono tabular-nums shrink-0 w-10",
+              isLive ? "text-[#ef4444]" : "text-[#94a3b8]"
+            )}>
+              {time}
+            </span>
+            <div className="flex items-center gap-1 min-w-0 flex-1">
+              <span className="text-sm leading-none shrink-0">{home_team.flag_emoji ?? "🏴"}</span>
+              <span className="text-xs font-semibold text-[#f1f5f9] truncate">{home_team.name}</span>
+            </div>
+            <div className="shrink-0 text-center px-1">
+              {isLive && hasScore ? (
+                <span className="text-base font-black text-[#ef4444] tabular-nums animate-live-pulse">
+                  {match.home_score}<span className="text-[#ef4444]/40 mx-0.5 font-light">–</span>{match.away_score}
+                </span>
+              ) : isFinished && hasScore ? (
+                <span className={cn("text-base font-black tabular-nums", gotPoints ? "text-[#00c85a]" : "text-[#f1f5f9]")}>
+                  {match.home_score}<span className="text-[#475569] mx-0.5 font-light">–</span>{match.away_score}
+                </span>
+              ) : (
+                <span className="text-[10px] text-[#475569] font-bold">vs</span>
+              )}
+            </div>
+            <div className="flex items-center gap-1 flex-row-reverse min-w-0 flex-1">
+              <span className="text-sm leading-none shrink-0">{away_team.flag_emoji ?? "🏴"}</span>
+              <span className="text-xs font-semibold text-[#f1f5f9] truncate text-right">{away_team.name}</span>
+            </div>
+            <StatusPill match={match} />
           </div>
-
-          {/* Status badge */}
-          <StatusPill match={match} />
-
-        </div>
+        )}
 
         {/* ── Row 2: prediction area ───────────────────────────────── */}
-        <div className="ml-12"> {/* align under team names, past the time column */}
+        <div className={isOpen && isEditing ? "" : "ml-12"}>{/* ml-12 aligns under teams past the time column */}
           {isLive && (
             <div className="flex items-center justify-between">
               {saved ? (
@@ -165,27 +172,47 @@ export default function CalendarMatchRow({ match }: { match: MatchWithPrediction
 
           {isOpen && (
             isEditing ? (
-              <form action={formAction} className="flex items-center gap-1.5">
+              <form action={formAction} className="flex flex-col items-center gap-2.5 pt-1">
                 <input type="hidden" name="match_id" value={match.id} />
-                <ScoreInput name="home_score" defaultValue={saved?.home_score} disabled={isPending} />
-                <span className="text-[#94a3b8] text-xs font-light select-none">–</span>
-                <ScoreInput name="away_score" defaultValue={saved?.away_score} disabled={isPending} />
-                <button
-                  type="submit"
-                  disabled={isPending}
-                  className="h-8 px-2.5 bg-[#00c85a] text-[#0a0a12] text-[10px] font-bold rounded-lg hover:bg-[#00e87a] disabled:opacity-40 transition-colors flex items-center gap-1 shrink-0"
-                >
-                  {isPending ? <Loader2 size={10} className="animate-spin" /> : <><Check size={10} strokeWidth={2.5} />{saved ? "Actualizar" : "Guardar"}</>}
-                </button>
-                {saved && (
+
+                {/* Teams with centered inputs — mirrors MatchRowInGroup open layout */}
+                <div className="flex items-center gap-1.5 w-full">
+                  <div className="flex items-center gap-1 min-w-0 flex-1">
+                    <span className="text-sm leading-none shrink-0">{home_team.flag_emoji ?? "🏴"}</span>
+                    <span className="text-xs font-semibold text-[#f1f5f9] truncate">{home_team.name}</span>
+                  </div>
+                  <div className="shrink-0 flex items-center gap-1">
+                    <ScoreInput name="home_score" defaultValue={saved?.home_score} disabled={isPending} />
+                    <span className="text-[#94a3b8] text-sm font-light select-none">–</span>
+                    <ScoreInput name="away_score" defaultValue={saved?.away_score} disabled={isPending} />
+                  </div>
+                  <div className="flex items-center gap-1 flex-row-reverse min-w-0 flex-1">
+                    <span className="text-sm leading-none shrink-0">{away_team.flag_emoji ?? "🏴"}</span>
+                    <span className="text-xs font-semibold text-[#f1f5f9] truncate text-right">{away_team.name}</span>
+                  </div>
+                </div>
+
+                {/* Save button centered below inputs */}
+                <div className="flex flex-col items-center gap-1 w-full">
                   <button
-                    type="button"
-                    onClick={() => setIsEditing(false)}
-                    className="text-[9px] text-[#475569] hover:text-[#94a3b8] shrink-0"
+                    type="submit"
+                    disabled={isPending}
+                    className="h-9 px-6 bg-[#00c85a] text-[#0a0a12] text-xs font-bold rounded-xl hover:bg-[#00e87a] disabled:opacity-40 transition-colors flex items-center gap-1.5"
                   >
-                    Cancelar
+                    {isPending
+                      ? <><Loader2 size={11} className="animate-spin" />Guardando...</>
+                      : <><Check size={11} strokeWidth={2.5} />{saved ? "Actualizar" : "Guardar"}</>}
                   </button>
-                )}
+                  {saved && (
+                    <button
+                      type="button"
+                      onClick={() => setIsEditing(false)}
+                      className="text-[9px] text-[#475569] hover:text-[#94a3b8] transition-colors"
+                    >
+                      Cancelar
+                    </button>
+                  )}
+                </div>
               </form>
             ) : (
               <div className="flex items-center gap-2">
