@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { matchClosedReason, type MatchWithPrediction } from "@/lib/matches";
 import CalendarMatchRow from "./CalendarMatchRow";
@@ -18,24 +19,20 @@ const FILTERS: { id: Filter; label: string }[] = [
 
 // ── Date helpers ──────────────────────────────────────────────────────
 
-/** Colombia date key for grouping: "2026-06-11" */
 function colombiaDateKey(startsAt: string): string {
   return new Date(startsAt).toLocaleDateString("en-CA", {
     timeZone: "America/Bogota",
   }); // "YYYY-MM-DD" — stable sort key
 }
 
-/** Human header: "Jue, 11 de jun" */
 function formatDateHeader(dateKey: string): string {
-  // dateKey is "YYYY-MM-DD" in Colombia time — parse as local noon to avoid DST edge
   const [y, m, d] = dateKey.split("-").map(Number);
   const date = new Date(y, m - 1, d, 12);
   const raw = date.toLocaleDateString("es-CO", {
     weekday: "short",
     day:     "numeric",
-    month:   "short",
+    month:   "long", // "junio" (full month name)
   });
-  // Capitalise first letter: "jue, 11 de jun" → "Jue, 11 de jun"
   return raw.charAt(0).toUpperCase() + raw.slice(1);
 }
 
@@ -51,21 +48,147 @@ function applyFilter(matches: MatchWithPrediction[], filter: Filter): MatchWithP
   return matches;
 }
 
-// ── Main component ────────────────────────────────────────────────────
+// ── Default open date — computed from unfiltered matches ──────────────
+// Priority: live date → next scheduled date → last finished date
 
-interface CalendarViewProps {
-  matches: MatchWithPrediction[];
+function computeDefaultKey(matches: MatchWithPrediction[]): string | null {
+  const live = matches.find((m) => m.status === "live");
+  if (live) return colombiaDateKey(live.starts_at);
+
+  const next = matches.find(
+    (m) => m.status === "scheduled" && matchClosedReason(m) === null
+  );
+  if (next) return colombiaDateKey(next.starts_at);
+
+  const last = [...matches].reverse().find((m) => m.status === "finished");
+  if (last) return colombiaDateKey(last.starts_at);
+
+  return null;
 }
 
-export default function CalendarView({ matches }: CalendarViewProps) {
-  const [filter, setFilter] = useState<Filter>(() => {
-    // Default to "live" if any live matches exist, else "all"
-    return matches.some((m) => m.status === "live") ? "live" : "all";
-  });
+// ── Best visible date for a given filter + days ───────────────────────
+
+function bestVisibleKey(days: [string, MatchWithPrediction[]][]): string | null {
+  // live date first
+  const liveDay = days.find(([, ms]) => ms.some((m) => m.status === "live"));
+  if (liveDay) return liveDay[0];
+  // next scheduled open day
+  const scheduledDay = days.find(([, ms]) =>
+    ms.some((m) => m.status === "scheduled" && matchClosedReason(m) === null)
+  );
+  if (scheduledDay) return scheduledDay[0];
+  // last day as fallback
+  return days[days.length - 1]?.[0] ?? null;
+}
+
+// ── Day header subtitle ───────────────────────────────────────────────
+
+type SubtitleKind = "live" | "pending" | "done" | "neutral";
+
+function daySubtitle(
+  dayMatches: MatchWithPrediction[]
+): { text: string; kind: SubtitleKind } {
+  const total    = dayMatches.length;
+  const liveN    = dayMatches.filter((m) => m.status === "live").length;
+  const pendingN = dayMatches.filter(
+    (m) => m.status === "scheduled" && matchClosedReason(m) === null && !m.prediction
+  ).length;
+  const finN     = dayMatches.filter((m) => m.status === "finished").length;
+
+  const matchStr = `${total} partido${total !== 1 ? "s" : ""}`;
+
+  if (liveN > 0)      return { text: `${matchStr} · ${liveN} en vivo`,                    kind: "live"    };
+  if (pendingN > 0)   return { text: `${matchStr} · ${pendingN} pendiente${pendingN !== 1 ? "s" : ""}`, kind: "pending" };
+  if (finN === total) return { text: `${matchStr} · ✓ completado`,                        kind: "done"    };
+  return               { text: matchStr,                                                   kind: "neutral" };
+}
+
+const SUBTITLE_COLOR: Record<SubtitleKind, string> = {
+  live:    "text-[#ef4444]",
+  pending: "text-[#f59e0b]",
+  done:    "text-[#00c85a]/70",
+  neutral: "text-[#475569]",
+};
+
+// ── Date accordion section ────────────────────────────────────────────
+
+function DateSection({
+  dateKey,
+  dayMatches,
+  isOpen,
+  onToggle,
+}: {
+  dateKey:    string;
+  dayMatches: MatchWithPrediction[];
+  isOpen:     boolean;
+  onToggle:   () => void;
+}) {
+  const sub = daySubtitle(dayMatches);
+
+  return (
+    <div className="rounded-2xl border border-[#1e1e35] overflow-hidden">
+
+      {/* Accordion header — full-width tap target */}
+      <button
+        type="button"
+        onClick={onToggle}
+        className={cn(
+          "w-full flex items-center gap-3 px-4 py-3.5 text-left transition-colors",
+          isOpen ? "bg-[#11111c]" : "bg-[#11111c] hover:bg-[#18182a]"
+        )}
+      >
+        {/* Chevron */}
+        {isOpen
+          ? <ChevronDown  size={14} className="text-[#475569] shrink-0" />
+          : <ChevronRight size={14} className="text-[#475569] shrink-0" />}
+
+        {/* Date + subtitle */}
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-bold text-[#f1f5f9] leading-none mb-0.5">
+            {formatDateHeader(dateKey)}
+          </p>
+          <p className={cn("text-[10px]", SUBTITLE_COLOR[sub.kind])}>
+            {sub.text}
+          </p>
+        </div>
+
+        {/* Live pulse dot */}
+        {sub.kind === "live" && (
+          <span className="relative flex h-2 w-2 shrink-0">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#ef4444] opacity-60" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-[#ef4444]" />
+          </span>
+        )}
+      </button>
+
+      {/* Collapsible content — CSS grid height animation */}
+      <div className={cn(
+        "grid transition-all duration-200 ease-in-out",
+        isOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+      )}>
+        <div className="overflow-hidden min-h-0">
+          <div className="flex flex-col gap-2 px-3 pb-3 pt-1">
+            {dayMatches.map((match) => (
+              <CalendarMatchRow key={match.id} match={match} />
+            ))}
+          </div>
+        </div>
+      </div>
+
+    </div>
+  );
+}
+
+// ── Main component ────────────────────────────────────────────────────
+
+export default function CalendarView({ matches }: { matches: MatchWithPrediction[] }) {
+
+  const [filter, setFilter] = useState<Filter>(() =>
+    matches.some((m) => m.status === "live") ? "live" : "all"
+  );
 
   const filtered = useMemo(() => applyFilter(matches, filter), [matches, filter]);
 
-  // Group filtered matches by Colombia date, preserving kickoff order
   const days = useMemo(() => {
     const map = new Map<string, MatchWithPrediction[]>();
     for (const m of filtered) {
@@ -76,13 +199,38 @@ export default function CalendarView({ matches }: CalendarViewProps) {
     return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b));
   }, [filtered]);
 
+  // Open set — tracks which date keys are expanded.
+  // Initialised once with the default open date from the full match list.
+  // Survives router.refresh() because it lives in client state.
+  const [openDates, setOpenDates] = useState<Set<string>>(() => {
+    const key = computeDefaultKey(matches);
+    return key ? new Set([key]) : new Set();
+  });
+
+  // When the user switches filters, reset open state to the best visible date
+  // for that filter — but only on explicit filter change (not on polling refresh).
+  useEffect(() => {
+    const best = bestVisibleKey(days);
+    setOpenDates(best ? new Set([best]) : new Set());
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filter]); // intentionally omit `days` so polling refreshes don't reset state
+
+  function toggleDate(key: string) {
+    setOpenDates((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
+
   const liveCount    = matches.filter((m) => m.status === "live").length;
   const pendingCount = matches.filter(
     (m) => m.status === "scheduled" && matchClosedReason(m) === null && !m.prediction
   ).length;
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3">
 
       {/* ── Filter tabs ───────────────────────────────────────────── */}
       <div className="flex items-center gap-1 overflow-x-auto no-scrollbar pb-0.5">
@@ -103,9 +251,7 @@ export default function CalendarView({ matches }: CalendarViewProps) {
               {badge > 0 && (
                 <span className={cn(
                   "text-[9px] font-bold rounded-full px-1 min-w-[16px] text-center",
-                  id === "live"
-                    ? "bg-[#ef4444]/15 text-[#ef4444]"
-                    : "bg-[#f59e0b]/15 text-[#f59e0b]"
+                  id === "live" ? "bg-[#ef4444]/15 text-[#ef4444]" : "bg-[#f59e0b]/15 text-[#f59e0b]"
                 )}>
                   {badge}
                 </span>
@@ -119,33 +265,23 @@ export default function CalendarView({ matches }: CalendarViewProps) {
       {days.length === 0 && (
         <div className="bg-[#18182a] border border-dashed border-[#2a2a45] rounded-2xl p-8 text-center">
           <p className="text-sm text-[#64748b]">
-            {filter === "live"    ? "No hay partidos en vivo ahora." :
-             filter === "pending" ? "No tienes predicciones pendientes. ¡Al día!" :
-             filter === "finished"? "No hay partidos finalizados todavía." :
+            {filter === "live"     ? "No hay partidos en vivo ahora." :
+             filter === "pending"  ? "No tienes predicciones pendientes. ¡Al día!" :
+             filter === "finished" ? "No hay partidos finalizados todavía." :
              "No hay partidos disponibles."}
           </p>
         </div>
       )}
 
-      {/* ── Date groups ───────────────────────────────────────────── */}
+      {/* ── Date accordions ───────────────────────────────────────── */}
       {days.map(([dateKey, dayMatches]) => (
-        <section key={dateKey}>
-          {/* Sticky date header */}
-          <div className="sticky top-[56px] z-20 bg-[#0a0a12]/90 backdrop-blur-sm py-1.5 mb-2 -mx-4 px-4">
-            <h3 className="text-[11px] font-bold text-[#94a3b8] uppercase tracking-widest">
-              {formatDateHeader(dateKey)}
-              <span className="text-[#475569] font-normal ml-2 normal-case tracking-normal">
-                {dayMatches.length} partido{dayMatches.length !== 1 ? "s" : ""}
-              </span>
-            </h3>
-          </div>
-
-          <div className="flex flex-col gap-2">
-            {dayMatches.map((match) => (
-              <CalendarMatchRow key={match.id} match={match} />
-            ))}
-          </div>
-        </section>
+        <DateSection
+          key={dateKey}
+          dateKey={dateKey}
+          dayMatches={dayMatches}
+          isOpen={openDates.has(dateKey)}
+          onToggle={() => toggleDate(dateKey)}
+        />
       ))}
 
     </div>
