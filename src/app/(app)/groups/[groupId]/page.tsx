@@ -28,7 +28,6 @@ type RawGroup = {
   entry_fee:        number | null;
   first_place_pct:  number | null;
   second_place_pct: number | null;
-  group_members: { count: number }[];
 };
 
 export default async function GroupPage({
@@ -48,14 +47,13 @@ export default async function GroupPage({
   // RLS enforces membership — returns null if user is not a member
   const { data: rawGroup } = await supabase
     .from("groups")
-    .select("id, name, invite_code, owner_id, created_at, entry_fee, first_place_pct, second_place_pct, group_members(count)")
+    .select("id, name, invite_code, owner_id, created_at, entry_fee, first_place_pct, second_place_pct")
     .eq("id", groupId)
     .single();
 
   if (!rawGroup) redirect("/dashboard");
 
   const group = rawGroup as RawGroup;
-  const memberCount = group.group_members?.[0]?.count ?? 0;
   const isOwner = group.owner_id === user.id;
 
   // Parallel fetch: leaderboard, activity, member join dates, match counts, active player count
@@ -71,14 +69,18 @@ export default async function GroupPage({
     getActivePlayerCount(groupId),
   ]);
 
-  // Derive members: names come from leaderboard, join dates from group_members
+  // Derive members: names come from leaderboard, join dates from group_members.
+  // Filter to active users only (leaderboard already excludes admin + disabled),
+  // so memberCount stays consistent with the leaderboard participant count.
   const nameMap = new Map(leaderboard.map((e) => [e.user_id, e.display_name]));
-  const members: MemberDetail[] = (membersResult.data ?? []).map((r) => ({
-    user_id:      r.user_id as string,
-    display_name: nameMap.get(r.user_id as string) ?? "Usuario",
-    is_owner:     (r.user_id as string) === group.owner_id,
-    joined_at:    r.joined_at as string,
-  }));
+  const members: MemberDetail[] = (membersResult.data ?? [])
+    .filter((r) => nameMap.has(r.user_id as string))
+    .map((r) => ({
+      user_id:      r.user_id as string,
+      display_name: nameMap.get(r.user_id as string)!,
+      is_owner:     (r.user_id as string) === group.owner_id,
+      joined_at:    r.joined_at as string,
+    }));
 
   // Match stats
   const allMatches     = matchesResult.data ?? [];
@@ -135,7 +137,7 @@ export default async function GroupPage({
         </div>
         <div className="flex items-center gap-1.5 text-xs text-[#94a3b8]">
           <Users size={13} strokeWidth={1.8} />
-          <span>{formatMemberCount(memberCount)}</span>
+          <span>{formatMemberCount(activePlayers)}</span>
           <span className="text-[#2a2a45]">·</span>
           <span>Creado {formatRelativeDate(group.created_at)}</span>
         </div>
@@ -163,7 +165,7 @@ export default async function GroupPage({
       <section>
         <SectionHeader title="Resumen" />
         <GroupStats
-          memberCount={memberCount}
+          memberCount={activePlayers}
           totalPredictions={Number(totalPredictions)}
           scoredMatches={scoredMatches}
           pendingMatches={pendingMatches}
