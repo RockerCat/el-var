@@ -165,11 +165,12 @@ export async function updateMatchResultAction(
   _prev: UpdateMatchState,
   formData: FormData
 ): Promise<UpdateMatchState> {
-  const matchId    = (formData.get("match_id")    as string | null) ?? "";
-  const status     = (formData.get("status")      as string | null) ?? "";
-  const homeRaw    = (formData.get("home_score")  as string | null) ?? "";
-  const awayRaw    = (formData.get("away_score")  as string | null) ?? "";
-  const matchLabel = (formData.get("match_label") as string | null) ?? "";
+  const matchId           = (formData.get("match_id")           as string | null) ?? "";
+  const status            = (formData.get("status")             as string | null) ?? "";
+  const homeRaw           = (formData.get("home_score")         as string | null) ?? "";
+  const awayRaw           = (formData.get("away_score")         as string | null) ?? "";
+  const matchLabel        = (formData.get("match_label")        as string | null) ?? "";
+  const advancingTeamRaw  = (formData.get("advancing_team_id")  as string | null)?.trim() || null;
 
   if (!matchId || !status) return { error: "Datos incompletos." };
 
@@ -191,15 +192,28 @@ export async function updateMatchResultAction(
 
   const { data: oldMatch } = await supabase
     .from("matches")
-    .select("status, home_score, away_score")
+    .select("status, home_score, away_score, stage, advancing_team_id")
     .eq("id", matchId)
     .single();
 
+  // Knockout draw being finalized requires advancing_team_id.
+  if (
+    status === "finished" &&
+    homeScore !== null &&
+    awayScore !== null &&
+    homeScore === awayScore &&
+    oldMatch?.stage !== "group" &&
+    !advancingTeamRaw
+  ) {
+    return { error: "En eliminatorias empatadas debes seleccionar el equipo que clasificó." };
+  }
+
   const { data: rpcData, error } = await supabase.rpc("update_match_result", {
-    p_match_id:   matchId,
-    p_status:     status,
-    p_home_score: homeScore,
-    p_away_score: awayScore,
+    p_match_id:          matchId,
+    p_status:            status,
+    p_home_score:        homeScore,
+    p_away_score:        awayScore,
+    p_advancing_team_id: advancingTeamRaw,
   });
 
   if (error) {
@@ -213,7 +227,7 @@ export async function updateMatchResultAction(
 
   const { data: { user } } = await supabase.auth.getUser();
   if (user) {
-    const newValues = { status, home_score: homeScore, away_score: awayScore };
+    const newValues = { status, home_score: homeScore, away_score: awayScore, advancing_team_id: advancingTeamRaw };
     void writeMatchAudit(supabase, {
       match_id: matchId, admin_id: user.id,
       action: "update_result", old_values: oldMatch ?? null, new_values: newValues,
@@ -303,20 +317,21 @@ export async function advancedEditMatchAction(
   _prev: AdvancedEditState,
   formData: FormData
 ): Promise<AdvancedEditState> {
-  const matchId          = (formData.get("match_id")          as string | null)?.trim() ?? "";
-  const matchLabel       = (formData.get("match_label")        as string | null)?.trim() ?? "";
-  const homeTeamRaw      = (formData.get("home_team_id")       as string | null)?.trim() || null;
-  const awayTeamRaw      = (formData.get("away_team_id")       as string | null)?.trim() || null;
-  const homePlaceholder  = (formData.get("home_placeholder")   as string | null)?.trim() || null;
-  const awayPlaceholder  = (formData.get("away_placeholder")   as string | null)?.trim() || null;
-  const startsAtRaw      = (formData.get("starts_at")          as string | null)?.trim() ?? "";
-  const stage            = (formData.get("stage")              as string | null)?.trim() ?? "";
-  const status           = (formData.get("status")             as string | null)?.trim() ?? "";
-  const homeScoreRaw     = (formData.get("home_score")         as string | null)?.trim() ?? "";
-  const awayScoreRaw     = (formData.get("away_score")         as string | null)?.trim() ?? "";
-  const groupCodeRaw     = (formData.get("group_code")         as string | null)?.trim() || null;
-  const matchNumberRaw   = (formData.get("match_number")       as string | null)?.trim() ?? "";
-  const venueRaw         = (formData.get("venue")              as string | null)?.trim() || null;
+  const matchId           = (formData.get("match_id")           as string | null)?.trim() ?? "";
+  const matchLabel        = (formData.get("match_label")         as string | null)?.trim() ?? "";
+  const homeTeamRaw       = (formData.get("home_team_id")        as string | null)?.trim() || null;
+  const awayTeamRaw       = (formData.get("away_team_id")        as string | null)?.trim() || null;
+  const homePlaceholder   = (formData.get("home_placeholder")    as string | null)?.trim() || null;
+  const awayPlaceholder   = (formData.get("away_placeholder")    as string | null)?.trim() || null;
+  const startsAtRaw       = (formData.get("starts_at")           as string | null)?.trim() ?? "";
+  const stage             = (formData.get("stage")               as string | null)?.trim() ?? "";
+  const status            = (formData.get("status")              as string | null)?.trim() ?? "";
+  const homeScoreRaw      = (formData.get("home_score")          as string | null)?.trim() ?? "";
+  const awayScoreRaw      = (formData.get("away_score")          as string | null)?.trim() ?? "";
+  const groupCodeRaw      = (formData.get("group_code")          as string | null)?.trim() || null;
+  const matchNumberRaw    = (formData.get("match_number")        as string | null)?.trim() ?? "";
+  const venueRaw          = (formData.get("venue")               as string | null)?.trim() || null;
+  const advancingTeamRaw  = (formData.get("advancing_team_id")   as string | null)?.trim() || null;
 
   if (!matchId)    return { error: "match_id requerido." };
   if (!startsAtRaw) return { error: "Fecha/hora requerida." };
@@ -346,6 +361,18 @@ export async function advancedEditMatchAction(
     return { error: "El equipo local y visitante no pueden ser el mismo." };
   }
 
+  // Knockout draw being finalized requires advancing_team_id.
+  if (
+    status === "finished" &&
+    homeScore !== null &&
+    awayScore !== null &&
+    homeScore === awayScore &&
+    stage !== "group" &&
+    !advancingTeamRaw
+  ) {
+    return { error: "En eliminatorias empatadas debes seleccionar el equipo que clasificó." };
+  }
+
   const supabase = await createClient();
   const { data: { user }, error: authErr } = await supabase.auth.getUser();
   if (authErr || !user) return { error: "No autenticado." };
@@ -353,7 +380,7 @@ export async function advancedEditMatchAction(
 
   const { data: oldMatch } = await supabase
     .from("matches")
-    .select("home_team_id, away_team_id, home_placeholder, away_placeholder, starts_at, stage, status, home_score, away_score, group_code, match_number, venue")
+    .select("home_team_id, away_team_id, home_placeholder, away_placeholder, starts_at, stage, status, home_score, away_score, group_code, match_number, venue, advancing_team_id")
     .eq("id", matchId)
     .single();
 
@@ -371,6 +398,7 @@ export async function advancedEditMatchAction(
     p_group_code:        groupCodeRaw,
     p_match_number:      matchNumber,
     p_venue:             venueRaw,
+    p_advancing_team_id: advancingTeamRaw,
   });
 
   if (rpcErr) {
@@ -391,6 +419,7 @@ export async function advancedEditMatchAction(
     starts_at: startsAt, stage, status,
     home_score: homeScore, away_score: awayScore,
     group_code: groupCodeRaw, match_number: matchNumber, venue: venueRaw,
+    advancing_team_id: advancingTeamRaw,
   };
 
   void writeActivity(supabase, {

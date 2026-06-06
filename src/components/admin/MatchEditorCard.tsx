@@ -11,7 +11,7 @@ import {
   type UpdateFixtureState,
   type MatchPrediction,
 } from "@/app/actions/admin";
-import { matchTeamName, matchTeamCode, matchTeamFlag, type Match } from "@/lib/matches";
+import { matchTeamName, matchTeamCode, matchTeamFlag, isKnockoutStage, type Match } from "@/lib/matches";
 
 // ── Helpers ───────────────────────────────────────────────────────────
 
@@ -194,13 +194,27 @@ export default function MatchEditorCard({ match }: { match: Match }) {
 
   // Controlled state for the result form — synced from props so the form
   // always reflects the latest server-confirmed values after a save.
-  const [statusVal,    setStatusVal]    = useState<string>(match.status);
-  const [homeScoreVal, setHomeScoreVal] = useState(match.home_score ?? "");
-  const [awayScoreVal, setAwayScoreVal] = useState(match.away_score ?? "");
+  const [statusVal,       setStatusVal]       = useState<string>(match.status);
+  const [homeScoreVal,    setHomeScoreVal]     = useState(match.home_score ?? "");
+  const [awayScoreVal,    setAwayScoreVal]     = useState(match.away_score ?? "");
+  const [advancingTeamId, setAdvancingTeamId] = useState(match.advancing_team_id ?? "");
 
-  useEffect(() => { setStatusVal(match.status); },           [match.status]);
-  useEffect(() => { setHomeScoreVal(match.home_score ?? ""); }, [match.home_score]);
-  useEffect(() => { setAwayScoreVal(match.away_score ?? ""); }, [match.away_score]);
+  useEffect(() => { setStatusVal(match.status); },                         [match.status]);
+  useEffect(() => { setHomeScoreVal(match.home_score ?? ""); },             [match.home_score]);
+  useEffect(() => { setAwayScoreVal(match.away_score ?? ""); },             [match.away_score]);
+  useEffect(() => { setAdvancingTeamId(match.advancing_team_id ?? ""); },  [match.advancing_team_id]);
+
+  // For non-draw knockout matches, auto-derive the advancing team from scores.
+  // For draws the admin must select manually.
+  const isKnockout = isKnockoutStage(match.stage);
+  useEffect(() => {
+    if (!isKnockout) return;
+    const h = Number(homeScoreVal);
+    const a = Number(awayScoreVal);
+    if (!isNaN(h) && !isNaN(a) && homeScoreVal !== "" && awayScoreVal !== "" && h !== a) {
+      setAdvancingTeamId(h > a ? (match.home_team_id ?? "") : (match.away_team_id ?? ""));
+    }
+  }, [homeScoreVal, awayScoreVal, isKnockout, match.home_team_id, match.away_team_id]);
 
   // Controlled state for the fixture form
   const [startsAtVal, setStartsAtVal] = useState(toDatetimeLocal(match.starts_at));
@@ -292,6 +306,43 @@ export default function MatchEditorCard({ match }: { match: Match }) {
                 />
               </div>
             </div>
+
+            {/* Knockout advancing team selector — only for non-group stages */}
+            {isKnockout && (match.home_team_id || match.away_team_id) && (
+              <div className="flex flex-col gap-1.5">
+                <FieldLabel>Equipo clasificado</FieldLabel>
+                <select
+                  name="advancing_team_id"
+                  value={advancingTeamId}
+                  onChange={(e) => setAdvancingTeamId(e.target.value)}
+                  className="h-10 rounded-xl bg-[#0e0e1d] border border-[#2a2a45] text-[#f1f5f9] text-sm px-3 focus:outline-none focus:border-[#00c85a]/60 focus:ring-2 focus:ring-[#00c85a]/10 transition-colors"
+                >
+                  <option value="">— Sin seleccionar —</option>
+                  {match.home_team && match.home_team_id && (
+                    <option value={match.home_team_id}>
+                      {match.home_team.flag_emoji ?? ""} {match.home_team.name} (local)
+                    </option>
+                  )}
+                  {match.away_team && match.away_team_id && (
+                    <option value={match.away_team_id}>
+                      {match.away_team.flag_emoji ?? ""} {match.away_team.name} (visitante)
+                    </option>
+                  )}
+                </select>
+                {/* Warn on draw without selection */}
+                {statusVal === "finished"
+                  && homeScoreVal !== "" && awayScoreVal !== ""
+                  && Number(homeScoreVal) === Number(awayScoreVal)
+                  && !advancingTeamId && (
+                  <p className="text-[10px] text-[#f59e0b]">
+                    Empate en eliminatoria — selecciona el equipo que clasificó por penales.
+                  </p>
+                )}
+                <p className="text-[10px] text-[#64748b]">
+                  Solo para bracket. No afecta puntuación (penales no cuentan).
+                </p>
+              </div>
+            )}
 
             <FormFeedback state={resultState} />
 

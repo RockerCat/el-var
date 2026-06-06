@@ -34,7 +34,15 @@ export type Match = {
   created_at: string;
   home_team: Team | null;
   away_team: Team | null;
+  // For knockout draws: the team that advanced via penalty shootout.
+  // NEVER used for scoring — only for bracket/classification purposes.
+  advancing_team_id: string | null;
 };
+
+/** True for every stage after the group phase (i.e., knockout rounds). */
+export function isKnockoutStage(stage: MatchStage): boolean {
+  return stage !== "group";
+}
 
 export type Prediction = {
   id: string;

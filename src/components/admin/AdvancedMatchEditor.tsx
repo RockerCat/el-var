@@ -8,8 +8,10 @@ import {
 } from "@/app/actions/admin";
 import {
   matchTeamCode,
+  isKnockoutStage,
   STAGE_LABELS,
   type Match,
+  type MatchStage,
   type Team,
 } from "@/lib/matches";
 
@@ -100,9 +102,10 @@ export default function AdvancedMatchEditor({ match, teams }: Props) {
   const [venue, setVenue] = useState(match.venue ?? "");
 
   // ── Controlled result fields ───────────────────────────────────────
-  const [status,    setStatus]    = useState<string>(match.status);
-  const [homeScore, setHomeScore] = useState(match.home_score?.toString() ?? "");
-  const [awayScore, setAwayScore] = useState(match.away_score?.toString() ?? "");
+  const [status,          setStatus]         = useState<string>(match.status);
+  const [homeScore,       setHomeScore]      = useState(match.home_score?.toString() ?? "");
+  const [awayScore,       setAwayScore]      = useState(match.away_score?.toString() ?? "");
+  const [advancingTeamId, setAdvancingTeamId] = useState(match.advancing_team_id ?? "");
 
   // ── Confirmation state ─────────────────────────────────────────────
   const [confirmPending, setConfirmPending] = useState(false);
@@ -354,6 +357,33 @@ export default function AdvancedMatchEditor({ match, teams }: Props) {
                   />
                 </div>
               </div>
+
+              {/* Knockout advancing team — only for non-group stages */}
+              {isKnockoutStage(stage as MatchStage) && (homeTeamId || awayTeamId) && (
+                <div className="flex flex-col gap-1.5">
+                  <FieldLabel>Equipo clasificado (penales)</FieldLabel>
+                  <AdminSelect
+                    name="advancing_team_id"
+                    value={advancingTeamId}
+                    onChange={(e) => setAdvancingTeamId(e.target.value)}
+                  >
+                    <option value="">— Sin seleccionar —</option>
+                    {homeTeamId && (
+                      <option value={homeTeamId}>
+                        {teams.find((t) => t.id === homeTeamId)?.name ?? homeTeamId} (local)
+                      </option>
+                    )}
+                    {awayTeamId && (
+                      <option value={awayTeamId}>
+                        {teams.find((t) => t.id === awayTeamId)?.name ?? awayTeamId} (visitante)
+                      </option>
+                    )}
+                  </AdminSelect>
+                  <p className="text-[10px] text-[#64748b]">
+                    Solo para bracket. No afecta puntuación — los penales no cuentan para puntos.
+                  </p>
+                </div>
+              )}
 
               {status === "finished" && (
                 <p className="text-[10px] text-[#f59e0b]">

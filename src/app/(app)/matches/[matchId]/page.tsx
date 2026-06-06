@@ -8,10 +8,12 @@ import {
   PHASE_LABELS,
   PHASE_SCORING,
   simulatePoints,
+  isKnockoutStage,
   type Match,
   type Prediction,
   type MatchStage,
   type ScoringResult,
+  type Team,
 } from "@/lib/matches";
 import { cn } from "@/lib/utils";
 import LiveMatchPoller from "@/components/dashboard/LiveMatchPoller";
@@ -73,10 +75,20 @@ export default async function MatchDetailPage({
       : [];
 
   // ── Derived data ──────────────────────────────────────────────────
-  const stage     = match.stage as MatchStage;
+  const stage      = match.stage as MatchStage;
   const isLive     = match.status === "live";
   const isFinished = match.status === "finished";
   const hasScore   = match.home_score !== null && match.away_score !== null;
+
+  // For knockout draws: which team advanced via penalties (for display only — not scoring).
+  const advancingTeam: Team | null =
+    isKnockoutStage(stage) && match.advancing_team_id
+      ? match.advancing_team_id === match.home_team_id
+        ? match.home_team
+        : match.advancing_team_id === match.away_team_id
+          ? match.away_team
+          : null
+      : null;
 
   // Simulated/actual points per prediction
   type RichPred = MatchPredictionEntry & { sim: ScoringResult };
@@ -152,7 +164,7 @@ export default async function MatchDetailPage({
         awayScore={match.away_score}
         isLive={isLive}
       >
-        <MatchHeader match={match} />
+        <MatchHeader match={match} advancingTeam={advancingTeam} />
       </MatchDetailHeaderWrapper>
 
       {/* ── Mi Pronóstico ─────────────────────────────────────────── */}
@@ -325,10 +337,19 @@ function SectionHeader({ title }: { title: string }) {
 
 // ── Match header ──────────────────────────────────────────────────────
 
-function MatchHeader({ match }: { match: MatchWithTeams }) {
+function MatchHeader({
+  match,
+  advancingTeam,
+}: {
+  match: MatchWithTeams;
+  advancingTeam: Team | null;
+}) {
   const { home_team, away_team, status, stage, group_code } = match;
   const hasScore = match.home_score !== null && match.away_score !== null;
   const phaseLabel = PHASE_LABELS[stage as MatchStage];
+  // Show penalty note when: knockout + draw + advancing team known
+  const isDraw = hasScore && match.home_score === match.away_score;
+  const showPenaltyNote = isDraw && advancingTeam !== null;
 
   return (
     <div className="bg-[#11111c] border border-[#1e1e35] rounded-2xl p-5">
@@ -372,6 +393,20 @@ function MatchHeader({ match }: { match: MatchWithTeams }) {
 
         <TeamDisplay team={away_team} side="away" />
       </div>
+
+      {/* Penalty shootout note — shown only for knockout draws with a known advancing team */}
+      {showPenaltyNote && (
+        <div className="mt-3 flex items-center justify-center gap-1.5">
+          <span className="text-xs">🏆</span>
+          <p className="text-xs text-[#94a3b8]">
+            Clasificó{" "}
+            <span className="font-bold text-[#f1f5f9]">
+              {advancingTeam!.flag_emoji ?? ""} {advancingTeam!.name}
+            </span>{" "}
+            por penales
+          </p>
+        </div>
+      )}
 
       {/* Kickoff for non-scheduled */}
       {status !== "scheduled" && (
