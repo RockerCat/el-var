@@ -11,7 +11,19 @@ export default function AppFooter() {
         >
           AlexSosa.me
         </a>{" "}
-        en alianza con HotChipotle y La Superior, bajo la coordinación de la docencia del SENA
+        en alianza con  <a
+          href="https://www.facebook.com/hotchipotletunja"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-[#64748b] hover:text-[#94a3b8] transition-colors underline underline-offset-2"
+        >
+          Hotchipotle
+        </a>{" "}, <a
+          href="https://www.foxoriginalsport.com/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-[#64748b] hover:text-[#94a3b8] transition-colors underline underline-offset-2"
+        >Fox Original Sport</a> y La Superior, bajo la coordinación de la docencia del SENA
       </p>
     </footer>
   );

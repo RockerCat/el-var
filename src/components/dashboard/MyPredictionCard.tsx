@@ -144,7 +144,14 @@ export default function MyPredictionCard({
           </div>
           {mySim && hasScore && saved && (
             <div className="border-t border-[#1e1e35] pt-3">
-              <MySituationLine mySim={mySim} isFinished={false} />
+              <MySituationLine
+                mySim={mySim}
+                isFinished={false}
+                predHome={saved.home_score}
+                predAway={saved.away_score}
+                currentHome={homeScore}
+                currentAway={awayScore}
+              />
             </div>
           )}
         </div>
@@ -187,7 +194,21 @@ export default function MyPredictionCard({
 
 // ── Helpers ───────────────────────────────────────────────────────────
 
-function MySituationLine({ mySim, isFinished }: { mySim: ScoringResult; isFinished: boolean }) {
+function MySituationLine({
+  mySim,
+  isFinished,
+  predHome,
+  predAway,
+  currentHome,
+  currentAway,
+}: {
+  mySim: ScoringResult;
+  isFinished: boolean;
+  predHome?: number;
+  predAway?: number;
+  currentHome?: number | null;
+  currentAway?: number | null;
+}) {
   if (mySim.reason === "Marcador exacto") {
     return (
       <p className="text-sm text-[#00c85a] font-semibold">
@@ -204,9 +225,22 @@ function MySituationLine({ mySim, isFinished }: { mySim: ScoringResult; isFinish
       </p>
     );
   }
+
+  // During live, a "Sin puntos" prediction is only truly impossible when the current
+  // score has already exceeded one of the predicted goals (can never go back down).
+  const isImpossible =
+    isFinished ||
+    (predHome !== undefined &&
+      predAway !== undefined &&
+      currentHome !== null &&
+      currentHome !== undefined &&
+      currentAway !== null &&
+      currentAway !== undefined &&
+      (currentHome > predHome || currentAway > predAway));
+
   return (
     <p className="text-sm text-[#ef4444]/80 font-semibold">
-      🔴 {isFinished ? "No acertaste" : "Tu pronóstico ya no puede cumplirse"}
+      🔴 {isImpossible ? (isFinished ? "No acertaste" : "Tu pronóstico ya no puede cumplirse") : "Aún puede cumplirse"}
     </p>
   );
 }
