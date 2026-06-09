@@ -2,15 +2,22 @@
 
 import { useEffect, useRef, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { usePredictionEditing } from "@/contexts/prediction-editing";
 
 interface LiveMatchPollerProps {
   /** True when at least one live match is present on this page. */
   hasLiveMatch: boolean;
   /**
-   * Active interval in milliseconds (used when tab is visible).
+   * Interval (ms) while tab is visible and a live match exists.
    * Dashboard default: 5 000 ms   Match detail default: 3 000 ms
    */
   activeInterval?: number;
+  /**
+   * Interval (ms) while tab is visible and NO live match exists.
+   * Kept short so the lazy scheduled→live transition is detected quickly.
+   * Default: 15 000 ms
+   */
+  idleInterval?: number;
 }
 
 const HIDDEN_INTERVAL_MS = 60_000;
@@ -19,31 +26,58 @@ const HIDDEN_INTERVAL_MS = 60_000;
  * Invisible component — mounts on pages that need live score polling.
  *
  * Behaviour:
- *   - hasLiveMatch=false  → single 60 s interval (scores can't change)
- *   - hasLiveMatch=true   → activeInterval while tab visible, 60 s when hidden
- *   - Uses useTransition so router.refresh() is non-blocking and its pending
- *     state acts as a natural in-flight guard (no double-refresh)
- *   - router.refresh() re-renders server components with fresh DB data
- *     without unmounting client components — accordion state, unsaved
- *     prediction inputs, and goal-animation refs are all preserved
+ *   - Tab hidden                     → 60 s (saves battery/bandwidth)
+ *   - Tab visible, no live match     → idleInterval (15 s default)
+ *   - Tab visible, live match exists → activeInterval (5 s default)
+ *   - Any prediction form is open    → polling paused entirely
+ *   - Form closed (save/cancel)      → immediate refresh, then resume interval
+ *   - In-flight guard: if a previous router.refresh() is still pending, skip tick
  */
 export default function LiveMatchPoller({
   hasLiveMatch,
   activeInterval = 5_000,
+  idleInterval   = 15_000,
 }: LiveMatchPollerProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const isPendingRef = useRef(false);
 
-  // Mirror isPending into a ref so the interval callback always reads the
-  // latest value without needing to be recreated on every transition change.
+  // Mirror volatile values into refs so interval callbacks always see latest state
+  // without needing to be recreated on every render.
+  const isPendingRef     = useRef(false);
+  const isAnyEditingRef  = useRef(false);
+  const prevEditingRef   = useRef(false);
+
+  const { isAnyEditing } = usePredictionEditing();
+
+  const dev = process.env.NODE_ENV === "development";
+
+  useEffect(() => { isPendingRef.current = isPending; }, [isPending]);
+  useEffect(() => { isAnyEditingRef.current = isAnyEditing; }, [isAnyEditing]);
+
+  // When ALL editing forms close, fire an immediate refresh so the page
+  // reflects any status change that may have happened while paused.
   useEffect(() => {
-    isPendingRef.current = isPending;
-  }, [isPending]);
+    if (prevEditingRef.current && !isAnyEditing && !isPendingRef.current) {
+      if (dev) console.debug("[poller] editing ended → immediate refresh");
+      startTransition(() => router.refresh());
+    }
+    prevEditingRef.current = isAnyEditing;
+  }, [isAnyEditing, router, dev]);
 
   useEffect(() => {
+    const interval = hasLiveMatch ? activeInterval : idleInterval;
+    if (dev) console.debug(`[poller] mounted — hasLive=${hasLiveMatch} idle=${idleInterval}ms active=${activeInterval}ms`);
+
     function doRefresh() {
-      if (isPendingRef.current) return; // previous refresh still in-flight
+      if (isPendingRef.current) {
+        if (dev) console.debug("[poller] tick skipped — refresh in flight");
+        return;
+      }
+      if (isAnyEditingRef.current) {
+        if (dev) console.debug("[poller] tick skipped — prediction form open");
+        return;
+      }
+      if (dev) console.debug(`[poller] router.refresh() @ ${new Date().toLocaleTimeString()}`);
       startTransition(() => router.refresh());
     }
 
@@ -51,26 +85,29 @@ export default function LiveMatchPoller({
       if (typeof document !== "undefined" && document.visibilityState === "hidden") {
         return HIDDEN_INTERVAL_MS;
       }
-      return hasLiveMatch ? activeInterval : HIDDEN_INTERVAL_MS;
+      return hasLiveMatch ? activeInterval : idleInterval;
     }
 
-    // Set the initial timer.
+    if (dev) console.debug(`[poller] setInterval ${getInterval()}ms`);
     let id = setInterval(doRefresh, getInterval());
 
-    // When the tab becomes visible again, restart the interval at the
-    // faster rate so users don't wait 60 s after switching back.
+    // When the tab becomes visible again, restart the interval at the correct
+    // rate so users don't wait up to 60 s after switching back.
     function handleVisibilityChange() {
       clearInterval(id);
-      id = setInterval(doRefresh, getInterval());
+      const ms = getInterval();
+      if (dev) console.debug(`[poller] visibility changed → setInterval ${ms}ms`);
+      id = setInterval(doRefresh, ms);
     }
 
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
+      if (dev) console.debug("[poller] unmounted / deps changed — clearInterval");
       clearInterval(id);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [hasLiveMatch, activeInterval, router]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [hasLiveMatch, activeInterval, idleInterval, router, dev]);
 
   if (!hasLiveMatch) return null;
 

@@ -23,6 +23,7 @@ import LiveMatchCard from "@/components/dashboard/LiveMatchCard";
 import PrizePoolCard from "@/components/dashboard/PrizePoolCard";
 import CalendarView from "@/components/dashboard/CalendarView";
 import { computePrizePool } from "@/lib/groups";
+import { PredictionEditingProvider } from "@/contexts/prediction-editing";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -91,6 +92,7 @@ export default async function DashboardPage() {
     : null;
 
   return (
+    <PredictionEditingProvider>
     <div className="max-w-[1320px] mx-auto px-4 py-6">
       <LiveMatchPoller hasLiveMatch={hasLiveMatch} />
       {/*
@@ -140,6 +142,7 @@ export default async function DashboardPage() {
 
       </div>
     </div>
+    </PredictionEditingProvider>
   );
 }
 

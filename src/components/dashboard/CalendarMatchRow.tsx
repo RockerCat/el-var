@@ -14,6 +14,7 @@ import { savePredictionAction } from "@/app/actions/predictions";
 import { Check, Lock, Loader2 } from "lucide-react";
 import { useGoalCelebration } from "@/hooks/useGoalCelebration";
 import GoalCelebrationOverlay from "./GoalCelebrationOverlay";
+import { usePredictionEditing } from "@/contexts/prediction-editing";
 
 /** Colombia local kickoff time — "14:00" */
 function matchTime(startsAt: string): string {
@@ -40,12 +41,30 @@ export default function CalendarMatchRow({ match }: { match: MatchWithPrediction
     null
   );
   const [isEditing, setIsEditing] = useState(!match.prediction);
+  // True once the user touches an input — guards against pausing polling
+  // for auto-open forms (no prediction yet) where there is nothing to lose.
+  const [hasStartedTyping, setHasStartedTyping] = useState(false);
   useEffect(() => {
-    if (formState && "success" in formState) setIsEditing(false);
+    if (formState && "success" in formState) {
+      setIsEditing(false);
+      setHasStartedTyping(false);
+    }
   }, [formState]);
 
   const saved     = (formState && "success" in formState) ? formState.prediction : match.prediction;
   const isOpen    = matchClosedReason(match) === null;
+
+  // ── Pause auto-refresh only when there is real data at risk ───────
+  // • saved !== null  → user clicked "Editar" on an existing prediction
+  // • hasStartedTyping → user typed in the auto-open form (new prediction)
+  // Auto-open forms with empty inputs do NOT pause polling: inputs are
+  // uncontrolled and their DOM values survive router.refresh().
+  const { registerEditing } = usePredictionEditing();
+  useEffect(() => {
+    const formActive = isOpen && isEditing && (saved !== null || hasStartedTyping);
+    registerEditing(match.id, formActive);
+    return () => registerEditing(match.id, false);
+  }, [match.id, isOpen, isEditing, saved, hasStartedTyping, registerEditing]);
   const isLive    = status === "live";
   const isFinished = status === "finished";
   const hasScore  = match.home_score !== null && match.away_score !== null;
@@ -174,7 +193,7 @@ export default function CalendarMatchRow({ match }: { match: MatchWithPrediction
 
           {isOpen && (
             isEditing ? (
-              <form action={formAction} className="flex flex-col items-center gap-2.5 pt-1">
+              <form action={formAction} onInput={() => setHasStartedTyping(true)} className="flex flex-col items-center gap-2.5 pt-1">
                 <input type="hidden" name="match_id" value={match.id} />
 
                 {/* Teams with centered inputs — mirrors MatchRowInGroup open layout */}
@@ -208,7 +227,7 @@ export default function CalendarMatchRow({ match }: { match: MatchWithPrediction
                   {saved && (
                     <button
                       type="button"
-                      onClick={() => setIsEditing(false)}
+                      onClick={() => { setIsEditing(false); setHasStartedTyping(false); }}
                       className="text-[9px] text-[#475569] hover:text-[#94a3b8] transition-colors"
                     >
                       Cancelar

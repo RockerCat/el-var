@@ -5,6 +5,7 @@ import { Check, Lock, Loader2 } from "lucide-react";
 import { savePredictionAction } from "@/app/actions/predictions";
 import type { Prediction, PredictionActionState } from "@/lib/matches";
 import type { ScoringResult } from "@/lib/matches";
+import { usePredictionEditing } from "@/contexts/prediction-editing";
 
 interface Props {
   matchId:      string;
@@ -36,11 +37,23 @@ export default function MyPredictionCard({
     null
   );
   const [isEditing, setIsEditing] = useState(!myPrediction && isScheduled);
+  const [hasStartedTyping, setHasStartedTyping] = useState(false);
   useEffect(() => {
-    if (formState && "success" in formState) setIsEditing(false);
+    if (formState && "success" in formState) {
+      setIsEditing(false);
+      setHasStartedTyping(false);
+    }
   }, [formState]);
 
   const saved = (formState && "success" in formState) ? formState.prediction : myPrediction;
+
+  // ── Pause auto-refresh only when there is real data at risk ───────
+  const { registerEditing } = usePredictionEditing();
+  useEffect(() => {
+    const formActive = isScheduled && isEditing && (saved !== null || hasStartedTyping);
+    registerEditing(matchId, formActive);
+    return () => registerEditing(matchId, false);
+  }, [matchId, isScheduled, isEditing, saved, hasStartedTyping, registerEditing]);
   const gotPoints = isFinished && !!saved && (saved as { points?: number; scored_at?: string }).scored_at
     && ((saved as { points?: number }).points ?? 0) > 0;
 
@@ -55,7 +68,7 @@ export default function MyPredictionCard({
       {isScheduled && (
         <>
           {isEditing ? (
-            <form action={formAction} className="flex flex-col items-center gap-3">
+            <form action={formAction} onInput={() => setHasStartedTyping(true)} className="flex flex-col items-center gap-3">
               <input type="hidden" name="match_id" value={matchId} />
 
               {/* Score inputs centered */}
@@ -83,7 +96,7 @@ export default function MyPredictionCard({
               {saved && (
                 <button
                   type="button"
-                  onClick={() => setIsEditing(false)}
+                  onClick={() => { setIsEditing(false); setHasStartedTyping(false); }}
                   className="text-xs text-[#64748b] hover:text-[#94a3b8] transition-colors"
                 >
                   Cancelar

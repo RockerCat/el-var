@@ -16,9 +16,10 @@ import {
   type Team,
 } from "@/lib/matches";
 import { cn } from "@/lib/utils";
-import LiveMatchPoller from "@/components/dashboard/LiveMatchPoller";
+import MatchDetailPoller from "@/components/dashboard/MatchDetailPoller";
 import MatchDetailHeaderWrapper from "@/components/dashboard/MatchDetailHeaderWrapper";
 import MyPredictionCard from "@/components/dashboard/MyPredictionCard";
+import { PredictionEditingProvider } from "@/contexts/prediction-editing";
 
 // ── Data types ────────────────────────────────────────────────────────
 
@@ -150,8 +151,9 @@ export default async function MatchDetailPage({
 
   // ── Render ────────────────────────────────────────────────────────
   return (
+    <PredictionEditingProvider>
     <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
-      <LiveMatchPoller hasLiveMatch={isLive} activeInterval={3_000} />
+      <MatchDetailPoller startsAt={match.starts_at} status={match.status} />
 
       {/* Back */}
       <a
@@ -255,6 +257,7 @@ export default async function MatchDetailPage({
       )}
 
     </div>
+    </PredictionEditingProvider>
   );
 }
 
