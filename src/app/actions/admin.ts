@@ -264,9 +264,14 @@ export async function updateMatchFixtureAction(
   if (!matchId)     return { error: "match_id requerido." };
   if (!startsAtRaw) return { error: "Kickoff requerido." };
 
+  // Input from datetime-local is "YYYY-MM-DDTHH:mm" (no timezone).
+  // Treat as America/Bogota (UTC-5, no DST).
   let startsAt: string;
   try {
-    const date = new Date(startsAtRaw.includes("Z") ? startsAtRaw : startsAtRaw + "Z");
+    const raw = startsAtRaw.includes("Z") || /[+-]\d{2}:\d{2}$/.test(startsAtRaw)
+      ? startsAtRaw
+      : startsAtRaw + "-05:00";
+    const date = new Date(raw);
     if (isNaN(date.getTime())) throw new Error("invalid");
     startsAt = date.toISOString();
   } catch {
@@ -284,12 +289,20 @@ export async function updateMatchFixtureAction(
     .eq("id", matchId)
     .single();
 
-  const { error: updateError } = await supabase
-    .from("matches")
-    .update({ starts_at: startsAt, group_code: groupCode })
-    .eq("id", matchId);
+  // Direct .update() is blocked by RLS (matches has no UPDATE policy for authenticated
+  // users — by design; see 008_admin.sql). Use the SECURITY DEFINER RPC instead.
+  const { error: rpcError } = await supabase.rpc("update_match_fixture", {
+    p_match_id:   matchId,
+    p_starts_at:  startsAt,
+    p_group_code: groupCode,
+  });
 
-  if (updateError) return { error: updateError.message };
+  if (rpcError) {
+    const msg = rpcError.message;
+    if (msg === "not_admin")      return { error: "Sin permisos de administrador." };
+    if (msg === "match_not_found") return { error: "Partido no encontrado." };
+    return { error: msg };
+  }
 
   const newValues = { starts_at: startsAt, group_code: groupCode };
   void writeMatchAudit(supabase, {
@@ -304,6 +317,7 @@ export async function updateMatchFixtureAction(
   });
 
   revalidatePath("/admin/matches");
+  revalidatePath(`/admin/matches/${matchId}`);
   revalidatePath("/dashboard");
   return { success: true };
 }

@@ -24,7 +24,9 @@ const STATUS_OPTIONS = [
 function toDatetimeLocal(iso: string): string {
   const d = new Date(iso);
   const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}T${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`;
+  // Colombia is UTC-5 with no DST — shift to COL instant then read UTC parts
+  const col = new Date(d.getTime() - 5 * 60 * 60 * 1000);
+  return `${col.getUTCFullYear()}-${pad(col.getUTCMonth() + 1)}-${pad(col.getUTCDate())}T${pad(col.getUTCHours())}:${pad(col.getUTCMinutes())}`;
 }
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
@@ -371,13 +373,13 @@ export default function MatchEditorCard({ match }: { match: Match }) {
             <input type="hidden" name="match_label" value={matchLabel} />
 
             <div className="flex flex-col gap-1.5">
-              <FieldLabel>Kickoff (UTC)</FieldLabel>
+              <FieldLabel>Kickoff (hora Colombia)</FieldLabel>
               <AdminInput
                 type="datetime-local" name="starts_at"
                 value={startsAtVal} onChange={(e) => setStartsAtVal(e.target.value)}
                 className="w-full"
               />
-              <p className="text-[10px] text-[#64748b]">La hora ingresada se guardará como UTC.</p>
+              <p className="text-[10px] text-[#64748b]">Hora Colombia (COT, UTC-5). Se convierte a UTC al guardar.</p>
             </div>
 
             <div className="flex flex-col gap-1.5">
