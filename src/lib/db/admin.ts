@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import type { Match } from "@/lib/matches";
+import { syncStartedMatches } from "@/lib/db/matches";
 
 // ── Auth ──────────────────────────────────────────────────────────────
 
@@ -29,6 +30,8 @@ export async function getMatchesForAdmin(opts?: {
   group?: string;
   status?: string;
 }): Promise<Match[]> {
+  await syncStartedMatches();
+
   const supabase = await createClient();
 
   let query = supabase
@@ -60,6 +63,8 @@ export type AdminStats = {
 };
 
 export async function getAdminDashboardStats(): Promise<AdminStats | null> {
+  await syncStartedMatches();
+
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("get_admin_dashboard_stats");
   if (error) {

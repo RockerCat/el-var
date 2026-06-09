@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { syncStartedMatches } from "@/lib/db/matches";
 import MatchEditorCard from "@/components/admin/MatchEditorCard";
 import { matchTeamCode, type Match } from "@/lib/matches";
 
@@ -10,6 +11,8 @@ interface PageProps {
 
 export default async function AdminMatchDetailPage({ params }: PageProps) {
   const { matchId } = await params;
+
+  await syncStartedMatches();
 
   const supabase = await createClient();
   const { data } = await supabase

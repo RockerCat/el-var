@@ -16,6 +16,17 @@ type RawMatch = Omit<Match, "home_team" | "away_team"> & {
 };
 
 /**
+ * Transitions any scheduled match whose kickoff has passed to 'live'.
+ * Uses database NOW() — never client time. Safe to call before any match
+ * query; idempotent and non-fatal on error.
+ */
+export async function syncStartedMatches(): Promise<void> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("mark_due_matches_live");
+  if (error) console.warn("[sync] mark_due_matches_live:", error.message);
+}
+
+/**
  * Fetches all matches (with joined teams) and the current user's predictions,
  * then merges them into a single list ordered by kickoff time.
  *
@@ -28,6 +39,8 @@ export async function getMatchesWithPredictions(
   userId: string
 ): Promise<MatchWithPrediction[]> {
   const supabase = await createClient();
+
+  await syncStartedMatches();
 
   // Fetch matches with home/away team data in one query
   const { data: matchRows, error: matchError } = await supabase
