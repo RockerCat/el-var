@@ -37,7 +37,7 @@ export default async function LeaderboardPage() {
       <div className="mb-6">
         <h1 className="text-2xl font-black text-[#f1f5f9]">Tabla de posiciones</h1>
         {community && (
-          <p className="text-sm text-[#64748b] mt-1">{community.name}</p>
+          <p className="text-sm text-[#64748b] mt-1">Si el Mundial terminara hoy...</p>
         )}
       </div>
 
