@@ -23,7 +23,7 @@ export default function AppFooter() {
           className="text-[#64748b] hover:text-[#94a3b8] transition-colors underline underline-offset-2"
         >
           Hotchipotle
-        </a>{" "}, <a
+        </a>, <a
           href="https://www.foxoriginalsport.com/"
           target="_blank"
           rel="noopener noreferrer"
