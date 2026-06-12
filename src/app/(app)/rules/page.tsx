@@ -116,7 +116,7 @@ export default async function RulesPage() {
               <PrizeSplitRow
                 medal="🥇"
                 label="1er lugar"
-                pct={prizePool.config.first_place_pct}
+                pct={prizePool.config.first_place_pct} 
                 amount={prizePool.first_prize}
                 accent="yellow"
               />
@@ -130,6 +130,14 @@ export default async function RulesPage() {
             </div>
 
             {/* Note */}
+            <p className="px-5 py-3 text-[12px] text-[#475569] border-t border-[#1e1e35]">
+            Para el primer lugar: 🧋 Botella Nike Hypersport 20 Oz. Gracias a nuestros amigos de <a
+              href="https://www.foxoriginalsport.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[#64748b] hover:text-[#94a3b8] transition-colors underline underline-offset-2"
+            >Fox Original Sport</a>
+            </p>
             <p className="px-5 py-3 text-[10px] text-[#475569] border-t border-[#1e1e35]">
               Los montos se actualizan automáticamente según el número de participantes registrados.
             </p>
