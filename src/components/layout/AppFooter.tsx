@@ -12,6 +12,11 @@ export default function AppFooter() {
           AlexSosa.me
         </a>{" "}
         en alianza con  <a
+        href="https://www.instagram.com/el_jardin_de_luci/"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-[#64748b] hover:text-[#94a3b8] transition-colors underline underline-offset-2"
+      >El Jardin de Lucy</a>, La Superior <a
           href="https://www.facebook.com/hotchipotletunja"
           target="_blank"
           rel="noopener noreferrer"
@@ -23,12 +28,7 @@ export default function AppFooter() {
           target="_blank"
           rel="noopener noreferrer"
           className="text-[#64748b] hover:text-[#94a3b8] transition-colors underline underline-offset-2"
-        >Fox Original Sport</a> <a
-        href="https://www.instagram.com/el_jardin_de_luci/"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="text-[#64748b] hover:text-[#94a3b8] transition-colors underline underline-offset-2"
-      >El Jardin de Lucy</a>, La Alcaldía de Labranzagrande, La Superior y la docencia del SENA
+        >Fox Original Sport</a>, la Alcaldía de Labranzagrande y la docencia del SENA
       </p>
     </footer>
   );
