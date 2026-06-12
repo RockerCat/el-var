@@ -23,7 +23,12 @@ export default function AppFooter() {
           target="_blank"
           rel="noopener noreferrer"
           className="text-[#64748b] hover:text-[#94a3b8] transition-colors underline underline-offset-2"
-        >Fox Original Sport</a> y La Superior, bajo la coordinación de la docencia del SENA
+        >Fox Original Sport</a> <a
+        href="https://www.instagram.com/el_jardin_de_luci/"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-[#64748b] hover:text-[#94a3b8] transition-colors underline underline-offset-2"
+      >El Jardin de Lucy</a>, La Alcaldía de Labranzagrande, La Superior y la docencia del SENA
       </p>
     </footer>
   );
