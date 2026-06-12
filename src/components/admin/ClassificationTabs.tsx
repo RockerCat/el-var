@@ -365,26 +365,6 @@ function BracketMatchRow({ match, highlight = false }: {
   );
 }
 
-// ── BracketColumn — titled column wrapper ──────────────────────────────
-
-function BracketColumn({ title, titleColor = "text-[#f1f5f9]", subtitle, width, children }: {
-  title:       string;
-  titleColor?: string;
-  subtitle?:   string;
-  width:       string;
-  children:    React.ReactNode;
-}) {
-  return (
-    <div className={`${width} shrink-0`}>
-      <div className="mb-3">
-        <p className={`text-[11px] font-black uppercase tracking-widest ${titleColor}`}>{title}</p>
-        {subtitle && <p className="text-[10px] text-[#64748b] mt-0.5">{subtitle}</p>}
-      </div>
-      <div className="space-y-2">{children}</div>
-    </div>
-  );
-}
-
 // ── BracketEmptySlot — placeholder when phase has no data ──────────────
 
 function BracketEmptySlot({ label }: { label: string }) {
@@ -395,157 +375,203 @@ function BracketEmptySlot({ label }: { label: string }) {
   );
 }
 
-// ── BracketConnector — CSS bracket lines between knockout phases ─────────
-// Each branch connects 2 left-column matches → 1 right-column match.
-// Heights are approximated from BracketMatchRow (~88px) + space-y-2 (8px).
+// ── Bracket geometry ────────────────────────────────────────────────────
+// Slot model: each phase's matches sit in vertical slots whose height
+// doubles every round so every match is exactly centered between its
+// two source matches — matching the Apple Sports visual pattern.
+//
+//  R32  → flat space-y-2 list; effective slot = CARD_H + GAP = 96 px
+//  R16  → slot = 2 × 96  =  192 px   (1 dest match per 2 R32 matches)
+//  QF   → slot = 4 × 96  =  384 px
+//  SF   → slot = 8 × 96  =  768 px
+//  FIN  → slot = 16 × 96 = 1536 px
 
-function BracketConnector({ pairs }: { pairs: number }) {
-  const CARD_H  = 88;
-  const GAP     = 8;
-  const BRANCH  = 2 * CARD_H + GAP; // ~184px per bracket branch
+const CARD_H = 88;             // approximate BracketMatchRow rendered height (px)
+const HEADER = 44;             // column header (title + subtitle + mb-3) height (px)
+const R32_SH = CARD_H + 8;    // R32 slot height in flat layout = 96
+const R16_SH = 2  * R32_SH;   // 192
+const QF_SH  = 4  * R32_SH;   // 384
+const SF_SH  = 8  * R32_SH;   // 768
+const FIN_SH = 16 * R32_SH;   // 1536
+
+// ── BracketConnectorSVG ─────────────────────────────────────────────────
+// Draws precise SVG bracket connectors:
+//   ─ left arm  from source match top    (x: 0 → midX)
+//   │ vertical  between the two arms     (x: midX, y: y1 → y2)
+//   ─ left arm  from source match bottom (x: 0 → midX)
+//   ─ right arm from midpoint to dest    (x: midX → W)
+//
+// srcSlotH:        slot height of the SOURCE column
+// srcCenterOffset: y from slot-top to match center
+//   flat layout (R32): CARD_H / 2 = 44 px
+//   slot layout       : srcSlotH  / 2
+
+function BracketConnectorSVG({
+  pairs,
+  srcSlotH,
+  srcCenterOffset,
+}: {
+  pairs:           number;
+  srcSlotH:        number;
+  srcCenterOffset: number;
+}) {
+  const W      = 40;
+  const MID_X  = W / 2;
+  const totalH = 2 * pairs * srcSlotH;
 
   return (
     <div
-      className="w-7 shrink-0 flex flex-col mx-1.5"
+      className="shrink-0 mx-1"
       style={{
-        marginTop: 44, // aligns with column content start (header + mb-3)
-        filter: "drop-shadow(0 0 5px rgba(0, 200, 90, 0.28))",
+        width:     W,
+        marginTop: HEADER,
+        filter:    "drop-shadow(0 0 4px rgba(0,200,90,0.22))",
       }}
     >
-      {Array.from({ length: pairs }).map((_, i) => (
-        <div
-          key={i}
-          className="flex flex-col shrink-0"
-          style={{
-            height: BRANCH,
-            marginBottom: i < pairs - 1 ? GAP : 0,
-          }}
-        >
-          {/* top arm: ─┐ */}
-          <div className="flex-1 border-t-2 border-r-2 border-[#00c85a]/55" />
-          {/* bottom arm: ─┘ */}
-          <div className="flex-1 border-b-2 border-r-2 border-[#00c85a]/55" />
-        </div>
-      ))}
+      <svg width={W} height={totalH} style={{ display: "block", overflow: "visible" }}>
+        {Array.from({ length: pairs }, (_, i) => {
+          const y1   = i * 2 * srcSlotH + srcCenterOffset;
+          const y2   = (i * 2 + 1) * srcSlotH + srcCenterOffset;
+          const yMid = (y1 + y2) / 2;
+          return (
+            <g key={i} stroke="rgba(0,200,90,0.6)" strokeWidth="1.5" fill="none" strokeLinecap="round">
+              <line x1={0}     y1={y1}   x2={MID_X} y2={y1}   />
+              <line x1={0}     y1={y2}   x2={MID_X} y2={y2}   />
+              <line x1={MID_X} y1={y1}   x2={MID_X} y2={y2}   />
+              <line x1={MID_X} y1={yMid} x2={W}     y2={yMid} />
+            </g>
+          );
+        })}
+      </svg>
     </div>
   );
 }
 
-// ── BracketView — full horizontal bracket ──────────────────────────────
+// ── BracketView — full horizontal bracket (slot model) ────────────────
+// Every knockout column uses fixed-height slots so each match sits at the
+// exact vertical midpoint of its two source matches.  All five knockout
+// columns (R32 through Final) share the same total body height (1536 px),
+// which keeps the whole bracket the same height regardless of phase.
 
 function BracketView({ groups, roundOf32, roundOf16, quarterFinals, semiFinals, thirdPlace, finals }: Omit<Props, "bestThirds" | "defaultTab">) {
   const playedGroupMatches = groups.reduce((sum, g) => sum + g.teams.reduce((s, t) => s + t.played, 0) / 2, 0);
 
+  // Column header rendered as a fixed-height block so the connector
+  // marginTop=HEADER aligns precisely with the first match slot.
+  function ColHeader({ title, titleColor = "text-[#f1f5f9]", subtitle }: {
+    title: string; titleColor?: string; subtitle?: string;
+  }) {
+    return (
+      <div style={{ height: HEADER, display: "flex", flexDirection: "column", justifyContent: "flex-end", paddingBottom: 4 }}>
+        <p className={`text-[11px] font-black uppercase tracking-widest ${titleColor}`}>{title}</p>
+        {subtitle && <p className="text-[10px] text-[#64748b] mt-0.5">{subtitle}</p>}
+      </div>
+    );
+  }
+
+  // Single slot wrapper — vertically centers its child inside a fixed-height div.
+  function Slot({ h, children }: { h: number; children: React.ReactNode }) {
+    return (
+      <div style={{ height: h, display: "flex", alignItems: "center" }}>
+        <div className="w-full">{children}</div>
+      </div>
+    );
+  }
+
   return (
     <div className="overflow-x-auto no-scrollbar -mx-4">
-      <div className="flex px-4 pb-6 min-w-max" style={{ gap: 0 }}>
+      <div className="flex items-start px-4 pb-6 min-w-max" style={{ gap: 0 }}>
 
-        {/* ── Columna: Grupos ─────────────────────────────────── */}
+        {/* ── Grupos ──────────────────────────────────────────── */}
         <div className="w-56 shrink-0 pr-3">
-          <div className="mb-3">
-            <p className="text-[11px] font-black text-[#f1f5f9] uppercase tracking-widest">Grupos</p>
-            <p className="text-[10px] text-[#64748b] mt-0.5">
-              {playedGroupMatches} de {groups.length * 6} partidos jugados
-            </p>
-          </div>
-          {groups.length === 0 ? (
-            <BracketEmptySlot label="Sin grupos" />
-          ) : (
-            <div className="grid grid-cols-2 gap-2">
-              {groups.map((g) => <BracketGroupMini key={g.group_code} group={g} />)}
-            </div>
-          )}
+          <ColHeader title="Grupos" subtitle={`${playedGroupMatches} de ${groups.length * 6} partidos jugados`} />
+          {groups.length === 0
+            ? <BracketEmptySlot label="Sin grupos" />
+            : <div className="grid grid-cols-2 gap-2">{groups.map((g) => <BracketGroupMini key={g.group_code} group={g} />)}</div>
+          }
         </div>
 
-        {/* Groups → R32: simple divider (no clean 2:1 mapping) */}
+        {/* Groups → R32: vertical divider (no clean 2:1 pairing) */}
         <div className="w-px bg-[#1e1e35] self-stretch mx-3 shrink-0" />
 
-        {/* ── Columna: Dieciseisavos ──────────────────────────── */}
-        <BracketColumn
-          title="Dieciseisavos"
-          subtitle={`${roundOf32.length}/16 partidos`}
-          width="w-40"
-        >
+        {/* ── Dieciseisavos — 16 × R32_SH slots ──────────────── */}
+        <div className="w-40 shrink-0">
+          <ColHeader title="Dieciseisavos" subtitle={`${roundOf32.length}/16`} />
           {roundOf32.length === 0
             ? <BracketEmptySlot label="Pendiente" />
-            : roundOf32.map((m) => <BracketMatchRow key={m.id} match={m} />)
+            : roundOf32.map((m) => (
+                <Slot key={m.id} h={R32_SH}><BracketMatchRow match={m} /></Slot>
+              ))
           }
-        </BracketColumn>
+        </div>
 
-        {/* R32 → R16: 16 matches pair into 8 */}
-        <BracketConnector pairs={8} />
+        {/* R32 → R16: 16 → 8, connector arms hit slot centers */}
+        <BracketConnectorSVG pairs={8} srcSlotH={R32_SH} srcCenterOffset={R32_SH / 2} />
 
-        {/* ── Columna: Octavos ────────────────────────────────── */}
-        <BracketColumn
-          title="Octavos"
-          subtitle={`${roundOf16.length}/8 partidos`}
-          width="w-40"
-        >
+        {/* ── Octavos — 8 × R16_SH slots ─────────────────────── */}
+        <div className="w-40 shrink-0">
+          <ColHeader title="Octavos" subtitle={`${roundOf16.length}/8`} />
           {roundOf16.length === 0
             ? <BracketEmptySlot label="Pendiente" />
-            : roundOf16.map((m) => <BracketMatchRow key={m.id} match={m} />)
+            : roundOf16.map((m) => (
+                <Slot key={m.id} h={R16_SH}><BracketMatchRow match={m} /></Slot>
+              ))
           }
-        </BracketColumn>
+        </div>
 
-        {/* R16 → QF: 8 matches pair into 4 */}
-        <BracketConnector pairs={4} />
+        {/* R16 → QF */}
+        <BracketConnectorSVG pairs={4} srcSlotH={R16_SH} srcCenterOffset={R16_SH / 2} />
 
-        {/* ── Columna: Cuartos ────────────────────────────────── */}
-        <BracketColumn
-          title="Cuartos"
-          subtitle={`${quarterFinals.length}/4 partidos`}
-          width="w-40"
-        >
+        {/* ── Cuartos — 4 × QF_SH slots ──────────────────────── */}
+        <div className="w-40 shrink-0">
+          <ColHeader title="Cuartos" subtitle={`${quarterFinals.length}/4`} />
           {quarterFinals.length === 0
             ? <BracketEmptySlot label="Pendiente" />
-            : quarterFinals.map((m) => <BracketMatchRow key={m.id} match={m} />)
+            : quarterFinals.map((m) => (
+                <Slot key={m.id} h={QF_SH}><BracketMatchRow match={m} /></Slot>
+              ))
           }
-        </BracketColumn>
+        </div>
 
-        {/* QF → SF: 4 matches pair into 2 */}
-        <BracketConnector pairs={2} />
+        {/* QF → SF */}
+        <BracketConnectorSVG pairs={2} srcSlotH={QF_SH} srcCenterOffset={QF_SH / 2} />
 
-        {/* ── Columna: Semifinales ─────────────────────────────── */}
-        <BracketColumn
-          title="Semis"
-          subtitle={`${semiFinals.length}/2 partidos`}
-          width="w-40"
-        >
+        {/* ── Semis — 2 × SF_SH slots ─────────────────────────── */}
+        <div className="w-40 shrink-0">
+          <ColHeader title="Semis" subtitle={`${semiFinals.length}/2`} />
           {semiFinals.length === 0
             ? <BracketEmptySlot label="Pendiente" />
-            : semiFinals.map((m) => <BracketMatchRow key={m.id} match={m} />)
+            : semiFinals.map((m) => (
+                <Slot key={m.id} h={SF_SH}><BracketMatchRow match={m} /></Slot>
+              ))
           }
-        </BracketColumn>
+        </div>
 
-        {/* SF → Final: 2 matches pair into 1 */}
-        <BracketConnector pairs={1} />
+        {/* SF → Final */}
+        <BracketConnectorSVG pairs={1} srcSlotH={SF_SH} srcCenterOffset={SF_SH / 2} />
 
-        {/* ── Columna: Final ───────────────────────────────────── */}
-        <div className="w-40 shrink-0 pl-1">
-          <div className="mb-3">
-            <p className="text-[11px] font-black text-[#f59e0b] uppercase tracking-widest">🏆 Final</p>
-          </div>
-          <div className="space-y-2">
-            {finals.length > 0
-              ? finals.map((m) => <BracketMatchRow key={m.id} match={m} highlight />)
-              : (
-                <div className="bg-[#11111c] border border-[#f59e0b]/20 rounded-xl px-3 py-5 text-center">
-                  <p className="text-xl leading-none mb-1">🏆</p>
-                  <p className="text-[10px] text-[#64748b]">Por definir</p>
+        {/* ── Final — single FIN_SH slot ──────────────────────── */}
+        <div className="w-40 shrink-0">
+          <ColHeader title="🏆 Final" titleColor="text-[#f59e0b]" />
+          <Slot h={FIN_SH}>
+            <div>
+              {finals.length > 0
+                ? finals.map((m) => <BracketMatchRow key={m.id} match={m} highlight />)
+                : (
+                  <div className="bg-[#11111c] border border-[#f59e0b]/20 rounded-xl px-3 py-5 text-center">
+                    <p className="text-xl leading-none mb-1">🏆</p>
+                    <p className="text-[10px] text-[#64748b]">Por definir</p>
+                  </div>
+                )
+              }
+              {thirdPlace.length > 0 && (
+                <div className="mt-6">
+                  <p className="text-[10px] font-black text-[#94a3b8] uppercase tracking-widest mb-2">🥉 3er Puesto</p>
+                  {thirdPlace.map((m) => <BracketMatchRow key={m.id} match={m} />)}
                 </div>
-              )
-            }
-          </div>
-          {thirdPlace.length > 0 && (
-            <div className="mt-5">
-              <p className="text-[10px] font-black text-[#94a3b8] uppercase tracking-widest mb-2">
-                🥉 3er Puesto
-              </p>
-              <div className="space-y-2">
-                {thirdPlace.map((m) => <BracketMatchRow key={m.id} match={m} />)}
-              </div>
+              )}
             </div>
-          )}
+          </Slot>
         </div>
 
       </div>

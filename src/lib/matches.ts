@@ -103,29 +103,35 @@ export function matchTeamFlag(team: Team | null): string {
 
 /** Human-readable date/time label for a match. */
 export function formatKickoff(startsAt: string): string {
-  const date = new Date(startsAt);
-  const now = new Date();
-  const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const matchMidnight = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const TZ = "America/Bogota";
+
+  // Both "today" and the match date are resolved in Colombia timezone so that
+  // a match at e.g. 8 PM COT (= 01:00 UTC next day) always shows "Hoy" on the
+  // same local calendar day it appears in the schedule — not "Mañana".
+  const todayKey = new Date().toLocaleDateString("en-CA", { timeZone: TZ });   // "YYYY-MM-DD"
+  const matchKey = new Date(startsAt).toLocaleDateString("en-CA", { timeZone: TZ });
+
+  const [ty, tm, td] = todayKey.split("-").map(Number);
+  const [my, mm, md] = matchKey.split("-").map(Number);
   const diffDays = Math.round(
-    (matchMidnight.getTime() - todayMidnight.getTime()) / 86_400_000
+    (new Date(my, mm - 1, md).getTime() - new Date(ty, tm - 1, td).getTime()) / 86_400_000
   );
 
-  const time = date.toLocaleTimeString("es-CO", {
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: "America/Bogota",
+  const time = new Date(startsAt).toLocaleTimeString("es-CO", {
+    hour:     "2-digit",
+    minute:   "2-digit",
+    timeZone: TZ,
   });
 
   if (diffDays === -1) return `Ayer · ${time}`;
   if (diffDays === 0)  return `Hoy · ${time}`;
   if (diffDays === 1)  return `Mañana · ${time}`;
 
-  return date.toLocaleDateString("es-CO", {
+  return new Date(startsAt).toLocaleDateString("es-CO", {
     weekday: "short",
     day:     "numeric",
     month:   "short",
-    timeZone: "America/Bogota",
+    timeZone: TZ,
   }) + ` · ${time}`;
 }
 
