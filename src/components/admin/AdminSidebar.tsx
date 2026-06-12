@@ -20,7 +20,7 @@ const NAV = [
   { href: "/admin/matches",     label: "Partidos",     icon: CalendarDays    },
   { href: "/admin/users",       label: "Usuarios",     icon: Users           },
   { href: "/admin/ranking",         label: "Ranking",        icon: Trophy      },
-  { href: "/admin/classification",  label: "Clasificación",  icon: BarChart3   },
+  { href: "/admin/classification",  label: "Copa",           icon: BarChart3   },
   { href: "/admin/invitations",     label: "Invitaciones",   icon: Link2       },
   { href: "/admin/activity",    label: "Actividad",    icon: Activity        },
   { href: "/admin/security",    label: "Seguridad",    icon: ShieldCheck     },
