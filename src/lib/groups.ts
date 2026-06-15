@@ -152,10 +152,13 @@ export type ProjectedPrize = {
 /**
  * Returns a per-user map of projected prize amounts.
  *
+ * Tie rule: when players share a position, the prizes for ALL positions they
+ * collectively occupy are pooled and split equally. For example, two players
+ * tied for 1st combine the 1st-place and 2nd-place prizes and each receives half.
+ *
  * - All players at 0 pts → every entry gets { amount: null } (pre-tournament).
- * - Tie for 1st → first_prize divided equally; no 2nd prize assigned
- *   (SQL RANK() skips rank 2 when rank 1 has multiple players).
- * - Tie for 2nd → second_prize divided equally; 1st gets full amount.
+ * - Tie for 1st → (first_prize + second_prize) / n each; SQL RANK() skips rank 2.
+ * - Tie for 2nd → second_prize / n each; 1st gets full first_prize.
  * - Outside 1st / 2nd → { amount: null }.
  */
 export function computeProjectedPrizes(
@@ -175,15 +178,16 @@ export function computeProjectedPrizes(
   const rank2 = entries.filter((e) => e.rank === 2);
 
   if (rank1.length > 1) {
-    // Tie for 1st: split first_prize; SQL RANK skips rank 2, so no 2nd prize
-    const share = Math.round(pool.first_prize / rank1.length);
+    // Tie for 1st: pool first + second prize (positions 1 and 2 are both occupied
+    // by tied players), then split equally. SQL RANK() skips rank 2 in this case.
+    const share = Math.round((pool.first_prize + pool.second_prize) / rank1.length);
     for (const e of entries) {
       prizes.set(e.user_id, e.rank === 1 ? { amount: share, isSplit: true } : none);
     }
   } else {
     if (rank1[0]) prizes.set(rank1[0].user_id, { amount: pool.first_prize, isSplit: false });
     if (rank2.length > 1) {
-      // Tie for 2nd: split second_prize equally
+      // Tie for 2nd: second_prize + 0 (no 3rd prize) / n each
       const share = Math.round(pool.second_prize / rank2.length);
       for (const e of rank2) prizes.set(e.user_id, { amount: share, isSplit: true });
     } else if (rank2[0]) {

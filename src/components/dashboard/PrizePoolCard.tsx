@@ -1,4 +1,4 @@
-import { type PrizePool, formatCOP, type LeaderboardEntry } from "@/lib/groups";
+import { type PrizePool, formatCOP, type LeaderboardEntry, computeProjectedPrizes } from "@/lib/groups";
 
 interface PrizePoolCardProps {
   pool:        PrizePool;
@@ -10,20 +10,15 @@ export default function PrizePoolCard({ pool, leaderboard }: PrizePoolCardProps)
   const rank1   = allZero ? [] : leaderboard.filter((e) => e.rank === 1);
   const rank2   = allZero ? [] : leaderboard.filter((e) => e.rank === 2);
 
-  // 1st prize: split when multiple players share rank 1
-  const firstAmount  = rank1.length > 1
-    ? Math.round(pool.first_prize / rank1.length)
-    : rank1.length === 1 ? pool.first_prize : null;
+  const projectedPrizes = computeProjectedPrizes(pool, leaderboard);
+
+  const firstAmount  = rank1[0] ? (projectedPrizes.get(rank1[0].user_id)?.amount ?? null) : null;
   const firstSplit   = rank1.length > 1;
   const firstNames   = rank1.map((e) => e.display_name);
 
-  // 2nd prize: only shown when 1st is not split (SQL RANK() skips rank 2 when rank 1 ties)
-  const showSecond   = rank1.length <= 1;
-  const secondAmount = showSecond && rank2.length > 1
-    ? Math.round(pool.second_prize / rank2.length)
-    : showSecond && rank2.length === 1 ? pool.second_prize : null;
-  const secondSplit  = showSecond && rank2.length > 1;
-  const secondNames  = showSecond ? rank2.map((e) => e.display_name) : [];
+  const secondAmount = rank2[0] ? (projectedPrizes.get(rank2[0].user_id)?.amount ?? null) : null;
+  const secondSplit  = rank2.length > 1;
+  const secondNames  = rank2.map((e) => e.display_name);
 
   return (
     <div className="bg-[#11111c] border border-[#1e1e35] rounded-2xl p-5">

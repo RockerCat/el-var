@@ -129,6 +129,14 @@ export default async function RulesPage() {
               />
             </div>
 
+            {/* Tie rule */}
+            <div className="px-5 py-3 border-t border-[#1e1e35]">
+              <p className="text-[10px] text-[#64748b] uppercase tracking-wide mb-1.5">Regla de empate</p>
+              <p className="text-[12px] text-[#94a3b8] leading-relaxed">
+                En caso de empate, los premios correspondientes a las posiciones involucradas se sumarán y se repartirán en partes iguales entre los jugadores empatados.
+              </p>
+            </div>
+
             {/* Note */}
             <p className="px-5 py-3 text-[12px] text-[#475569] border-t border-[#1e1e35]">
             Para el primer lugar: 🧋 Botella Nike Hypersport 20 Oz. Gracias a nuestros amigos de <a
