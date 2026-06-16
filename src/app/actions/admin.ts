@@ -247,9 +247,11 @@ export async function updateMatchResultAction(
   revalidatePath("/groups", "layout");
   revalidatePath("/noticias");
 
-  // Generate news after a successful match close. Non-blocking: void.
+  // Generate news after a successful match close. Awaited so the promise
+  // runs to completion before the function returns (serverless runtimes
+  // may cancel un-awaited promises once the response is sent).
   if (status === "finished" && homeScore !== null && awayScore !== null) {
-    void createMatchNews(supabase, matchId, homeScore, awayScore);
+    await createMatchNews(supabase, matchId, homeScore, awayScore);
   }
 
   const scored = (rpcData as { scored?: number } | null)?.scored ?? 0;
@@ -460,9 +462,11 @@ export async function advancedEditMatchAction(
   revalidatePath("/groups", "layout");
   revalidatePath("/noticias");
 
-  // Generate news after a successful match close. Non-blocking: void.
+  // Generate news after a successful match close. Awaited so the promise
+  // runs to completion before the function returns (serverless runtimes
+  // may cancel un-awaited promises once the response is sent).
   if (status === "finished" && homeScore !== null && awayScore !== null) {
-    void createMatchNews(supabase, matchId, homeScore, awayScore);
+    await createMatchNews(supabase, matchId, homeScore, awayScore);
   }
 
   const scored = (rpcData as { scored?: number } | null)?.scored ?? 0;
