@@ -6,11 +6,9 @@ import { Share2, Check } from "lucide-react";
 export default function ShareNewsButton({
   newsId,
   title,
-  summary,
 }: {
   newsId: string;
   title: string;
-  summary: string;
 }) {
   const [copied, setCopied] = useState(false);
 
@@ -19,22 +17,19 @@ export default function ShareNewsButton({
 
     if (typeof navigator.share === "function") {
       try {
-        await navigator.share({ title, url });
+        await navigator.share({ url });
         return;
       } catch (err) {
-        // AbortError = user dismissed the share sheet — silent
         if (err instanceof Error && err.name === "AbortError") return;
-        // Any other failure → fall through to clipboard
       }
     }
 
-    // Clipboard fallback — copy URL only
     try {
       await navigator.clipboard.writeText(url);
       setCopied(true);
       setTimeout(() => setCopied(false), 2200);
     } catch {
-      // Clipboard also unavailable — nothing to do
+      // unavailable — nothing to do
     }
   }
 
@@ -46,7 +41,7 @@ export default function ShareNewsButton({
       {copied ? (
         <>
           <Check size={15} className="text-[#00c85a]" />
-          <span className="text-[#00c85a]">Copiado al portapapeles</span>
+          <span className="text-[#00c85a]">Enlace copiado</span>
         </>
       ) : (
         <>
