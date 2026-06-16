@@ -18,9 +18,8 @@ const geistMono = Geist_Mono({
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL
   ?? (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
 
-export const metadataBase = new URL(siteUrl);
-
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: "La Penúltima - Polla Mundialista Interna",
   description: "Predice, compite y pelea por la bolsa del Mundial. Solo para amigos.",
   keywords: ["polla mundialista", "predicciones", "fútbol", "mundial 2026", "grupos privados"],

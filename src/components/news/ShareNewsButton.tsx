@@ -15,12 +15,11 @@ export default function ShareNewsButton({
   const [copied, setCopied] = useState(false);
 
   async function handleShare() {
-    const url  = `${window.location.origin}/noticias/${newsId}`;
-    const text = `${title}\n\n${summary}\n\n${url}`;
+    const url = `${window.location.origin}/noticias/${newsId}`;
 
     if (typeof navigator.share === "function") {
       try {
-        await navigator.share({ title, text, url });
+        await navigator.share({ title, url });
         return;
       } catch (err) {
         // AbortError = user dismissed the share sheet — silent
@@ -29,9 +28,9 @@ export default function ShareNewsButton({
       }
     }
 
-    // Clipboard fallback
+    // Clipboard fallback — copy URL only
     try {
-      await navigator.clipboard.writeText(text);
+      await navigator.clipboard.writeText(url);
       setCopied(true);
       setTimeout(() => setCopied(false), 2200);
     } catch {
