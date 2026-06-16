@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { isAdmin } from "@/lib/db/admin";
+import { createMatchNews } from "@/lib/db/news";
 
 // ── Types ─────────────────────────────────────────────────────────────
 
@@ -244,6 +245,12 @@ export async function updateMatchResultAction(
   revalidatePath("/admin/matches");
   revalidatePath("/dashboard");
   revalidatePath("/groups", "layout");
+  revalidatePath("/noticias");
+
+  // Generate news after a successful match close. Non-blocking: void.
+  if (status === "finished" && homeScore !== null && awayScore !== null) {
+    void createMatchNews(supabase, matchId, homeScore, awayScore);
+  }
 
   const scored = (rpcData as { scored?: number } | null)?.scored ?? 0;
   return { success: true, scored };
@@ -451,6 +458,12 @@ export async function advancedEditMatchAction(
   revalidatePath(`/admin/matches/${matchId}/advanced`);
   revalidatePath("/dashboard");
   revalidatePath("/groups", "layout");
+  revalidatePath("/noticias");
+
+  // Generate news after a successful match close. Non-blocking: void.
+  if (status === "finished" && homeScore !== null && awayScore !== null) {
+    void createMatchNews(supabase, matchId, homeScore, awayScore);
+  }
 
   const scored = (rpcData as { scored?: number } | null)?.scored ?? 0;
   return { success: true, scored };

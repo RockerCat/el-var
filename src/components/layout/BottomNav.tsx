@@ -3,17 +3,17 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { Home, ListOrdered, Trophy, Users, User } from "lucide-react";
+import { Home, ListOrdered, Radio, Trophy, Users } from "lucide-react";
 
 const navItems = [
   { href: "/dashboard",   label: "Inicio",    icon: Home        },
   { href: "/leaderboard", label: "Tabla",     icon: ListOrdered },
+  { href: "/en-vivo",     label: "En Vivo",   icon: Radio       },
   { href: "/copa",        label: "Copa",      icon: Trophy      },
   { href: "/community",   label: "Comunidad", icon: Users       },
-  { href: "/profile",     label: "Perfil",    icon: User        },
 ];
 
-export default function BottomNav() {
+export default function BottomNav({ hasLiveMatch = false }: { hasLiveMatch?: boolean }) {
   const pathname = usePathname();
 
   return (
@@ -23,6 +23,8 @@ export default function BottomNav() {
           const active =
             pathname === href ||
             (href === "/community" && pathname.startsWith("/groups"));
+          const isLive = href === "/en-vivo";
+
           return (
             <Link
               key={href}
@@ -30,11 +32,19 @@ export default function BottomNav() {
               className={cn(
                 "flex-1 flex flex-col items-center justify-center gap-1 transition-colors",
                 active
-                  ? "text-[#00c85a]"
+                  ? (isLive && hasLiveMatch ? "text-[#ef4444]" : "text-[#00c85a]")
                   : "text-[#64748b] hover:text-[#94a3b8]"
               )}
             >
-              <Icon size={18} strokeWidth={active ? 2.5 : 1.8} />
+              <div className="relative">
+                <Icon size={18} strokeWidth={active ? 2.5 : 1.8} />
+                {isLive && hasLiveMatch && (
+                  <span className="absolute -top-0.5 -right-1 flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#ef4444] opacity-75" />
+                    <span className="relative inline-flex h-2 w-2 rounded-full bg-[#ef4444]" />
+                  </span>
+                )}
+              </div>
               <span className="text-[10px] font-medium">{label}</span>
             </Link>
           );

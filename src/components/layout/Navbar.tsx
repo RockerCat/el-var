@@ -1,10 +1,9 @@
 import Link from "next/link";
-import { BookOpen } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import LogoutButton from "@/components/auth/LogoutButton";
 import NavActiveLinks from "./NavActiveLinks";
+import UserMenuButton from "./UserMenuButton";
 
-export default async function Navbar() {
+export default async function Navbar({ hasLiveMatch = false }: { hasLiveMatch?: boolean }) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -27,7 +26,7 @@ export default async function Navbar() {
         </Link>
 
         {user ? (
-          <AuthenticatedNav displayName={displayName} initial={initial} />
+          <AuthenticatedNav displayName={displayName} initial={initial} hasLiveMatch={hasLiveMatch} />
         ) : (
           <GuestNav />
         )}
@@ -41,58 +40,29 @@ export default async function Navbar() {
 function AuthenticatedNav({
   displayName,
   initial,
+  hasLiveMatch,
 }: {
   displayName: string;
   initial: string;
+  hasLiveMatch?: boolean;
 }) {
   return (
     <>
       {/* Desktop center links */}
       <nav className="hidden md:flex items-center gap-1 flex-1 justify-center">
-        <NavActiveLinks />
+        <NavActiveLinks hasLiveMatch={hasLiveMatch} />
       </nav>
 
       {/* Right side */}
       <div className="flex items-center gap-2">
-        {/* User chip — desktop only */}
-        <div className="hidden sm:flex items-center gap-2 bg-[#18182a] border border-[#2a2a45] rounded-xl px-3 py-1.5">
-          <div className="w-5 h-5 rounded-full bg-[#00c85a]/20 flex items-center justify-center shrink-0">
-            <span className="text-[10px] font-bold text-[#00c85a]">{initial}</span>
-          </div>
-          <span className="text-sm text-[#94a3b8] max-w-[110px] truncate">
-            {displayName}
-          </span>
+        {/* Mobile: avatar/name → dropdown (Perfil, Reglas, Cerrar sesión) */}
+        <div className="sm:hidden">
+          <UserMenuButton displayName={displayName} initial={initial} size="sm" />
         </div>
 
-        {/* Mobile: avatar + name + rules icon + logout */}
-        <div className="sm:hidden flex items-center gap-1.5 min-w-0">
-          <div className="w-7 h-7 rounded-full bg-[#00c85a]/20 border border-[#00c85a]/30 flex items-center justify-center shrink-0">
-            <span className="text-[10px] font-bold text-[#00c85a]">{initial}</span>
-          </div>
-          <span className="text-sm font-medium text-[#94a3b8] truncate max-w-[90px]">
-            {displayName}
-          </span>
-          <Link
-            href="/rules"
-            className="shrink-0 p-1.5 text-[#64748b] hover:text-[#94a3b8] transition-colors"
-            title="Reglas"
-          >
-            <BookOpen size={15} strokeWidth={1.8} />
-          </Link>
-          <LogoutButton compact />
-        </div>
-
-        {/* Desktop: rules icon + logout */}
-        <div className="hidden sm:flex items-center gap-2">
-          <Link
-            href="/rules"
-            className="flex items-center gap-1.5 text-sm px-3 py-2 rounded-lg text-[#64748b] hover:text-[#94a3b8] hover:bg-[#18182a]/60 transition-colors"
-            title="Reglas"
-          >
-            <BookOpen size={14} strokeWidth={1.8} />
-            <span className="hidden lg:inline">Reglas</span>
-          </Link>
-          <LogoutButton />
+        {/* Desktop: user chip → dropdown (Perfil, Reglas, Cerrar sesión) */}
+        <div className="hidden sm:flex">
+          <UserMenuButton displayName={displayName} initial={initial} size="md" />
         </div>
       </div>
     </>

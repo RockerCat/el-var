@@ -1,10 +1,10 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getUserGroupsWithMeta, isGroupMember, getActivePlayerCount } from "@/lib/db/groups";
+import { getUserGroupsWithMeta, isGroupMember } from "@/lib/db/groups";
 import { getGroupLeaderboard } from "@/lib/db/leaderboard";
 import { isAdmin, isUserDisabled } from "@/lib/db/admin";
 import { cn } from "@/lib/utils";
-import { computePrizePool, formatCOP, computeProjectedPrizes, type LeaderboardEntry, type PrizePool } from "@/lib/groups";
+import type { LeaderboardEntry } from "@/lib/groups";
 
 export default async function LeaderboardPage() {
   const supabase = await createClient();
@@ -16,28 +16,16 @@ export default async function LeaderboardPage() {
 
   const groups = await getUserGroupsWithMeta(user.id);
   const community = groups[0] ?? null;
-  const [leaderboard, activePlayers] = await Promise.all([
-    community ? getGroupLeaderboard(community.id) : Promise.resolve([]),
-    community ? getActivePlayerCount(community.id) : Promise.resolve(0),
-  ]);
-
-  const prizePool = community
-    ? computePrizePool(
-        {
-          entry_fee:        community.entry_fee        ?? 0,
-          first_place_pct:  community.first_place_pct  ?? 70,
-          second_place_pct: community.second_place_pct ?? 30,
-        },
-        activePlayers
-      )
-    : null;
+  const leaderboard = community
+    ? await getGroupLeaderboard(community.id)
+    : [];
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6">
       <div className="mb-6">
         <h1 className="text-2xl font-black text-[#f1f5f9]">Tabla de posiciones</h1>
         {community && (
-          <p className="text-sm text-[#64748b] mt-1">Si el Mundial terminara hoy...</p>
+          <p className="text-sm text-[#64748b] mt-1">Si el Mundial terminara hoy…</p>
         )}
       </div>
 
@@ -48,11 +36,7 @@ export default async function LeaderboardPage() {
           </p>
         </div>
       ) : (
-        <FullLeaderboard
-          entries={leaderboard}
-          currentUserId={user.id}
-          prizePool={prizePool}
-        />
+        <FullLeaderboard entries={leaderboard} currentUserId={user.id} />
       )}
     </div>
   );
@@ -66,41 +50,28 @@ const TOP_ACCENT = {
 
 const MEDALS: Record<number, string> = { 1: "🥇", 2: "🥈", 3: "🥉" };
 
+const DESKTOP_COLS = "grid-cols-[2rem_1fr_3rem_3rem_3rem_3rem]";
+
 function FullLeaderboard({
   entries,
   currentUserId,
-  prizePool,
 }: {
   entries:       LeaderboardEntry[];
   currentUserId: string;
-  prizePool:     PrizePool | null;
 }) {
-  const allZero  = entries.every((e) => e.total_points === 0);
-  const hasPrize = prizePool !== null;
-
-  const projectedPrizes = prizePool ? computeProjectedPrizes(prizePool, entries) : null;
-  const hasSplits = projectedPrizes
-    ? [...projectedPrizes.values()].some((p) => p.isSplit)
-    : false;
-
-  const desktopCols = hasPrize
-    ? "grid-cols-[2rem_1fr_3rem_3rem_3rem_3rem_5rem]"
-    : "grid-cols-[2rem_1fr_3rem_3rem_3rem_3rem]";
+  const allZero = entries.every((e) => e.total_points === 0);
 
   return (
     <div className="flex flex-col gap-2">
 
-      {/* ── Desktop column headers (sm+) ────────────────────────────── */}
-      <div className={cn("hidden sm:grid items-center gap-3 px-4 pb-1", desktopCols)}>
+      {/* ── Desktop column headers (sm+) ──────────────────────────────── */}
+      <div className={cn("hidden sm:grid items-center gap-3 px-4 pb-1", DESKTOP_COLS)}>
         <div />
         <span className="text-[10px] text-[#64748b] uppercase tracking-widest">Jugador</span>
         <span className="text-[10px] text-[#64748b] uppercase tracking-widest text-center">Pts</span>
         <span className="text-[10px] text-[#f59e0b]/70 uppercase tracking-widest text-center">⚡</span>
         <span className="text-[10px] text-[#00c85a]/70 uppercase tracking-widest text-center">✓</span>
         <span className="text-[10px] text-[#64748b] uppercase tracking-widest text-center">Preds</span>
-        {hasPrize && (
-          <span className="text-[10px] text-[#f59e0b]/70 uppercase tracking-widest text-right">Premio</span>
-        )}
       </div>
 
       {entries.map((entry) => {
@@ -108,25 +79,23 @@ function FullLeaderboard({
         const accent    = entry.rank in TOP_ACCENT
           ? TOP_ACCENT[entry.rank as keyof typeof TOP_ACCENT]
           : null;
-        const rowBg     = isMe ? "bg-[#00c85a]/[0.05]" : accent?.bg    ?? "bg-[#18182a]";
+        const rowBg     = isMe ? "bg-[#00c85a]/[0.05]" : accent?.bg     ?? "bg-[#18182a]";
         const rowBorder = isMe ? "border-[#00c85a]/25"  : accent?.border ?? "border-[#2a2a45]";
         const rankColor = isMe ? "text-[#00c85a]"        : accent?.rankText ?? "text-[#64748b]";
-        const ptsColor  = entry.total_points === 0
-          ? "text-[#2a2a45]"
-          : isMe            ? "text-[#00c85a]"
-          : entry.rank === 1 ? "text-[#f59e0b]"
-          : "text-[#f1f5f9]";
-        const prize       = projectedPrizes?.get(entry.user_id) ?? null;
-        const prizeAmount = prize?.amount ?? null;
-        const medal     = MEDALS[entry.rank];
+        const ptsColor  =
+          entry.total_points === 0  ? "text-[#2a2a45]"  :
+          isMe                      ? "text-[#00c85a]"  :
+          entry.rank === 1          ? "text-[#f59e0b]"  :
+          "text-[#f1f5f9]";
+        const medal = MEDALS[entry.rank];
 
         return (
           <div key={entry.user_id}>
 
-            {/* ── Desktop row (sm+) ──────────────────────────────────── */}
+            {/* ── Desktop row (sm+) ────────────────────────────────────── */}
             <div className={cn(
               "hidden sm:grid items-center gap-3 px-4 py-3 rounded-2xl border",
-              desktopCols, rowBg, rowBorder
+              DESKTOP_COLS, rowBg, rowBorder
             )}>
               <span className={cn("text-sm font-bold tabular-nums text-center", rankColor)}>
                 {entry.rank}
@@ -143,7 +112,7 @@ function FullLeaderboard({
                 </span>
                 {isMe && <span className="text-[10px] text-[#00c85a]/60 font-mono shrink-0">tú</span>}
               </div>
-              <span className={cn("text-sm font-black tabular-nums text-center", ptsColor)}>
+              <span className={cn("text-lg font-black tabular-nums text-center", ptsColor)}>
                 {entry.total_points}
               </span>
               <span className={cn("text-sm font-bold tabular-nums text-center", entry.exact_count  > 0 ? "text-[#f59e0b]" : "text-[#2a2a45]")}>
@@ -155,24 +124,19 @@ function FullLeaderboard({
               <span className="text-sm font-bold tabular-nums text-center text-[#64748b]">
                 {entry.pred_count}
               </span>
-              {hasPrize && (
-                <span className={cn(
-                  "text-xs font-black tabular-nums text-right",
-                  prizeAmount !== null ? (entry.rank === 1 ? "text-[#f59e0b]" : "text-[#94a3b8]") : "text-[#475569]"
-                )}>
-                  {prizeAmount !== null ? formatCOP(prizeAmount) : "—"}
-                </span>
-              )}
             </div>
 
-            {/* ── Mobile card (<sm) ──────────────────────────────────── */}
+            {/* ── Mobile card (<sm) ────────────────────────────────────── */}
             <div className={cn(
               "sm:hidden rounded-2xl border px-4 py-3",
               rowBg, rowBorder
             )}>
-              {/* Row 1: medal/rank · name · prize */}
-              <div className="flex items-center gap-2 mb-1.5">
-                <span className={cn("shrink-0 font-bold tabular-nums", medal ? "text-base leading-none" : cn("text-sm w-5 text-center", rankColor))}>
+              {/* Row 1: medal/rank · name */}
+              <div className="flex items-center gap-2 mb-2">
+                <span className={cn(
+                  "shrink-0 font-bold tabular-nums",
+                  medal ? "text-base leading-none" : cn("text-sm w-5 text-center", rankColor)
+                )}>
                   {medal ?? entry.rank}
                 </span>
                 <span className={cn("flex-1 font-bold text-sm", isMe ? "text-[#00c85a]" : "text-[#f1f5f9]")}>
@@ -181,20 +145,13 @@ function FullLeaderboard({
                     <span className="text-[10px] text-[#00c85a]/60 font-mono ml-1.5">tú</span>
                   )}
                 </span>
-                {hasPrize && (
-                  <span className={cn(
-                    "text-sm font-black tabular-nums shrink-0",
-                    prizeAmount !== null ? (entry.rank === 1 ? "text-[#f59e0b]" : "text-[#94a3b8]") : "text-[#475569]"
-                  )}>
-                    {prizeAmount !== null ? formatCOP(prizeAmount) : "—"}
-                  </span>
-                )}
-              </div>
-              {/* Row 2: stats strip */}
-              <div className="flex items-center gap-3 pl-7">
-                <span className={cn("text-xs font-black tabular-nums", ptsColor)}>
-                  {entry.total_points} pts
+                <span className={cn("text-xl font-black tabular-nums shrink-0", ptsColor)}>
+                  {entry.total_points}
+                  <span className="text-[10px] font-normal text-[#64748b] ml-0.5">pts</span>
                 </span>
+              </div>
+              {/* Row 2: stat strip */}
+              <div className="flex items-center gap-3 pl-7">
                 <span className={cn("text-xs tabular-nums", entry.result_count > 0 ? "text-[#00c85a]" : "text-[#475569]")}>
                   {entry.result_count} ganador{entry.result_count !== 1 ? "es" : ""}
                 </span>
@@ -213,12 +170,7 @@ function FullLeaderboard({
 
       {allZero && (
         <p className="text-[11px] text-[#64748b] text-center pt-2 font-mono">
-          Los puntos y premios proyectados aparecerán cuando se confirmen resultados de partidos.
-        </p>
-      )}
-      {!allZero && hasSplits && (
-        <p className="text-[11px] text-[#64748b] text-center pt-2 font-mono">
-          Premio dividido por empate entre jugadores con el mismo puntaje.
+          Los puntos aparecerán cuando se confirmen resultados de partidos.
         </p>
       )}
 
