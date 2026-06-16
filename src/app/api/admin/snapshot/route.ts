@@ -68,6 +68,10 @@ const RESTORE_ORDER = [
     table: "admin_match_audit",
     note: "Audit data. Restore last; requires matches and auth.users.",
   },
+  {
+    table: "news",
+    note: "Requires matches to exist (related_match_id FK, nullable).",
+  },
 ] as const;
 
 // ── UserDirectory row (public, non-sensitive identification only) ─────
@@ -113,6 +117,7 @@ export async function GET() {
     { data: groupMembers },
     { data: activityLog },
     { data: matchAudit },
+    { data: news },
     { data: userListRaw },
   ] = await Promise.all([
     supabase.from("teams").select("*").order("name"),
@@ -124,6 +129,7 @@ export async function GET() {
     supabase.from("group_members").select("*"),
     supabase.from("admin_activity_log").select("*").order("created_at"),
     supabase.from("admin_match_audit").select("*").order("created_at"),
+    supabase.from("news").select("*").order("created_at"),
     supabase.rpc("get_admin_user_list"),
   ]);
 
@@ -154,6 +160,7 @@ export async function GET() {
     group_members:      groupMembers?.length ?? 0,
     admin_activity_log: activityLog?.length  ?? 0,
     admin_match_audit:  matchAudit?.length   ?? 0,
+    news:               news?.length         ?? 0,
   };
 
   const totalRecords = Object.values(recordCounts).reduce((a, b) => a + b, 0);
@@ -191,6 +198,7 @@ export async function GET() {
     group_members:      groupMembers ?? [],
     admin_activity_log: activityLog  ?? [],
     admin_match_audit:  matchAudit   ?? [],
+    news:               news        ?? [],
   };
 
   // Audit log — fire and forget
