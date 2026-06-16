@@ -16,7 +16,7 @@ export default function ShareNewsButton({
 
   async function handleShare() {
     const url  = `${window.location.origin}/noticias/${newsId}`;
-    const text = `🏆 La Penúltima\n\n${title}\n\n${summary}\n\nVer noticia completa:\n${url}`;
+    const text = `${title}\n\n${summary}\n\n${url}`;
 
     if (typeof navigator.share === "function") {
       try {

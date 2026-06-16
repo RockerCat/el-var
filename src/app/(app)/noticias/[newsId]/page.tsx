@@ -1,10 +1,47 @@
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
+import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { isAdmin, isUserDisabled } from "@/lib/db/admin";
 import { isGroupMember } from "@/lib/db/groups";
 import { getNewsDetail } from "@/lib/db/news";
 import ShareNewsButton from "@/components/news/ShareNewsButton";
+
+// ── Open Graph metadata ───────────────────────────────────────────────
+// metadataBase is set in src/app/layout.tsx — all relative URLs here
+// are resolved against NEXT_PUBLIC_SITE_URL (or VERCEL_URL / localhost).
+
+type PageProps = { params: Promise<{ newsId: string }> };
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { newsId } = await params;
+  const item = await getNewsDetail(newsId);
+  if (!item) return { title: "Noticia | La Penúltima" };
+
+  const title       = `${item.title} | La Penúltima`;
+  const description = item.summary;
+  const url         = `/noticias/${newsId}`;
+  const image       = "/social/corresponsal-lapenultima.png";
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      url,
+      siteName: "La Penúltima",
+      type:     "article",
+      images:   [{ url: image }],
+    },
+    twitter: {
+      card:        "summary_large_image",
+      title,
+      description,
+      images:      [image],
+    },
+  };
+}
 
 // ── Block parsing ─────────────────────────────────────────────────────
 
@@ -36,11 +73,7 @@ function parseBlocks(content: string): { label: string | null; text: string }[] 
 
 // ── Page ──────────────────────────────────────────────────────────────
 
-export default async function NoticiaDetailPage({
-  params,
-}: {
-  params: Promise<{ newsId: string }>;
-}) {
+export default async function NoticiaDetailPage({ params }: PageProps) {
   const { newsId } = await params;
 
   const supabase = await createClient();
@@ -94,7 +127,6 @@ export default async function NoticiaDetailPage({
           ))}
         </div>
       ) : (
-        // Fallback: raw text for old or unstructured content
         <div className="bg-[#11111c] border border-[#1e1e35] rounded-2xl px-4 py-3.5">
           <p className="text-sm text-[#cbd5e1] leading-relaxed whitespace-pre-line">
             {item.content}

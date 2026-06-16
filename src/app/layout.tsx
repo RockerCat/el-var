@@ -12,6 +12,14 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+// NEXT_PUBLIC_SITE_URL must be set in .env.local and in Vercel:
+//   NEXT_PUBLIC_SITE_URL=https://lapenultima.alexsosa.me
+// Falls back to VERCEL_URL (set automatically by Vercel) or localhost for dev.
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL
+  ?? (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
+
+export const metadataBase = new URL(siteUrl);
+
 export const metadata: Metadata = {
   title: "La Penúltima - Polla Mundialista Interna",
   description: "Predice, compite y pelea por la bolsa del Mundial. Solo para amigos.",
