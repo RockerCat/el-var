@@ -53,7 +53,7 @@ export default function RootLayout({
       lang="es"
       className={`${geistSans.variable} ${geistMono.variable} antialiased`}
     >
-      <body className="min-h-svh bg-[#0a0a12] text-[#f1f5f9] overflow-x-hidden">
+      <body className="min-h-dvh bg-[#0a0a12] text-[#f1f5f9] overflow-x-hidden">
         {children}
       </body>
     </html>
