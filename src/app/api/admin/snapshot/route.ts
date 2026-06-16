@@ -122,7 +122,7 @@ export async function GET() {
   ] = await Promise.all([
     supabase.from("teams").select("*").order("name"),
     supabase.from("matches").select("*").order("starts_at"),
-    supabase.from("predictions").select("*").order("submitted_at"),
+    supabase.from("predictions").select("*").order("created_at"),
     supabase.from("user_profiles").select("*"),
     supabase.rpc("admin_get_all_admin_users"),
     supabase.from("groups").select("*"),
