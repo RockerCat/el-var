@@ -14,13 +14,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const hasLiveMatch = !!liveMatch;
 
   return (
-    <>
+    <div className="flex flex-col min-h-dvh">
       <Navbar hasLiveMatch={hasLiveMatch} />
-      <div className="pb-16 md:pb-0">
-        {children}
+      <div className="flex-1 flex flex-col pb-16 md:pb-0">
+        <div className="flex-1">
+          {children}
+        </div>
         <AppFooter />
       </div>
       <BottomNav hasLiveMatch={hasLiveMatch} />
-    </>
+    </div>
   );
 }
