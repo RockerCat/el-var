@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { isAdmin, isUserDisabled } from "@/lib/db/admin";
 import { isGroupMember } from "@/lib/db/groups";
 import { getNewsDetail } from "@/lib/db/news";
+import ShareNewsButton from "@/components/news/ShareNewsButton";
 
 // ── Block parsing ─────────────────────────────────────────────────────
 
@@ -100,6 +101,9 @@ export default async function NoticiaDetailPage({
           </p>
         </div>
       )}
+
+      {/* Share */}
+      <ShareNewsButton newsId={item.id} title={item.title} summary={item.summary} />
 
       {/* CTA — discrete, below content */}
       {item.related_match_id && (
