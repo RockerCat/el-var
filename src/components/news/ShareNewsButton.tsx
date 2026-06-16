@@ -3,33 +3,29 @@
 import { useState } from "react";
 import { Share2, Check } from "lucide-react";
 
+function buildShareText(content: string, shortUrl: string): string {
+  const normalized = content.trim().replace(/\n{2,}/g, "\n");
+  return `La Penúltima News:\n\n${normalized}\n\nMás noticias en:\n${shortUrl}`;
+}
+
 export default function ShareNewsButton({
   newsId,
-  title,
+  content,
 }: {
   newsId: string;
-  title: string;
+  content: string;
 }) {
   const [copied, setCopied] = useState(false);
 
   async function handleShare() {
-    const url = `${window.location.origin}/noticias/${newsId}`;
-
-    if (typeof navigator.share === "function") {
-      try {
-        await navigator.share({ url });
-        return;
-      } catch (err) {
-        if (err instanceof Error && err.name === "AbortError") return;
-      }
-    }
-
+    const shortUrl = `${window.location.origin}/n/${newsId}`;
+    const shareText = buildShareText(content, shortUrl);
     try {
-      await navigator.clipboard.writeText(url);
+      await navigator.clipboard.writeText(shareText);
       setCopied(true);
       setTimeout(() => setCopied(false), 2200);
     } catch {
-      // unavailable — nothing to do
+      // unavailable
     }
   }
 
@@ -41,7 +37,7 @@ export default function ShareNewsButton({
       {copied ? (
         <>
           <Check size={15} className="text-[#00c85a]" />
-          <span className="text-[#00c85a]">Enlace copiado</span>
+          <span className="text-[#00c85a]">Noticia copiada</span>
         </>
       ) : (
         <>
