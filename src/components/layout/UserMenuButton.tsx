@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { User, BookOpen, LogOut, ChevronDown } from "lucide-react";
+import { User, BookOpen, LogOut, ChevronDown, Newspaper } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
@@ -91,6 +91,14 @@ export default function UserMenuButton({
       {/* Dropdown */}
       {open && (
         <div className="absolute right-0 top-full mt-2 w-44 bg-[#11111c] border border-[#1e1e35] rounded-xl shadow-2xl z-50 overflow-hidden">
+          <Link
+            href="/noticias"
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-2.5 px-4 py-3 text-sm text-[#94a3b8] hover:text-[#f1f5f9] hover:bg-[#18182a] transition-colors"
+          >
+            <Newspaper size={14} strokeWidth={1.8} />
+            Noticias
+          </Link>
           <Link
             href="/profile"
             onClick={() => setOpen(false)}
