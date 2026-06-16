@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { isAdmin, isUserDisabled } from "@/lib/db/admin";
 import { isGroupMember } from "@/lib/db/groups";
@@ -11,6 +12,8 @@ import {
   type MatchWithPrediction,
 } from "@/lib/matches";
 import LiveMatchCard from "@/components/dashboard/LiveMatchCard";
+import LiveMatchPoller from "@/components/dashboard/LiveMatchPoller";
+import { PredictionEditingProvider } from "@/contexts/prediction-editing";
 
 export default async function EnVivoPage() {
   const supabase = await createClient();
@@ -26,12 +29,18 @@ export default async function EnVivoPage() {
     .filter((m) => m.status === "live")
     .sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime());
 
+  // Caso 1: un solo partido en vivo → ir directo al detalle
+  if (liveMatches.length === 1) redirect(`/matches/${liveMatches[0].id}`);
+
   const nextMatch = matches
     .filter((m) => m.status === "scheduled")
     .sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime())[0] ?? null;
 
   return (
+    <PredictionEditingProvider>
     <div className="max-w-2xl mx-auto px-4 py-6 space-y-4">
+
+      <LiveMatchPoller hasLiveMatch={liveMatches.length > 0} />
 
       {/* Header */}
       <div className="flex items-center gap-2">
@@ -87,6 +96,7 @@ export default async function EnVivoPage() {
       )}
 
     </div>
+    </PredictionEditingProvider>
   );
 }
 
@@ -107,7 +117,10 @@ function NextMatchCard({
   const awayFlag = matchTeamFlag(match.away_team);
 
   return (
-    <div className="bg-[#11111c] border border-[#1e1e35] rounded-2xl p-4 space-y-3">
+    <Link
+      href={`/matches/${match.id}`}
+      className="block bg-[#11111c] border border-[#1e1e35] rounded-2xl p-4 space-y-3 hover:border-[#2a2a45] transition-colors cursor-pointer"
+    >
       <p className="text-[10px] text-[#475569] font-mono uppercase tracking-widest">
         Próximo partido
       </p>
@@ -139,14 +152,11 @@ function NextMatchCard({
             <p className="text-xs font-semibold text-[#f59e0b]">⚠️ No tienes pronóstico para este partido.</p>
             <p className="text-[10px] text-[#64748b] mt-0.5">Haz tu predicción antes de que cierre.</p>
           </div>
-          <a
-            href={`/matches/${match.id}`}
-            className="shrink-0 text-xs font-bold bg-[#f59e0b] text-[#0a0a12] px-3 py-1.5 rounded-lg hover:bg-[#fbbf24] transition-colors whitespace-nowrap"
-          >
+          <span className="shrink-0 text-xs font-bold bg-[#f59e0b] text-[#0a0a12] px-3 py-1.5 rounded-lg whitespace-nowrap">
             Pronosticar ahora
-          </a>
+          </span>
         </div>
       ) : null}
-    </div>
+    </Link>
   );
 }
