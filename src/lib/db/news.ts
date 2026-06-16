@@ -140,10 +140,11 @@ function blockLeader(
   allZeroBefore: boolean,
 ): string {
   const leaders = after.filter((p) => p.rank === 1);
-  if (leaders.length === 0) return "";
+  if (leaders.length === 0) return "🏆 La tabla se mueve";
 
-  const pts     = leaders[0].total_points;
-  const prevIds = new Set(before.filter((p) => p.rank === 1).map((p) => p.user_id));
+  const pts             = leaders[0].total_points;
+  const prevIds         = new Set(before.filter((p) => p.rank === 1).map((p) => p.user_id));
+  const prevLeaderCount = before.filter((p) => p.rank === 1).length;
 
   const joined = (arr: LbRow[]) =>
     arr.length === 1 ? arr[0].display_name
@@ -158,11 +159,15 @@ function blockLeader(
   }
 
   if (leaders.length === 1) {
+    // Was tied for 1st before, now leads alone: a tie broken, not a new arrival.
+    const brokeTie = prevLeaderCount > 1 && prevIds.has(leaders[0].user_id);
+    if (brokeTie) {
+      return `🏆 ${leaders[0].display_name} rompe el empate y toma la punta en solitario con ${pts} pts.`;
+    }
     return `🏆 ${leaders[0].display_name} mantiene el liderato con ${pts} pts.`;
   }
 
   // Tie at the top
-  const prevLeaderCount = before.filter((p) => p.rank === 1).length;
   const wasAlreadyTied  = prevLeaderCount === leaders.length &&
     leaders.every((l) => prevIds.has(l.user_id));
 
@@ -198,6 +203,10 @@ function blockMovements(
     .map((m) => {
       if (m.change > 0) {
         const n = m.change;
+        const enteredTop3 = m.rank_before > 3 && m.rank_after <= 3;
+        if (enteredTop3) {
+          return `📈 ${m.display_name} sube ${n} puesto${n > 1 ? "s" : ""} y entra al Top 3.`;
+        }
         return `📈 ${m.display_name} sube ${n} puesto${n > 1 ? "s" : ""} al ${m.rank_after}°.`;
       }
       const n = Math.abs(m.change);
@@ -206,18 +215,19 @@ function blockMovements(
     .join("\n");
 }
 
-function blockExactos(preds: PredRow[], exactPoints: number): string {
+function blockExactos(preds: PredRow[]): string {
   const exactos = preds.filter((p) => p.points_reason === "Marcador exacto");
 
   if (exactos.length === 0) return "🎯 Nadie acertó el marcador exacto.";
 
   const names = exactos.map((p) => p.display_name);
-  if (names.length === 1) return `🎯 ${names[0]} acertó el marcador exacto (+${exactPoints} pts).`;
-  if (names.length <= 3) {
+  if (names.length === 1) return `🎯 ${names[0]} clavó el marcador exacto.`;
+  if (names.length <= 5) {
     const joined = names.slice(0, -1).join(", ") + " y " + names[names.length - 1];
-    return `🎯 ${joined} acertaron el marcador exacto (+${exactPoints} pts).`;
+    return `🎯 ${joined} acertaron el marcador exacto.`;
   }
-  return `🎯 ${names.length} participantes acertaron el marcador exacto (+${exactPoints} pts).`;
+  const sample = names.slice(0, 3).join(", ");
+  return `🎯 ${names.length} participantes acertaron el marcador exacto, entre ellos ${sample}.`;
 }
 
 function blockParticipants(preds: PredRow[]): string | null {
@@ -413,7 +423,7 @@ async function buildRichNews(
     blockResult(homeFlag, homeName, homeScore, awayFlag, awayName, awayScore),
     blockLeader(leaderboard, before, allZeroBefore),
     blockMovements(movements, allZeroBefore),
-    blockExactos(preds, exactPoints),
+    blockExactos(preds),
     blockParticipants(preds),
     blockPrizeZone(movements, leaderboard, before, allZeroBefore),
   ].filter(Boolean) as string[];
