@@ -99,6 +99,15 @@ export default async function NoticiaDetailPage({ params }: PageProps) {
         ← Noticias
       </a>
 
+      {/* Cover image */}
+      <div className="rounded-2xl overflow-hidden h-[220px] sm:h-[280px]">
+        <img
+          src="/img/corresponsal_lapenultima.png"
+          alt="La Penúltima News"
+          className="w-full h-full object-cover"
+        />
+      </div>
+
       {/* Header */}
       <div>
         <p className="text-[10px] text-[#475569] font-mono uppercase tracking-widest mb-2">

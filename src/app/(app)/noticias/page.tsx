@@ -18,7 +18,22 @@ export default async function NoticiasPage() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 space-y-4">
-      <h1 className="text-xl font-black text-[#f1f5f9]">Noticias</h1>
+      {/* Hero image */}
+      <div className="rounded-2xl overflow-hidden h-[220px] sm:h-[280px]">
+        <img
+          src="/img/corresponsal_lapenultima.png"
+          alt="La Penúltima News"
+          className="w-full h-full object-cover"
+        />
+      </div>
+
+      {/* Hero text */}
+      <div>
+        <h1 className="text-xl font-black text-[#f1f5f9]">La Penúltima News</h1>
+        <p className="text-sm text-[#64748b] mt-1 leading-relaxed">
+          Las últimas novedades del Mundial, movimientos en la tabla, líderes, premios proyectados y resultados destacados.
+        </p>
+      </div>
 
       {news.length === 0 ? (
         <div className="bg-[#11111c] border border-[#1e1e35] rounded-2xl p-10 text-center">
