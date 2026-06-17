@@ -49,7 +49,9 @@ export const RESULT_SORPRESA_TEMPLATES: string[] = [
   "⚽ Nadie lo vio venir: {team} dio el golpe y venció {score} a {opponent}.",
 ];
 
-export const TEAM_TAG_TEMPLATES: Record<TeamTag, string> = {
+// community_team has its own win/draw/loss templates (and a debut variant)
+// instead of a single fixed phrase — see COMMUNITY_TEAM_TEMPLATES below.
+export const TEAM_TAG_TEMPLATES: Record<Exclude<TeamTag, "community_team">, string> = {
   defending_champion:
     "⚽ El campeón vigente hizo valer su jerarquía y venció {score} a {opponent}.",
   historic_power:
@@ -58,6 +60,40 @@ export const TEAM_TAG_TEMPLATES: Record<TeamTag, string> = {
   debutant:
     "⚽ {team} sigue dando la sorpresa del torneo y ganó {score} a {opponent}.",
 };
+
+// ── community_team (Colombia) ───────────────────────────────────────
+// Tono periodístico, no celebratorio — variantes elegidas de forma
+// determinística por pickTemplate() igual que el resto del sistema.
+// Texto hardcodea "Colombia" / "La tricolor" a propósito (no usa {team}):
+// es contenido curado específicamente para este equipo, no genérico.
+
+export type ResultOutcome = "win" | "draw" | "loss";
+
+export const COMMUNITY_TEAM_TEMPLATES: Record<ResultOutcome, string[]> = {
+  win: [
+    "⚽ Colombia sumó una nueva victoria tras imponerse {score} a {opponent}.",
+    "⚽ La Selección Colombia volvió a responder y derrotó {score} a {opponent}.",
+    "⚽ La tricolor se quedó con la victoria ante {opponent}: {score}.",
+  ],
+  draw: [
+    "⚽ Colombia sumó un punto tras empatar {score} con {opponent}.",
+    "⚽ La tricolor repartió puntos con {opponent} tras igualar {score}.",
+    "⚽ Colombia y {opponent} no se sacaron diferencias: {score}.",
+  ],
+  loss: [
+    "⚽ Colombia cayó {score} ante {opponent}.",
+    "⚽ La Selección Colombia no pudo ante {opponent} y perdió {score}.",
+    "⚽ Colombia tropezó frente a {opponent}, que se impuso {score}.",
+  ],
+};
+
+// Solo para victoria en el debut — empate/derrota en el debut usan las
+// plantillas normales de arriba (no se pidió narrativa especial para esos casos).
+export const COMMUNITY_TEAM_DEBUT_WIN_TEMPLATES: string[] = [
+  "⚽ Colombia comenzó con victoria su participación en el Mundial tras imponerse {score} a {opponent}.",
+  "⚽ Buen comienzo para la Selección Colombia: triunfo {score} ante {opponent}.",
+  "⚽ La tricolor arrancó con pie derecho y derrotó {score} a {opponent}.",
+];
 
 // ── blockLeader ──────────────────────────────────────────────────────
 

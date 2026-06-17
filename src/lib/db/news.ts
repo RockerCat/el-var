@@ -1,11 +1,13 @@
 import { createClient } from "@/lib/supabase/server";
 import { pickTemplate, fillTemplate } from "@/lib/news/pick";
-import { primaryTag } from "@/lib/news/teamMeta";
+import { primaryTag, hasTag } from "@/lib/news/teamMeta";
 import {
   classifyResultCategory,
   RESULT_TEMPLATES,
   RESULT_SORPRESA_TEMPLATES,
   TEAM_TAG_TEMPLATES,
+  COMMUNITY_TEAM_TEMPLATES,
+  COMMUNITY_TEAM_DEBUT_WIN_TEMPLATES,
   LEADER_TEMPLATES,
   classifyExactosCategory,
   EXACTOS_TEMPLATES,
@@ -133,9 +135,30 @@ function blockResult(
   homeFlag: string, homeName: string, homeScore: number, homeCode: string | null,
   awayFlag: string, awayName: string, awayScore: number, awayCode: string | null,
   preds:    PredRow[],
+  isCommunityDebut: boolean,
 ): string {
   const h = homeFlag ? `${homeFlag} ` : "";
   const a = awayFlag ? `${awayFlag} ` : "";
+
+  // Equipo de la comunidad (Colombia): narrativa propia con prioridad
+  // sobre cualquier tag del rival, en victoria, empate y derrota.
+  const homeIsCommunity = hasTag(homeCode, "community_team");
+  const awayIsCommunity = hasTag(awayCode, "community_team");
+  if (homeIsCommunity || awayIsCommunity) {
+    const team     = homeIsCommunity ? `${h}${homeName}` : `${a}${awayName}`;
+    const opponent = homeIsCommunity ? `${a}${awayName}` : `${h}${homeName}`;
+    const own      = homeIsCommunity ? homeScore : awayScore;
+    const rival     = homeIsCommunity ? awayScore : homeScore;
+    const vars      = { team, opponent, score: `${own}-${rival}` };
+    const outcome   = own > rival ? "win" : own < rival ? "loss" : "draw";
+
+    if (isCommunityDebut && outcome === "win") {
+      const template = pickTemplate(COMMUNITY_TEAM_DEBUT_WIN_TEMPLATES, `${matchId}:result`);
+      return fillTemplate(template, vars);
+    }
+    const template = pickTemplate(COMMUNITY_TEAM_TEMPLATES[outcome], `${matchId}:result`);
+    return fillTemplate(template, vars);
+  }
 
   if (homeScore === awayScore) {
     const template = pickTemplate(RESULT_TEMPLATES.empate, `${matchId}:result`);
@@ -386,6 +409,25 @@ function buildSummary(
 
 // ── Rich news builder (can throw — caller provides fallback) ──────────
 
+// Cheap check, only ever run for Colombia's own matches: is this the
+// earliest-scheduled match (by starts_at) for that team in the fixture
+// list? Used to trigger the one-off debut narrative instead of the
+// regular win/draw/loss templates.
+async function isCommunityTeamDebut(
+  supabase:        SupabaseClient,
+  matchId:         string,
+  communityTeamId: string,
+): Promise<boolean> {
+  const { data: firstMatch } = await supabase
+    .from("matches")
+    .select("id")
+    .or(`home_team_id.eq.${communityTeamId},away_team_id.eq.${communityTeamId}`)
+    .order("starts_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  return firstMatch?.id === matchId;
+}
+
 async function buildRichNews(
   supabase:    SupabaseClient,
   matchId:     string,
@@ -397,6 +439,8 @@ async function buildRichNews(
   awayFlag:    string,
   homeCode:    string | null,
   awayCode:    string | null,
+  homeTeamId:  string | null,
+  awayTeamId:  string | null,
 ): Promise<{ summary: string; content: string }> {
   // ── 1. Find community group ─────────────────────────────────────────
   const { data: group } = await supabase
@@ -473,9 +517,17 @@ async function buildRichNews(
     };
   });
 
-  // ── 6. Build content blocks ─────────────────────────────────────────
+  // ── 6. Community-team (Colombia) debut check ────────────────────────
+  const communityTeamId = hasTag(homeCode, "community_team") ? homeTeamId
+    : hasTag(awayCode, "community_team") ? awayTeamId
+    : null;
+  const isCommunityDebut = communityTeamId
+    ? await isCommunityTeamDebut(supabase, matchId, communityTeamId)
+    : false;
+
+  // ── 7. Build content blocks ─────────────────────────────────────────
   const blocks = [
-    blockResult(matchId, homeFlag, homeName, homeScore, homeCode, awayFlag, awayName, awayScore, awayCode, preds),
+    blockResult(matchId, homeFlag, homeName, homeScore, homeCode, awayFlag, awayName, awayScore, awayCode, preds, isCommunityDebut),
     blockLeader(matchId, leaderboard, before, allZeroBefore),
     blockMovements(matchId, movements, allZeroBefore),
     blockExactos(matchId, preds),
@@ -537,13 +589,13 @@ export async function createMatchNews(
     const { data: match } = await supabase
       .from("matches")
       .select(
-        "home_placeholder, away_placeholder, home_team:home_team_id(name, flag_emoji, code), away_team:away_team_id(name, flag_emoji, code)"
+        "home_placeholder, away_placeholder, home_team:home_team_id(id, name, flag_emoji, code), away_team:away_team_id(id, name, flag_emoji, code)"
       )
       .eq("id", matchId)
       .maybeSingle();
     if (!match) return;
 
-    type TeamRow = { name: string; flag_emoji: string | null; code: string | null };
+    type TeamRow = { id: string; name: string; flag_emoji: string | null; code: string | null };
     const homeTeam = match.home_team as unknown as TeamRow | null;
     const awayTeam = match.away_team as unknown as TeamRow | null;
 
@@ -553,6 +605,8 @@ export async function createMatchNews(
     const awayFlag = awayTeam?.flag_emoji ?? "";
     const homeCode = homeTeam?.code ?? null;
     const awayCode = awayTeam?.code ?? null;
+    const homeTeamId = homeTeam?.id ?? null;
+    const awayTeamId = awayTeam?.id ?? null;
 
     const title = `${homeName} ${homeScore} - ${awayScore} ${awayName}`;
 
@@ -560,6 +614,7 @@ export async function createMatchNews(
     const { summary, content } = await buildRichNews(
       supabase, matchId, homeScore, awayScore,
       homeName, awayName, homeFlag, awayFlag, homeCode, awayCode,
+      homeTeamId, awayTeamId,
     ).catch(() => ({
       summary: "El partido finalizó y la clasificación fue actualizada.",
       content: buildBasicContent(homeFlag, homeName, homeScore, awayFlag, awayName, awayScore),
