@@ -1,4 +1,19 @@
 import { createClient } from "@/lib/supabase/server";
+import { pickTemplate, fillTemplate } from "@/lib/news/pick";
+import { primaryTag } from "@/lib/news/teamMeta";
+import {
+  classifyResultCategory,
+  RESULT_TEMPLATES,
+  RESULT_SORPRESA_TEMPLATES,
+  TEAM_TAG_TEMPLATES,
+  LEADER_TEMPLATES,
+  classifyExactosCategory,
+  EXACTOS_TEMPLATES,
+  classifyParticipantsCategory,
+  PARTICIPANTS_TEMPLATES,
+  MOVEMENT_TEMPLATES,
+  PRIZE_TEMPLATES,
+} from "@/lib/news/templates";
 
 type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
 
@@ -61,6 +76,8 @@ type PredRow = {
   display_name:  string;
   points:        number;
   points_reason: string | null;
+  pred_home:     number;
+  pred_away:     number;
 };
 
 type Rankable = {
@@ -106,35 +123,60 @@ function assignRanks(players: Rankable[]): Ranked[] {
   });
 }
 
-// ── Stage → exact-score points ────────────────────────────────────────
-
-const STAGE_EXACT: Record<string, number> = {
-  group:         3,
-  round_of_32:   4,
-  round_of_16:   5,
-  quarter_final: 6,
-  semi_final:    7,
-  third_place:   7,
-  final:         8,
-};
-
 // ── Narrative block functions ─────────────────────────────────────────
 // Each returns a string or null. null = omit block.
 // To add a new block: write a new function and insert it into the
 // blocks array inside buildRichNews().
 
 function blockResult(
-  homeFlag: string, homeName: string, homeScore: number,
-  awayFlag: string, awayName: string, awayScore: number,
+  matchId:   string,
+  homeFlag: string, homeName: string, homeScore: number, homeCode: string | null,
+  awayFlag: string, awayName: string, awayScore: number, awayCode: string | null,
+  preds:    PredRow[],
 ): string {
   const h = homeFlag ? `${homeFlag} ` : "";
   const a = awayFlag ? `${awayFlag} ` : "";
-  if (homeScore > awayScore) return `⚽ ${h}${homeName} venció a ${a}${awayName} ${homeScore}-${awayScore}.`;
-  if (awayScore > homeScore) return `⚽ ${a}${awayName} venció a ${h}${homeName} ${awayScore}-${homeScore}.`;
-  return `⚽ ${h}${homeName} y ${a}${awayName} empataron ${homeScore}-${awayScore}.`;
+
+  if (homeScore === awayScore) {
+    const template = pickTemplate(RESULT_TEMPLATES.empate, `${matchId}:result`);
+    return fillTemplate(template, {
+      team: `${h}${homeName}`,
+      opponent: `${a}${awayName}`,
+      score: `${homeScore}-${awayScore}`,
+    });
+  }
+
+  const homeWins = homeScore > awayScore;
+  const winner   = { name: homeWins ? `${h}${homeName}` : `${a}${awayName}`, code: homeWins ? homeCode : awayCode };
+  const loser    = { name: homeWins ? `${a}${awayName}` : `${h}${homeName}` };
+  const score    = homeWins ? `${homeScore}-${awayScore}` : `${awayScore}-${homeScore}`;
+  const vars     = { team: winner.name, opponent: loser.name, score };
+
+  // Equipo especial: a curated, factual tag takes priority over generic
+  // margin/sorpresa narratives (rarer, more notable than either).
+  const tag = primaryTag(winner.code);
+  if (tag) {
+    return fillTemplate(TEAM_TAG_TEMPLATES[tag], vars);
+  }
+
+  // Sorpresa: majority of community predictions favored the loser.
+  const homeVotes = preds.filter((p) => p.pred_home > p.pred_away).length;
+  const awayVotes = preds.filter((p) => p.pred_away > p.pred_home).length;
+  const favoredHome = homeVotes > awayVotes && homeVotes > preds.length / 2;
+  const favoredAway = awayVotes > homeVotes && awayVotes > preds.length / 2;
+  const wasUpset = (favoredHome && !homeWins) || (favoredAway && homeWins);
+  if (preds.length > 0 && wasUpset) {
+    const template = pickTemplate(RESULT_SORPRESA_TEMPLATES, `${matchId}:result`);
+    return fillTemplate(template, vars);
+  }
+
+  const category = classifyResultCategory(homeScore, awayScore);
+  const template = pickTemplate(RESULT_TEMPLATES[category], `${matchId}:result`);
+  return fillTemplate(template, vars);
 }
 
 function blockLeader(
+  matchId:      string,
   after:        LbRow[],
   before:       Ranked[],
   allZeroBefore: boolean,
@@ -145,6 +187,7 @@ function blockLeader(
   const pts             = leaders[0].total_points;
   const prevIds         = new Set(before.filter((p) => p.rank === 1).map((p) => p.user_id));
   const prevLeaderCount = before.filter((p) => p.rank === 1).length;
+  const seed             = `${matchId}:leader`;
 
   const joined = (arr: LbRow[]) =>
     arr.length === 1 ? arr[0].display_name
@@ -155,29 +198,37 @@ function blockLeader(
     leaders.length === 1 && (allZeroBefore || !prevIds.has(leaders[0].user_id));
 
   if (isNewSoleLeader) {
-    return `🏆 Nuevo líder: ${leaders[0].display_name} sube al primer puesto con ${pts} pts.`;
+    const template = pickTemplate(LEADER_TEMPLATES.nuevo, seed);
+    return fillTemplate(template, { leader: leaders[0].display_name, points: pts });
   }
 
   if (leaders.length === 1) {
     // Was tied for 1st before, now leads alone: a tie broken, not a new arrival.
     const brokeTie = prevLeaderCount > 1 && prevIds.has(leaders[0].user_id);
     if (brokeTie) {
-      return `🏆 ${leaders[0].display_name} rompe el empate y toma la punta en solitario con ${pts} pts.`;
+      const template = pickTemplate(LEADER_TEMPLATES.rompe_empate, seed);
+      return fillTemplate(template, { leader: leaders[0].display_name, points: pts });
     }
-    return `🏆 ${leaders[0].display_name} mantiene el liderato con ${pts} pts.`;
+
+    // Apretado: the runner-up trails by 2 points or less.
+    const runnerUpPts = after.find((p) => p.rank === 2)?.total_points;
+    const isApretado  = runnerUpPts != null && pts - runnerUpPts <= 2;
+    const category    = isApretado ? "apretado" : "mantiene";
+    const template    = pickTemplate(LEADER_TEMPLATES[category], seed);
+    return fillTemplate(template, { leader: leaders[0].display_name, points: pts });
   }
 
-  // Tie at the top
-  const wasAlreadyTied  = prevLeaderCount === leaders.length &&
-    leaders.every((l) => prevIds.has(l.user_id));
+  // Tie at the top (new or sustained — same wording either way)
+  const template = pickTemplate(LEADER_TEMPLATES.empate_cima, seed);
+  return fillTemplate(template, { leader: leaders[0].display_name, points: pts, names: joined(leaders) });
+}
 
-  if (wasAlreadyTied) {
-    return `🏆 ${joined(leaders)} siguen al frente con ${pts} pts.`;
-  }
-  return `🏆 ${joined(leaders)} comparten el liderato con ${pts} pts.`;
+function nUnidad(n: number): string {
+  return `${n} puesto${n === 1 ? "" : "s"}`;
 }
 
 function blockMovements(
+  matchId:       string,
   movements:     Movement[],
   allZeroBefore: boolean,
 ): string | null {
@@ -204,42 +255,40 @@ function blockMovements(
       if (m.change > 0) {
         const n = m.change;
         const enteredTop3 = m.rank_before > 3 && m.rank_after <= 3;
-        if (enteredTop3) {
-          return `📈 ${m.display_name} sube ${n} puesto${n > 1 ? "s" : ""} y entra al Top 3.`;
-        }
-        return `📈 ${m.display_name} sube ${n} puesto${n > 1 ? "s" : ""} al ${m.rank_after}°.`;
+        const category    = enteredTop3 ? "top3" : "sube";
+        const template     = pickTemplate(MOVEMENT_TEMPLATES[category], `${matchId}:movement:${m.user_id}`);
+        return fillTemplate(template, { name: m.display_name, n_unidad: nUnidad(n), position: m.rank_after });
       }
       const n = Math.abs(m.change);
-      return `📉 ${m.display_name} cae ${n} puesto${n > 1 ? "s" : ""} al ${m.rank_after}°.`;
+      const template = pickTemplate(MOVEMENT_TEMPLATES.cae, `${matchId}:movement:${m.user_id}`);
+      return fillTemplate(template, { name: m.display_name, n_unidad: nUnidad(n), position: m.rank_after });
     })
     .join("\n");
 }
 
-function blockExactos(preds: PredRow[]): string {
+function blockExactos(matchId: string, preds: PredRow[]): string {
   const exactos = preds.filter((p) => p.points_reason === "Marcador exacto");
+  const names   = exactos.map((p) => p.display_name);
+  const joined  =
+    names.length <= 1 ? (names[0] ?? "")
+    : names.slice(0, -1).join(", ") + " y " + names[names.length - 1];
 
-  if (exactos.length === 0) return "🎯 Nadie acertó el marcador exacto.";
-
-  const names = exactos.map((p) => p.display_name);
-  if (names.length === 1) return `🎯 ${names[0]} clavó el marcador exacto.`;
-  if (names.length <= 5) {
-    const joined = names.slice(0, -1).join(", ") + " y " + names[names.length - 1];
-    return `🎯 ${joined} acertaron el marcador exacto.`;
-  }
-  const sample = names.slice(0, 3).join(", ");
-  return `🎯 ${names.length} participantes acertaron el marcador exacto, entre ellos ${sample}.`;
+  const category = classifyExactosCategory(names.length);
+  const template = pickTemplate(EXACTOS_TEMPLATES[category], `${matchId}:exactos`);
+  return fillTemplate(template, { names: joined, count: names.length });
 }
 
-function blockParticipants(preds: PredRow[]): string | null {
+function blockParticipants(matchId: string, preds: PredRow[]): string | null {
   if (preds.length === 0) return null;
   const scorers = preds.filter((p) => p.points > 0).length;
 
-  if (scorers === 0)          return "⚡ Nadie sumó puntos en este partido.";
-  if (scorers === preds.length) return "⚡ Todos los participantes sumaron puntos.";
-  return `⚡ ${scorers} de ${preds.length} participantes sumaron puntos.`;
+  const category = classifyParticipantsCategory(scorers, preds.length);
+  const template = pickTemplate(PARTICIPANTS_TEMPLATES[category], `${matchId}:participants`);
+  return fillTemplate(template, { count: scorers, total: preds.length });
 }
 
 function blockPrizeZone(
+  matchId:       string,
   movements:     Movement[],
   after:         LbRow[],
   before:        Ranked[],
@@ -247,6 +296,7 @@ function blockPrizeZone(
 ): string | null {
   if (allZeroBefore) return null;
 
+  const seed        = `${matchId}:prize`;
   const rank1After  = after.filter((p) => p.rank === 1);
   const rank1Before = before.filter((p) => p.rank === 1);
 
@@ -259,17 +309,19 @@ function blockPrizeZone(
       rank1After.length === 2
         ? `${rank1After[0].display_name} y ${rank1After[1].display_name}`
         : `${rank1After.length} participantes`;
-    return `💰 ${joined} comparten el 1er lugar y dividen el primer premio.`;
+    const template = pickTemplate(PRIZE_TEMPLATES.comparte, seed);
+    return fillTemplate(template, { names: joined });
   }
 
   // Someone entered prize zone (top 2) from outside
   const entries = movements.filter((m) => m.rank_before > 2 && m.rank_after <= 2);
-  if (entries.length === 1) {
-    return `💰 ${entries[0].display_name} entra a zona de premios (puesto ${entries[0].rank_after}°).`;
-  }
-  if (entries.length > 1) {
-    const joined = entries.map((e) => e.display_name).join(" y ");
-    return `💰 ${joined} entran a zona de premios.`;
+  if (entries.length > 0) {
+    const joined =
+      entries.length === 1
+        ? entries[0].display_name
+        : entries.map((e) => e.display_name).join(" y ");
+    const template = pickTemplate(PRIZE_TEMPLATES.entra, seed);
+    return fillTemplate(template, { name: joined, position: entries[0].rank_after });
   }
 
   return null;
@@ -343,7 +395,8 @@ async function buildRichNews(
   awayName:    string,
   homeFlag:    string,
   awayFlag:    string,
-  exactPoints: number,
+  homeCode:    string | null,
+  awayCode:    string | null,
 ): Promise<{ summary: string; content: string }> {
   // ── 1. Find community group ─────────────────────────────────────────
   const { data: group } = await supabase
@@ -382,6 +435,8 @@ async function buildRichNews(
       display_name:  String(p.display_name),
       points:        Number(p.points ?? 0),
       points_reason: (p.points_reason as string | null) ?? null,
+      pred_home:     Number(p.home_score ?? 0),
+      pred_away:     Number(p.away_score ?? 0),
     }));
 
   // ── 4. Reconstruct "before" state ───────────────────────────────────
@@ -420,12 +475,12 @@ async function buildRichNews(
 
   // ── 6. Build content blocks ─────────────────────────────────────────
   const blocks = [
-    blockResult(homeFlag, homeName, homeScore, awayFlag, awayName, awayScore),
-    blockLeader(leaderboard, before, allZeroBefore),
-    blockMovements(movements, allZeroBefore),
-    blockExactos(preds),
-    blockParticipants(preds),
-    blockPrizeZone(movements, leaderboard, before, allZeroBefore),
+    blockResult(matchId, homeFlag, homeName, homeScore, homeCode, awayFlag, awayName, awayScore, awayCode, preds),
+    blockLeader(matchId, leaderboard, before, allZeroBefore),
+    blockMovements(matchId, movements, allZeroBefore),
+    blockExactos(matchId, preds),
+    blockParticipants(matchId, preds),
+    blockPrizeZone(matchId, movements, leaderboard, before, allZeroBefore),
   ].filter(Boolean) as string[];
 
   return {
@@ -482,13 +537,13 @@ export async function createMatchNews(
     const { data: match } = await supabase
       .from("matches")
       .select(
-        "stage, home_placeholder, away_placeholder, home_team:home_team_id(name, flag_emoji), away_team:away_team_id(name, flag_emoji)"
+        "home_placeholder, away_placeholder, home_team:home_team_id(name, flag_emoji, code), away_team:away_team_id(name, flag_emoji, code)"
       )
       .eq("id", matchId)
       .maybeSingle();
     if (!match) return;
 
-    type TeamRow = { name: string; flag_emoji: string | null };
+    type TeamRow = { name: string; flag_emoji: string | null; code: string | null };
     const homeTeam = match.home_team as unknown as TeamRow | null;
     const awayTeam = match.away_team as unknown as TeamRow | null;
 
@@ -496,15 +551,15 @@ export async function createMatchNews(
     const awayName = awayTeam?.name ?? (match.away_placeholder as string | null) ?? "Visitante";
     const homeFlag = homeTeam?.flag_emoji ?? "";
     const awayFlag = awayTeam?.flag_emoji ?? "";
-    const stage    = (match.stage as string | null) ?? "group";
+    const homeCode = homeTeam?.code ?? null;
+    const awayCode = awayTeam?.code ?? null;
 
-    const title       = `${homeName} ${homeScore} - ${awayScore} ${awayName}`;
-    const exactPoints = STAGE_EXACT[stage] ?? 3;
+    const title = `${homeName} ${homeScore} - ${awayScore} ${awayName}`;
 
     // Attempt rich news; fall back to basic on any failure.
     const { summary, content } = await buildRichNews(
       supabase, matchId, homeScore, awayScore,
-      homeName, awayName, homeFlag, awayFlag, exactPoints,
+      homeName, awayName, homeFlag, awayFlag, homeCode, awayCode,
     ).catch(() => ({
       summary: "El partido finalizó y la clasificación fue actualizada.",
       content: buildBasicContent(homeFlag, homeName, homeScore, awayFlag, awayName, awayScore),
