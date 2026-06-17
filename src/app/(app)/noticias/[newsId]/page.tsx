@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { isAdmin, isUserDisabled } from "@/lib/db/admin";
 import { isGroupMember } from "@/lib/db/groups";
 import { getNewsDetail } from "@/lib/db/news";
+import { formatNewsDate } from "@/lib/news/format";
 import ShareNewsButton from "@/components/news/ShareNewsButton";
 
 // ── Open Graph metadata ───────────────────────────────────────────────
@@ -161,7 +162,7 @@ export default async function NoticiaDetailPage({ params }: PageProps) {
 }
 
 function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("es-CO", {
+  return formatNewsDate(iso, {
     day: "numeric",
     month: "long",
     year: "numeric",

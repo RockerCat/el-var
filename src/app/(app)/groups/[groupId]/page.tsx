@@ -6,6 +6,7 @@ import { getGroupLeaderboard, getGroupActivity } from "@/lib/db/leaderboard";
 import { isUserDisabled } from "@/lib/db/admin";
 import { getActivePlayerCount } from "@/lib/db/groups";
 import { getNewsList } from "@/lib/db/news";
+import { formatNewsDate } from "@/lib/news/format";
 import MemberList from "@/components/groups/MemberList";
 import GroupStats from "@/components/groups/GroupStats";
 import ActivityFeed from "@/components/groups/ActivityFeed";
@@ -177,7 +178,7 @@ export default async function GroupPage({
                     {item.summary}
                   </p>
                   <p className="text-[10px] text-[#475569] font-mono mt-1.5">
-                    {new Date(item.created_at).toLocaleDateString("es-CO", {
+                    {formatNewsDate(item.created_at, {
                       day: "numeric",
                       month: "long",
                     })}

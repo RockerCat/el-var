@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { isAdmin, isUserDisabled } from "@/lib/db/admin";
 import { isGroupMember } from "@/lib/db/groups";
 import { getNewsList } from "@/lib/db/news";
+import { formatNewsDate } from "@/lib/news/format";
 
 export default async function NoticiasPage() {
   const supabase = await createClient();
@@ -64,7 +65,7 @@ export default async function NoticiasPage() {
 }
 
 function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("es-CO", {
+  return formatNewsDate(iso, {
     day: "numeric",
     month: "long",
     year: "numeric",
