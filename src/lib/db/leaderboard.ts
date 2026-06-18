@@ -11,6 +11,18 @@ type RawEntry = {
   rank:         number | string;
 };
 
+// Posición oficial: depende únicamente de total_points. La RPC ordena las
+// filas con un desempate visual adicional (exact_count, result_count,
+// nombre) que seguimos respetando para el orden de despliegue entre
+// empatados, pero ese desempate no es una regla publicada y no debe
+// determinar el número de puesto — solo total_points lo determina.
+function withOfficialRank(entries: LeaderboardEntry[]): LeaderboardEntry[] {
+  return entries.map((e) => ({
+    ...e,
+    rank: entries.filter((o) => o.total_points > e.total_points).length + 1,
+  }));
+}
+
 export async function getGroupLeaderboard(groupId: string): Promise<LeaderboardEntry[]> {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("get_group_leaderboard", {
@@ -22,7 +34,7 @@ export async function getGroupLeaderboard(groupId: string): Promise<LeaderboardE
     return [];
   }
 
-  return ((data ?? []) as RawEntry[]).map((row) => ({
+  const entries = ((data ?? []) as RawEntry[]).map((row) => ({
     user_id:      row.user_id,
     display_name: row.display_name,
     total_points: Number(row.total_points),
@@ -31,6 +43,8 @@ export async function getGroupLeaderboard(groupId: string): Promise<LeaderboardE
     pred_count:   Number(row.pred_count),
     rank:         Number(row.rank),
   }));
+
+  return withOfficialRank(entries);
 }
 
 export async function getGroupActivity(

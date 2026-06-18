@@ -101,25 +101,19 @@ type Movement = {
   change:       number;
 };
 
-// ── Rank computation (mirrors SQL RANK() with same tie-breaker) ───────
+// ── Rank computation ────────────────────────────────────────────────
+// Posición oficial: depende únicamente de total_points (no hay regla
+// publicada que desempate por exact_count/result_count). exact_count y
+// result_count ya no participan del cálculo de puesto.
 
 function assignRanks(players: Rankable[]): Ranked[] {
-  const sorted = [...players].sort(
-    (a, b) =>
-      b.total_points - a.total_points ||
-      b.exact_count  - a.exact_count  ||
-      b.result_count - a.result_count
-  );
+  const sorted = [...players].sort((a, b) => b.total_points - a.total_points);
 
   let currentRank = 1;
   return sorted.map((p, i) => {
     if (i > 0) {
       const prev = sorted[i - 1];
-      const sameTier =
-        p.total_points === prev.total_points &&
-        p.exact_count  === prev.exact_count  &&
-        p.result_count === prev.result_count;
-      if (!sameTier) currentRank = i + 1;
+      if (p.total_points !== prev.total_points) currentRank = i + 1;
     }
     return { ...p, rank: currentRank };
   });
@@ -198,21 +192,32 @@ function blockResult(
   return fillTemplate(template, vars);
 }
 
+// "Líder" se define por el máximo de total_points (empate real de puntos),
+// no por el campo `rank` de la tabla: ese rank usa total_points/exact_count/
+// result_count como desempate visual, lo que puede separar en filas distintas
+// a dos jugadores con los mismos puntos y ocultar un empate editorial real.
+function topScorers<T extends { total_points: number }>(players: T[]): T[] {
+  if (players.length === 0) return [];
+  const topPoints = Math.max(...players.map((p) => p.total_points));
+  return players.filter((p) => p.total_points === topPoints);
+}
+
 function blockLeader(
   matchId:      string,
   after:        LbRow[],
   before:       Ranked[],
   allZeroBefore: boolean,
 ): string {
-  const leaders = after.filter((p) => p.rank === 1);
+  const leaders = topScorers(after);
   if (leaders.length === 0) return "🏆 La tabla se mueve";
 
   const pts             = leaders[0].total_points;
-  const prevIds         = new Set(before.filter((p) => p.rank === 1).map((p) => p.user_id));
-  const prevLeaderCount = before.filter((p) => p.rank === 1).length;
+  const prevLeaders     = topScorers(before);
+  const prevIds         = new Set(prevLeaders.map((p) => p.user_id));
+  const prevLeaderCount = prevLeaders.length;
   const seed             = `${matchId}:leader`;
 
-  const joined = (arr: LbRow[]) =>
+  const joined = (arr: { display_name: string }[]) =>
     arr.length === 1 ? arr[0].display_name
     : arr.length === 2 ? `${arr[0].display_name} y ${arr[1].display_name}`
     : `${arr.slice(0, -1).map((l) => l.display_name).join(", ")} y ${arr[arr.length - 1].display_name}`;
@@ -241,9 +246,39 @@ function blockLeader(
     return fillTemplate(template, { leader: leaders[0].display_name, points: pts });
   }
 
-  // Tie at the top (new or sustained — same wording either way)
-  const template = pickTemplate(LEADER_TEMPLATES.empate_cima, seed);
-  return fillTemplate(template, { leader: leaders[0].display_name, points: pts, names: joined(leaders) });
+  // Tie at the top now (leaders.length > 1).
+  const sameTieAsBefore =
+    !allZeroBefore &&
+    prevLeaderCount > 1 &&
+    prevLeaderCount === leaders.length &&
+    leaders.every((l) => prevIds.has(l.user_id));
+
+  if (sameTieAsBefore) {
+    const template = pickTemplate(LEADER_TEMPLATES.empate_sostenido, seed);
+    return fillTemplate(template, { names: joined(leaders), points: pts });
+  }
+
+  // A single previous sole leader got caught by one or more chasers and
+  // is still part of the new tie: the headline event is "X alcanza a Y".
+  if (!allZeroBefore && prevLeaderCount === 1 && leaders.some((l) => l.user_id === prevLeaders[0].user_id)) {
+    const previousLeader = prevLeaders[0];
+    const chasers         = leaders.filter((l) => l.user_id !== previousLeader.user_id);
+    const verb            = chasers.length === 1 ? "alcanza" : "alcanzan";
+    const groupWord        = leaders.length === 2 ? "ambos" : "todos";
+    const template         = pickTemplate(LEADER_TEMPLATES.alcanza_empate, seed);
+    return fillTemplate(template, {
+      chasers:        joined(chasers),
+      verb,
+      groupWord,
+      previousLeader: previousLeader.display_name,
+      points:         pts,
+    });
+  }
+
+  // Any other new tie at the top (first scored match, or a tie that
+  // doesn't involve the previous sole leader).
+  const template = pickTemplate(LEADER_TEMPLATES.empate_nuevo, seed);
+  return fillTemplate(template, { names: joined(leaders), points: pts });
 }
 
 function nUnidad(n: number): string {
@@ -359,8 +394,9 @@ function buildSummary(
   movements:     Movement[],
   allZeroBefore: boolean,
 ): string {
-  const leaders    = after.filter((p) => p.rank === 1);
-  const prevIds    = new Set(before.filter((p) => p.rank === 1).map((p) => p.user_id));
+  const leaders    = topScorers(after);
+  const prevLeaders = topScorers(before);
+  const prevIds    = new Set(prevLeaders.map((p) => p.user_id));
   const leaderName = leaders[0]?.display_name ?? "";
   const scorers    = preds.filter((p) => p.points > 0).length;
   const exactos    = preds.filter((p) => p.points_reason === "Marcador exacto");
@@ -373,7 +409,7 @@ function buildSummary(
   }
 
   // 2. New tie at the top
-  const prevLeaderCount = before.filter((p) => p.rank === 1).length;
+  const prevLeaderCount = prevLeaders.length;
   const nowTied         = leaders.length > 1;
   const tieIsNew        = nowTied && prevLeaderCount !== leaders.length && !allZeroBefore;
   if (tieIsNew) {
@@ -456,13 +492,21 @@ async function buildRichNews(
   });
   if (lbErr || !lbRaw) throw new Error("no_leaderboard");
 
-  const leaderboard: LbRow[] = (lbRaw as Record<string, unknown>[]).map((r) => ({
+  const leaderboardRaw: LbRow[] = (lbRaw as Record<string, unknown>[]).map((r) => ({
     user_id:      String(r.user_id),
     display_name: String(r.display_name),
     total_points: Number(r.total_points),
     exact_count:  Number(r.exact_count),
     result_count: Number(r.result_count),
     rank:         Number(r.rank),
+  }));
+  // El rank de la RPC desempata por exact_count/result_count; lo
+  // sobreescribimos para que "rank 2" (usado más abajo para el margen de
+  // "apretado") siga reflejando solo total_points, igual que en el resto
+  // del sistema (ver withOfficialRank en src/lib/db/leaderboard.ts).
+  const leaderboard: LbRow[] = leaderboardRaw.map((e) => ({
+    ...e,
+    rank: leaderboardRaw.filter((o) => o.total_points > e.total_points).length + 1,
   }));
 
   // ── 3. This match's predictions (with display names, admin-only RPC) ─

@@ -102,7 +102,9 @@ export type LeaderCategory =
   | "apretado"
   | "nuevo"
   | "rompe_empate"
-  | "empate_cima";
+  | "alcanza_empate"
+  | "empate_nuevo"
+  | "empate_sostenido";
 
 export const LEADER_TEMPLATES: Record<LeaderCategory, string[]> = {
   mantiene: [
@@ -124,10 +126,23 @@ export const LEADER_TEMPLATES: Record<LeaderCategory, string[]> = {
     "🏆 {leader} rompe el empate y toma la punta en solitario con {points} pts.",
     "🏆 {leader} se despega del resto y queda solo en la cima con {points} pts.",
   ],
-  empate_cima: [
+  // Líder único anterior es alcanzado por uno o más perseguidores que
+  // empatan en puntos. {chasers}/{verb} (alcanza/alcanzan) y {groupWord}
+  // (ambos/todos) los calcula el caller según el número de perseguidores.
+  alcanza_empate: [
+    "🏆 {chasers} {verb} a {previousLeader} y ahora {groupWord} comparten la cima con {points} pts.",
+  ],
+  // Empate en la cima que no existía antes del partido, sin un líder único
+  // previo identificable (p. ej. primer partido con puntos, o el empate
+  // surge entre jugadores que no incluyen al líder anterior).
+  empate_nuevo: [
     "🏆 {names} comparten el liderato con {points} pts.",
     "🏆 Empate en la cima: {names} con {points} pts.",
     "🏆 {names} llegan juntos a lo más alto de la tabla con {points} pts.",
+  ],
+  // El empate en la cima ya existía antes del partido y se mantiene igual.
+  empate_sostenido: [
+    "🏆 {names} siguen compartiendo el liderato con {points} pts.",
   ],
 };
 
