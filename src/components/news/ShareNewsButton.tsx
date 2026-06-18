@@ -2,21 +2,19 @@
 
 import { Share2 } from "lucide-react";
 
-function buildShareText(content: string, shortUrl: string): string {
-  const normalized = content.trim().replace(/\n{2,}/g, "\n");
-  return `La Penúltima News:\n\n${normalized}\n\nMás noticias en:\n${shortUrl}`;
+function buildShareText(content: string, newsUrl: string): string {
+  const normalized = content.trim().replace(/\n{3,}/g, "\n\n");
+  return `🎙️ La Penúltima News\n🤖 Generado por IA\n\n${normalized}\n\n📰 Más noticias:\n${newsUrl}`;
 }
 
 export default function ShareNewsButton({
-  newsId,
   content,
 }: {
-  newsId: string;
   content: string;
 }) {
   function handleShare() {
-    const shortUrl = `${window.location.origin}/n/${newsId}`;
-    const shareText = buildShareText(content, shortUrl);
+    const newsUrl = `${window.location.origin}/news`;
+    const shareText = buildShareText(content, newsUrl);
     const url = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
     window.open(url, "_blank", "noopener,noreferrer");
   }

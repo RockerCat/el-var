@@ -145,7 +145,7 @@ export default async function NoticiaDetailPage({ params }: PageProps) {
       )}
 
       {/* Share */}
-      <ShareNewsButton newsId={item.id} content={item.content} />
+      <ShareNewsButton content={item.content} />
 
       {/* CTA — discrete, below content */}
       {item.related_match_id && (
