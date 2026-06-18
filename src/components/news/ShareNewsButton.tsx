@@ -4,7 +4,7 @@ import { Share2 } from "lucide-react";
 
 function buildShareText(content: string, newsUrl: string): string {
   const normalized = content.trim().replace(/\n{3,}/g, "\n\n");
-  return `🎙️ La Penúltima News\n🤖 Generado por IA\n\n${normalized}\n\n📰 Más noticias:\n${newsUrl}`;
+  return `🤖 La Penúltima News\n🎙️ Generado por IA\n\n${normalized}\n\n📰 Más noticias:\n${newsUrl}`;
 }
 
 export default function ShareNewsButton({
