@@ -7,9 +7,11 @@ import {
   updateMatchResultAction,
   updateMatchFixtureAction,
   getMatchPredictionsAction,
+  getMatchMissingPredictionsAction,
   type UpdateMatchState,
   type UpdateFixtureState,
   type MatchPrediction,
+  type MissingPrediction,
 } from "@/app/actions/admin";
 import { matchTeamName, matchTeamCode, matchTeamFlag, isKnockoutStage, type Match } from "@/lib/matches";
 
@@ -88,15 +90,21 @@ function PredictionsPanel({ matchId, startsAt }: { matchId: string; startsAt: st
   const [open, setOpen]               = useState(false);
   const [loading, setLoading]         = useState(false);
   const [predictions, setPredictions] = useState<MatchPrediction[] | null>(null);
+  const [missing, setMissing]         = useState<MissingPrediction[] | null>(null);
   const [fetchError, setFetchError]   = useState<string | null>(null);
 
   async function toggle() {
     if (!open && predictions === null) {
       setLoading(true);
-      const result = await getMatchPredictionsAction(matchId);
+      const [predResult, missingResult] = await Promise.all([
+        getMatchPredictionsAction(matchId),
+        getMatchMissingPredictionsAction(matchId),
+      ]);
       setLoading(false);
-      if (result.error) { setFetchError(result.error); return; }
-      setPredictions(result.predictions ?? []);
+      if (predResult.error) { setFetchError(predResult.error); return; }
+      if (missingResult.error) { setFetchError(missingResult.error); return; }
+      setPredictions(predResult.predictions ?? []);
+      setMissing(missingResult.missing ?? []);
     }
     setOpen((v) => !v);
   }
@@ -182,6 +190,28 @@ function PredictionsPanel({ matchId, startsAt }: { matchId: string; startsAt: st
                   );
                 })}
               </div>
+            </div>
+          )}
+
+          {/* Missing predictions */}
+          {missing !== null && (
+            <div className="mt-4">
+              <p className="text-[10px] font-semibold text-[#64748b] uppercase tracking-widest mb-2">
+                Sin pronóstico ({missing.length})
+              </p>
+              {missing.length === 0 ? (
+                <p className="text-xs text-[#64748b] py-1">
+                  Todos los usuarios activos ya pronosticaron este partido.
+                </p>
+              ) : (
+                <div className="rounded-xl border border-[#1e1e35] divide-y divide-[#1e1e35]">
+                  {missing.map((m) => (
+                    <p key={m.user_id} className="px-4 py-2 text-xs text-[#94a3b8]">
+                      {m.display_name}
+                    </p>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>

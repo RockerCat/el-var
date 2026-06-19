@@ -28,6 +28,11 @@ export type MatchPrediction = {
   updated_at:    string;
 };
 
+export type MissingPrediction = {
+  user_id:      string;
+  display_name: string;
+};
+
 // ── Helpers ───────────────────────────────────────────────────────────
 
 type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
@@ -74,6 +79,21 @@ export async function getMatchPredictionsAction(
   });
   if (error) return { error: error.message };
   return { predictions: (data ?? []) as MatchPrediction[] };
+}
+
+// ── getMatchMissingPredictionsAction ──────────────────────────────────
+// Read-only: returns active, non-disabled, non-admin participants who
+// have NOT submitted a prediction for the match.
+
+export async function getMatchMissingPredictionsAction(
+  matchId: string
+): Promise<{ missing?: MissingPrediction[]; error?: string }> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("get_match_missing_predictions", {
+    p_match_id: matchId,
+  });
+  if (error) return { error: error.message };
+  return { missing: (data ?? []) as MissingPrediction[] };
 }
 
 // ── recalculateAllScoresAction ────────────────────────────────────────
