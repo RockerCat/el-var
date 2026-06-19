@@ -135,6 +135,18 @@ export function formatKickoff(startsAt: string): string {
   }) + ` · ${time}`;
 }
 
+/** Short, friendly timestamp for when a prediction was made/updated, e.g. "18 jun, 9:25 p. m." */
+export function formatPredictionTimestamp(iso: string): string {
+  const TZ = "America/Bogota";
+  const d = new Date(iso);
+
+  const day   = d.toLocaleDateString("es-CO", { day: "numeric", timeZone: TZ });
+  const month = d.toLocaleDateString("es-CO", { month: "short", timeZone: TZ }).replace(/\.$/, "");
+  const time  = d.toLocaleTimeString("es-CO", { hour: "numeric", minute: "2-digit", timeZone: TZ });
+
+  return `${day} ${month}, ${time}`;
+}
+
 export type ScoringResult = {
   points: number;
   reason: "Marcador exacto" | "Resultado acertado" | "Sin puntos";

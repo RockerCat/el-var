@@ -2,9 +2,16 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { isAdmin, isUserDisabled } from "@/lib/db/admin";
 import { isGroupMember, getUserGroupsWithMeta } from "@/lib/db/groups";
-import { getMatchDetailPredictions, syncStartedMatches, type MatchPredictionEntry } from "@/lib/db/matches";
+import {
+  getMatchDetailPredictions,
+  getMatchMissingPredictions,
+  syncStartedMatches,
+  type MatchPredictionEntry,
+  type MissingPredictionEntry,
+} from "@/lib/db/matches";
 import {
   formatKickoff,
+  formatPredictionTimestamp,
   PHASE_LABELS,
   PHASE_SCORING,
   simulatePoints,
@@ -71,12 +78,15 @@ export default async function MatchDetailPage({
   const myPrediction = predResult.data as Prediction | null;
   const community    = groups[0] ?? null;
 
-  // ── Fetch group predictions (live / finished only) ────────────────
+  // ── Fetch group predictions (revealed only) + missing predictions (always) ──
   const revealed = match.status === "live" || match.status === "finished";
-  const allPreds: MatchPredictionEntry[] =
-    revealed && community
-      ? await getMatchDetailPredictions(matchId, community.id)
-      : [];
+  const [allPreds, missingPreds]: [MatchPredictionEntry[], MissingPredictionEntry[]] =
+    community
+      ? await Promise.all([
+          revealed ? getMatchDetailPredictions(matchId, community.id) : Promise.resolve([]),
+          getMatchMissingPredictions(matchId, community.id),
+        ])
+      : [[], []];
 
   // ── Derived data ──────────────────────────────────────────────────
   const stage      = match.stage as MatchStage;
@@ -242,18 +252,29 @@ export default async function MatchDetailPage({
             </section>
           )}
 
-          {/* ── Comunidad ─────────────────────────────────────────── */}
-          {insights.length > 0 && (
-            <section>
-              <SectionHeader title="Comunidad" />
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {insights.map((ins, i) => (
-                  <InsightCard key={i} insight={ins} />
-                ))}
-              </div>
-            </section>
-          )}
         </>
+      )}
+
+      {/* ── Sin pronóstico ───────────────────────────────────────────
+          Shown regardless of match status (scheduled / live / finished) —
+          participation transparency, not prediction content. */}
+      {missingPreds.length > 0 && (
+        <section>
+          <SectionHeader title={`Sin pronóstico (${missingPreds.length})`} />
+          <MissingPredictionsCard entries={missingPreds} />
+        </section>
+      )}
+
+      {/* ── Comunidad ─────────────────────────────────────────────── */}
+      {revealed && insights.length > 0 && (
+        <section>
+          <SectionHeader title="Comunidad" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {insights.map((ins, i) => (
+              <InsightCard key={i} insight={ins} />
+            ))}
+          </div>
+        </section>
       )}
 
     </div>
@@ -657,13 +678,18 @@ function PredictionsTable({
               isMe && "bg-[#00c85a]/[0.04]"
             )}
           >
-            <p className={cn(
-              "text-sm font-semibold truncate",
-              isMe ? "text-[#00c85a]" : "text-[#f1f5f9]"
-            )}>
-              {entry.display_name}
-              {isMe && <span className="text-[10px] text-[#00c85a]/60 font-mono ml-1">tú</span>}
-            </p>
+            <div className="min-w-0">
+              <p className={cn(
+                "text-sm font-semibold truncate",
+                isMe ? "text-[#00c85a]" : "text-[#f1f5f9]"
+              )}>
+                {entry.display_name}
+                {isMe && <span className="text-[10px] text-[#00c85a]/60 font-mono ml-1">tú</span>}
+              </p>
+              <p className="text-[11px] text-[#64748b] truncate">
+                {formatPredictionTimestamp(entry.predicted_at)}
+              </p>
+            </div>
 
             <span className="text-sm font-mono font-bold text-[#94a3b8] text-center w-14 tabular-nums">
               {entry.pred_home}–{entry.pred_away}
@@ -684,6 +710,25 @@ function PredictionsTable({
           </div>
         );
       })}
+    </div>
+  );
+}
+
+// ── Missing predictions ───────────────────────────────────────────────
+
+function MissingPredictionsCard({ entries }: { entries: MissingPredictionEntry[] }) {
+  const sorted = [...entries].sort((a, b) => a.display_name.localeCompare(b.display_name));
+
+  return (
+    <div className="bg-[#11111c] border border-[#1e1e35] rounded-2xl overflow-hidden">
+      {sorted.map((entry) => (
+        <div
+          key={entry.user_id}
+          className="px-4 py-3 border-b border-[#1e1e35] last:border-b-0"
+        >
+          <p className="text-sm font-semibold text-[#94a3b8] truncate">{entry.display_name}</p>
+        </div>
+      ))}
     </div>
   );
 }

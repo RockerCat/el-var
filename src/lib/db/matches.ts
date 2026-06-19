@@ -8,6 +8,12 @@ export type MatchPredictionEntry = {
   pred_away:     number;
   points:        number;
   points_reason: string | null;
+  predicted_at:  string;
+};
+
+export type MissingPredictionEntry = {
+  user_id:      string;
+  display_name: string;
 };
 
 type RawMatch = Omit<Match, "home_team" | "away_team"> & {
@@ -97,4 +103,20 @@ export async function getMatchDetailPredictions(
     return [];
   }
   return (data ?? []) as MatchPredictionEntry[];
+}
+
+export async function getMatchMissingPredictions(
+  matchId: string,
+  groupId: string
+): Promise<MissingPredictionEntry[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("get_match_missing_predictions_for_group", {
+    p_match_id: matchId,
+    p_group_id: groupId,
+  });
+  if (error) {
+    console.error("[matches] getMatchMissingPredictions:", error.message);
+    return [];
+  }
+  return (data ?? []) as MissingPredictionEntry[];
 }
