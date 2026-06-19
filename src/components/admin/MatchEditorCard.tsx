@@ -84,7 +84,7 @@ function FormFeedback({ state }: { state: UpdateMatchState | UpdateFixtureState 
 
 // ── Predictions panel (inline, expandable) ────────────────────────────
 
-function PredictionsPanel({ matchId }: { matchId: string }) {
+function PredictionsPanel({ matchId, startsAt }: { matchId: string; startsAt: string }) {
   const [open, setOpen]               = useState(false);
   const [loading, setLoading]         = useState(false);
   const [predictions, setPredictions] = useState<MatchPrediction[] | null>(null);
@@ -140,12 +140,14 @@ function PredictionsPanel({ matchId }: { matchId: string }) {
               <div className="grid grid-cols-[1fr_auto_auto] gap-3 px-4 py-2 bg-[#0e0e1d] text-[9px] font-semibold text-[#64748b] uppercase tracking-widest">
                 <span>Usuario</span>
                 <span className="text-center">Pronóstico</span>
-                <span className="text-right">Enviado</span>
+                <span className="text-right">Última actualización</span>
               </div>
               {/* Rows */}
               <div className="divide-y divide-[#1e1e35]">
                 {predictions.map((p) => {
                   const wasModified = p.updated_at !== p.submitted_at;
+                  const displayDate = wasModified ? p.updated_at : p.submitted_at;
+                  const isLate = new Date(displayDate) >= new Date(startsAt);
                   return (
                     <div key={p.user_id} className="grid grid-cols-[1fr_auto_auto] gap-3 items-center px-4 py-2.5">
                       <div className="min-w-0">
@@ -166,8 +168,11 @@ function PredictionsPanel({ matchId }: { matchId: string }) {
                           </p>
                         )}
                       </div>
-                      <p className="text-[9px] text-[#64748b] text-right tabular-nums">
-                        {new Date(p.submitted_at).toLocaleString("es-CO", {
+                      <p
+                        className={`text-[9px] text-right tabular-nums ${isLate ? "text-[#ef4444]" : "text-[#64748b]"}`}
+                        title={isLate ? "Advertencia: pronóstico con fecha posterior al inicio del partido" : undefined}
+                      >
+                        {new Date(displayDate).toLocaleString("es-CO", {
                           month: "short", day: "numeric",
                           hour: "2-digit", minute: "2-digit",
                           timeZone: "America/Bogota",
@@ -404,7 +409,7 @@ export default function MatchEditorCard({ match }: { match: Match }) {
         </div>
 
         {/* ── Section 3: Predictions (expandable) ─────────────────── */}
-        <PredictionsPanel matchId={match.id} />
+        <PredictionsPanel matchId={match.id} startsAt={match.starts_at} />
 
         {/* ── Section 4: Advanced edit link ───────────────────────── */}
         <div className="border-t border-[#1e1e35] px-5 py-3">
