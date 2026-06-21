@@ -5,7 +5,9 @@ import type {
   GroupStanding,
   TeamStanding,
   KnockoutPreviewMatch,
+  ClassificationTeam,
 } from "@/lib/classification";
+import { resolveSlot, assignBestThirdSlots } from "@/lib/classification";
 import { formatKickoff } from "@/lib/matches";
 
 // ── Types ──────────────────────────────────────────────────────────────
@@ -118,15 +120,23 @@ function GroupCard({ group }: { group: GroupStanding }) {
 
 // ── KnockoutMatchCard (phase view — full card with date + venue) ────────
 
-function KnockoutMatchCard({ match, large = false }: { match: KnockoutPreviewMatch; large?: boolean }) {
-  const homeTeam  = match.home_team;
-  const awayTeam  = match.away_team;
+function KnockoutMatchCard({ match, large = false, groups, homeBestThird, awayBestThird }: {
+  match: KnockoutPreviewMatch;
+  large?: boolean;
+  groups?: GroupStanding[];
+  homeBestThird?: ClassificationTeam | null;
+  awayBestThird?: ClassificationTeam | null;
+}) {
+  const homeSlot  = resolveSlot(match.home_team, match.home_placeholder, groups ?? [], homeBestThird ?? null);
+  const awaySlot  = resolveSlot(match.away_team, match.away_placeholder, groups ?? [], awayBestThird ?? null);
+  const homeTeam  = homeSlot.kind !== "unresolved" ? homeSlot.team : null;
+  const awayTeam  = awaySlot.kind !== "unresolved" ? awaySlot.team : null;
+  const isHomeProjected = homeSlot.kind === "projected";
+  const isAwayProjected = awaySlot.kind === "projected";
   const homeFlag  = homeTeam?.flag_emoji;
   const awayFlag  = awayTeam?.flag_emoji;
-  const homeName  = homeTeam?.name  ?? match.home_placeholder ?? "Por definir";
-  const awayName  = awayTeam?.name  ?? match.away_placeholder ?? "Por definir";
-  const homeCode  = homeTeam?.code  ?? match.home_placeholder ?? "TBD";
-  const awayCode  = awayTeam?.code  ?? match.away_placeholder ?? "TBD";
+  const homeCode  = homeSlot.kind === "unresolved" ? homeSlot.label : homeTeam!.code;
+  const awayCode  = awaySlot.kind === "unresolved" ? awaySlot.label : awayTeam!.code;
   const hasScore  = match.home_score !== null && match.away_score !== null;
   const isLive    = match.status === "live";
   const isFinished = match.status === "finished";
@@ -153,12 +163,14 @@ function KnockoutMatchCard({ match, large = false }: { match: KnockoutPreviewMat
       </div>
       <div className="px-4 py-3 flex items-center gap-2">
         <div className="flex-1 flex items-center gap-2 min-w-0">
-          <span className={`${flagSize} leading-none shrink-0 ${!homeFlag ? "opacity-30" : ""}`}>{homeFlag ?? "🏳️"}</span>
+          <span className={`${flagSize} leading-none shrink-0 ${!homeTeam ? "opacity-30" : isHomeProjected ? "opacity-80" : ""}`}>{homeFlag ?? "🏳️"}</span>
           <div className="min-w-0">
             {homeTeam ? (
               <>
-                <p className={`${nameSize} font-bold text-[#f1f5f9] truncate`}>{homeTeam.name}</p>
-                <p className="text-[10px] text-[#64748b] font-mono">{homeTeam.code}</p>
+                <p className={`${nameSize} font-bold truncate ${isHomeProjected ? "italic text-[#3b82f6] opacity-80" : "text-[#f1f5f9]"}`}>
+                  {isHomeProjected && "🔮 "}{homeTeam.name}
+                </p>
+                <p className={`text-[10px] font-mono ${isHomeProjected ? "text-[#3b82f6]/70 italic" : "text-[#64748b]"}`}>{homeTeam.code}</p>
               </>
             ) : (
               <p className={`${nameSize} font-mono text-[#64748b] italic truncate`}>{homeCode}</p>
@@ -178,14 +190,16 @@ function KnockoutMatchCard({ match, large = false }: { match: KnockoutPreviewMat
           <div className="min-w-0 text-right">
             {awayTeam ? (
               <>
-                <p className={`${nameSize} font-bold text-[#f1f5f9] truncate`}>{awayTeam.name}</p>
-                <p className="text-[10px] text-[#64748b] font-mono">{awayTeam.code}</p>
+                <p className={`${nameSize} font-bold truncate ${isAwayProjected ? "italic text-[#3b82f6] opacity-80" : "text-[#f1f5f9]"}`}>
+                  {awayTeam.name}{isAwayProjected && " 🔮"}
+                </p>
+                <p className={`text-[10px] font-mono ${isAwayProjected ? "text-[#3b82f6]/70 italic" : "text-[#64748b]"}`}>{awayTeam.code}</p>
               </>
             ) : (
               <p className={`${nameSize} font-mono text-[#64748b] italic truncate`}>{awayCode}</p>
             )}
           </div>
-          <span className={`${flagSize} leading-none shrink-0 ${!awayFlag ? "opacity-30" : ""}`}>{awayFlag ?? "🏳️"}</span>
+          <span className={`${flagSize} leading-none shrink-0 ${!awayTeam ? "opacity-30" : isAwayProjected ? "opacity-80" : ""}`}>{awayFlag ?? "🏳️"}</span>
         </div>
       </div>
       {match.venue && (
@@ -221,10 +235,12 @@ function GruposTab({ groups }: { groups: GroupStanding[] }) {
   );
 }
 
-function KnockoutTab({ matches, emptyMessage, cols = 2 }: {
+function KnockoutTab({ matches, emptyMessage, cols = 2, groups, bestThirdAssignment }: {
   matches: KnockoutPreviewMatch[];
   emptyMessage: string;
   cols?: 1 | 2;
+  groups?: GroupStanding[];
+  bestThirdAssignment?: Map<string, ClassificationTeam>;
 }) {
   if (matches.length === 0) {
     return (
@@ -234,8 +250,19 @@ function KnockoutTab({ matches, emptyMessage, cols = 2 }: {
     );
   }
   return (
-    <div className={cols === 2 ? "grid gap-3 sm:grid-cols-2" : "grid gap-3"}>
-      {matches.map((m) => <KnockoutMatchCard key={m.id} match={m} />)}
+    <div className="space-y-3">
+      {groups && <ProjectionLegend />}
+      <div className={cols === 2 ? "grid gap-3 sm:grid-cols-2" : "grid gap-3"}>
+        {matches.map((m) => (
+          <KnockoutMatchCard
+            key={m.id}
+            match={m}
+            groups={groups}
+            homeBestThird={bestThirdAssignment?.get(`${m.id}:home`)}
+            awayBestThird={bestThirdAssignment?.get(`${m.id}:away`)}
+          />
+        ))}
+      </div>
     </div>
   );
 }
@@ -301,14 +328,23 @@ function BracketGroupMini({ group }: { group: GroupStanding }) {
 
 // ── BracketMatchRow — compact 2-line card for bracket column ───────────
 
-function BracketMatchRow({ match, highlight = false }: {
+function BracketMatchRow({ match, highlight = false, groups, homeBestThird, awayBestThird }: {
   match: KnockoutPreviewMatch;
   highlight?: boolean;
+  groups?: GroupStanding[];
+  homeBestThird?: ClassificationTeam | null;
+  awayBestThird?: ClassificationTeam | null;
 }) {
   const home = match.home_team;
   const away = match.away_team;
-  const homeCode  = home?.code  ?? match.home_placeholder ?? "TBD";
-  const awayCode  = away?.code  ?? match.away_placeholder ?? "TBD";
+  const homeSlot  = resolveSlot(home, match.home_placeholder, groups ?? [], homeBestThird ?? null);
+  const awaySlot  = resolveSlot(away, match.away_placeholder, groups ?? [], awayBestThird ?? null);
+  const homeTeam  = homeSlot.kind !== "unresolved" ? homeSlot.team : null;
+  const awayTeam  = awaySlot.kind !== "unresolved" ? awaySlot.team : null;
+  const homeLabel = homeSlot.kind === "unresolved" ? homeSlot.label : homeTeam!.code;
+  const awayLabel = awaySlot.kind === "unresolved" ? awaySlot.label : awayTeam!.code;
+  const isHomeProjected = homeSlot.kind === "projected";
+  const isAwayProjected = awaySlot.kind === "projected";
   const hasScore  = match.home_score !== null && match.away_score !== null;
   const homeWins  = hasScore && (match.home_score ?? 0) > (match.away_score ?? 0);
   const awayWins  = hasScore && (match.away_score ?? 0) > (match.home_score ?? 0);
@@ -335,12 +371,14 @@ function BracketMatchRow({ match, highlight = false }: {
       </div>
       {/* Home row */}
       <div className={`flex items-center gap-1.5 px-2 py-1.5 border-b border-[#1e1e35]/50 ${homeWins ? "bg-[#00c85a]/[0.06]" : ""}`}>
-        <span className={`text-sm leading-none shrink-0 ${!home ? "opacity-30" : ""}`}>
-          {home?.flag_emoji ?? "🏳️"}
+        <span className={`text-sm leading-none shrink-0 ${!homeTeam ? "opacity-30" : isHomeProjected ? "opacity-80" : ""}`}>
+          {homeTeam?.flag_emoji ?? "🏳️"}
         </span>
         <span className={`text-[11px] font-semibold flex-1 truncate ${
-          home ? (homeWins ? "text-[#00c85a]" : "text-[#f1f5f9]") : "text-[#64748b] italic"
-        }`}>{homeCode}</span>
+          isHomeProjected
+            ? "italic text-[#3b82f6] opacity-80"
+            : homeTeam ? (homeWins ? "text-[#00c85a]" : "text-[#f1f5f9]") : "text-[#64748b] italic"
+        }`}>{isHomeProjected && "🔮 "}{homeLabel}</span>
         {hasScore && (
           <span className={`text-xs font-black tabular-nums shrink-0 ${homeWins ? "text-[#00c85a]" : "text-[#64748b]"}`}>
             {match.home_score}
@@ -349,18 +387,32 @@ function BracketMatchRow({ match, highlight = false }: {
       </div>
       {/* Away row */}
       <div className={`flex items-center gap-1.5 px-2 py-1.5 ${awayWins ? "bg-[#00c85a]/[0.06]" : ""}`}>
-        <span className={`text-sm leading-none shrink-0 ${!away ? "opacity-30" : ""}`}>
-          {away?.flag_emoji ?? "🏳️"}
+        <span className={`text-sm leading-none shrink-0 ${!awayTeam ? "opacity-30" : isAwayProjected ? "opacity-80" : ""}`}>
+          {awayTeam?.flag_emoji ?? "🏳️"}
         </span>
         <span className={`text-[11px] font-semibold flex-1 truncate ${
-          away ? (awayWins ? "text-[#00c85a]" : "text-[#f1f5f9]") : "text-[#64748b] italic"
-        }`}>{awayCode}</span>
+          isAwayProjected
+            ? "italic text-[#3b82f6] opacity-80"
+            : awayTeam ? (awayWins ? "text-[#00c85a]" : "text-[#f1f5f9]") : "text-[#64748b] italic"
+        }`}>{isAwayProjected && "🔮 "}{awayLabel}</span>
         {hasScore && (
           <span className={`text-xs font-black tabular-nums shrink-0 ${awayWins ? "text-[#00c85a]" : "text-[#64748b]"}`}>
             {match.away_score}
           </span>
         )}
       </div>
+    </div>
+  );
+}
+
+// ── ProjectionLegend — shared by Bracket view and Por fase > Dieciseisavos ─
+
+function ProjectionLegend() {
+  return (
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[10px] text-[#64748b]">
+      <span className="flex items-center gap-1.5">✅ <span className="text-[#f1f5f9] font-semibold">Oficial</span> — cupo ya definido</span>
+      <span className="flex items-center gap-1.5">🔮 <span className="text-[#3b82f6] font-semibold italic">Proyección</span> — basado en posiciones actuales</span>
+      <span className="flex items-center gap-1.5"><span className="text-[#64748b] italic">Placeholder</span> — cupo aún sin resolver</span>
     </div>
   );
 }
@@ -453,7 +505,9 @@ function BracketConnectorSVG({
 // columns (R32 through Final) share the same total body height (1536 px),
 // which keeps the whole bracket the same height regardless of phase.
 
-function BracketView({ groups, roundOf32, roundOf16, quarterFinals, semiFinals, thirdPlace, finals }: Omit<Props, "bestThirds" | "defaultTab">) {
+function BracketView({ groups, roundOf32, roundOf16, quarterFinals, semiFinals, thirdPlace, finals, bestThirdAssignment }: Omit<Props, "bestThirds" | "defaultTab"> & {
+  bestThirdAssignment: Map<string, ClassificationTeam>;
+}) {
   const playedGroupMatches = groups.reduce((sum, g) => sum + g.teams.reduce((s, t) => s + t.played, 0) / 2, 0);
 
   // Column header rendered as a fixed-height block so the connector
@@ -479,7 +533,9 @@ function BracketView({ groups, roundOf32, roundOf16, quarterFinals, semiFinals, 
   }
 
   return (
-    <div className="overflow-x-auto no-scrollbar -mx-4">
+    <div className="space-y-3">
+      <ProjectionLegend />
+      <div className="overflow-x-auto no-scrollbar -mx-4">
       <div className="flex items-start px-4 pb-6 min-w-max" style={{ gap: 0 }}>
 
         {/* ── Grupos ──────────────────────────────────────────── */}
@@ -500,7 +556,14 @@ function BracketView({ groups, roundOf32, roundOf16, quarterFinals, semiFinals, 
           {roundOf32.length === 0
             ? <BracketEmptySlot label="Pendiente" />
             : roundOf32.map((m) => (
-                <Slot key={m.id} h={R32_SH}><BracketMatchRow match={m} /></Slot>
+                <Slot key={m.id} h={R32_SH}>
+                  <BracketMatchRow
+                    match={m}
+                    groups={groups}
+                    homeBestThird={bestThirdAssignment.get(`${m.id}:home`)}
+                    awayBestThird={bestThirdAssignment.get(`${m.id}:away`)}
+                  />
+                </Slot>
               ))
           }
         </div>
@@ -575,6 +638,7 @@ function BracketView({ groups, roundOf32, roundOf16, quarterFinals, semiFinals, 
         </div>
 
       </div>
+      </div>
     </div>
   );
 }
@@ -599,6 +663,10 @@ export default function CaminoTabs({
     return (localStorage.getItem("camino-view") as ViewId) ?? "bracket";
   });
   const [tab,  setTab]  = useState<TabId>((defaultTab as TabId) ?? "groups");
+
+  // Computed once and reused by both Bracket and Por fase > Dieciseisavos —
+  // same Map, same resolveSlot() calls, no second implementation.
+  const bestThirdAssignment = assignBestThirdSlots(groups, roundOf32);
 
   function handleViewChange(v: ViewId) {
     setView(v);
@@ -660,7 +728,12 @@ export default function CaminoTabs({
           {/* Tab content */}
           {tab === "groups" && <GruposTab groups={groups} />}
           {tab === "r32"    && (
-            <KnockoutTab matches={roundOf32}     emptyMessage="Los cruces de dieciseisavos aún no están disponibles." />
+            <KnockoutTab
+              matches={roundOf32}
+              emptyMessage="Los cruces de dieciseisavos aún no están disponibles."
+              groups={groups}
+              bestThirdAssignment={bestThirdAssignment}
+            />
           )}
           {tab === "r16"    && (
             <KnockoutTab matches={roundOf16}     emptyMessage="Los cruces de octavos aún no están disponibles." />
@@ -687,6 +760,7 @@ export default function CaminoTabs({
           semiFinals={semiFinals}
           thirdPlace={thirdPlace}
           finals={finals}
+          bestThirdAssignment={bestThirdAssignment}
         />
       )}
 
