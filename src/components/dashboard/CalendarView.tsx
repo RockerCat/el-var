@@ -8,13 +8,14 @@ import CalendarMatchRow from "./CalendarMatchRow";
 
 // ── Filter types ──────────────────────────────────────────────────────
 
-type Filter = "all" | "pending" | "live" | "finished";
+type Filter = "today" | "pending" | "live" | "finished" | "all";
 
 const FILTERS: { id: Filter; label: string }[] = [
-  { id: "all",      label: "Todos"      },
+  { id: "today",    label: "Hoy"        },
   { id: "pending",  label: "Pendientes" },
   { id: "live",     label: "En vivo"    },
   { id: "finished", label: "Finalizados"},
+  { id: "all",      label: "Todos"      },
 ];
 
 // ── Date helpers ──────────────────────────────────────────────────────
@@ -23,6 +24,10 @@ function colombiaDateKey(startsAt: string): string {
   return new Date(startsAt).toLocaleDateString("en-CA", {
     timeZone: "America/Bogota",
   }); // "YYYY-MM-DD" — stable sort key
+}
+
+function todayColombiaKey(): string {
+  return new Date().toLocaleDateString("en-CA", { timeZone: "America/Bogota" });
 }
 
 function formatDateHeader(dateKey: string): string {
@@ -42,6 +47,9 @@ function applyFilter(matches: MatchWithPrediction[], filter: Filter): MatchWithP
   if (filter === "all")      return matches;
   if (filter === "live")     return matches.filter((m) => m.status === "live");
   if (filter === "finished") return matches.filter((m) => m.status === "finished");
+  if (filter === "today")    return matches.filter(
+    (m) => colombiaDateKey(m.starts_at) === todayColombiaKey()
+  );
   if (filter === "pending")  return matches.filter(
     (m) => m.status === "scheduled" && matchClosedReason(m) === null && !m.prediction
   );
@@ -184,7 +192,7 @@ function DateSection({
 export default function CalendarView({ matches }: { matches: MatchWithPrediction[] }) {
 
   const [filter, setFilter] = useState<Filter>(() =>
-    matches.some((m) => m.status === "live") ? "live" : "all"
+    matches.some((m) => m.status === "live") ? "live" : "today"
   );
 
   const filtered = useMemo(() => applyFilter(matches, filter), [matches, filter]);
@@ -228,6 +236,9 @@ export default function CalendarView({ matches }: { matches: MatchWithPrediction
   const pendingCount = matches.filter(
     (m) => m.status === "scheduled" && matchClosedReason(m) === null && !m.prediction
   ).length;
+  const todayCount   = matches.filter(
+    (m) => colombiaDateKey(m.starts_at) === todayColombiaKey()
+  ).length;
 
   return (
     <div className="flex flex-col gap-3">
@@ -235,7 +246,11 @@ export default function CalendarView({ matches }: { matches: MatchWithPrediction
       {/* ── Filter tabs ───────────────────────────────────────────── */}
       <div className="flex items-center gap-1 overflow-x-auto no-scrollbar pb-0.5">
         {FILTERS.map(({ id, label }) => {
-          const badge = id === "live" ? liveCount : id === "pending" ? pendingCount : 0;
+          const badge =
+            id === "live"    ? liveCount :
+            id === "pending" ? pendingCount :
+            id === "today"   ? todayCount :
+            0;
           return (
             <button
               key={id}
@@ -268,6 +283,7 @@ export default function CalendarView({ matches }: { matches: MatchWithPrediction
             {filter === "live"     ? "No hay partidos en vivo ahora." :
              filter === "pending"  ? "No tienes predicciones pendientes. ¡Al día!" :
              filter === "finished" ? "No hay partidos finalizados todavía." :
+             filter === "today"    ? "No hay partidos programados para hoy." :
              "No hay partidos disponibles."}
           </p>
         </div>
