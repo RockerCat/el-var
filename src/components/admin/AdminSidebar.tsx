@@ -16,7 +16,7 @@ import {
 import LogoutButton from "@/components/auth/LogoutButton";
 
 const NAV = [
-  { href: "/admin",             label: "Dashboard",    icon: LayoutDashboard },
+  { href: "/admin/dashboard",   label: "Dashboard",    icon: LayoutDashboard },
   { href: "/admin/matches",     label: "Partidos",     icon: CalendarDays    },
   { href: "/admin/users",       label: "Usuarios",     icon: Users           },
   { href: "/admin/ranking",         label: "Ranking",     icon: Medal   },
@@ -30,7 +30,7 @@ export default function AdminSidebar() {
   const pathname = usePathname();
 
   function isActive(href: string) {
-    return href === "/admin" ? pathname === "/admin" : pathname.startsWith(href);
+    return pathname.startsWith(href);
   }
 
   return (
