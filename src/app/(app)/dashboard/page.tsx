@@ -24,6 +24,7 @@ import PrizePoolCard from "@/components/dashboard/PrizePoolCard";
 import CalendarView from "@/components/dashboard/CalendarView";
 import { computePrizePool } from "@/lib/groups";
 import { PredictionEditingProvider } from "@/contexts/prediction-editing";
+import TabReadySignal from "@/components/layout/TabReadySignal";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -94,6 +95,7 @@ export default async function DashboardPage() {
   return (
     <PredictionEditingProvider>
     <div className="max-w-[1320px] mx-auto px-4 py-6">
+      <TabReadySignal />
       <LiveMatchPoller hasLiveMatch={hasLiveMatch} />
       {/*
         DOM order: [user-summary] [matches] [leaderboard]

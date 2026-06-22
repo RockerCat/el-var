@@ -9,6 +9,7 @@ import {
   type KnockoutPreviewMatch,
 } from "@/lib/classification";
 import CaminoTabs from "@/components/admin/ClassificationTabs";
+import TabReadySignal from "@/components/layout/TabReadySignal";
 
 const KNOCKOUT_SELECT =
   "id, match_number, starts_at, venue, status, home_score, away_score, " +
@@ -78,6 +79,7 @@ export default async function CopaPage() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-6 space-y-6">
+      <TabReadySignal />
       <div>
         <h1 className="text-2xl font-black text-[#f1f5f9]">Camino a la Copa</h1>
         <p className="text-sm text-[#94a3b8] mt-0.5">Mundial FIFA 2026</p>

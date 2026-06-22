@@ -14,6 +14,7 @@ import {
 import LiveMatchCard from "@/components/dashboard/LiveMatchCard";
 import LiveMatchPoller from "@/components/dashboard/LiveMatchPoller";
 import { PredictionEditingProvider } from "@/contexts/prediction-editing";
+import TabReadySignal from "@/components/layout/TabReadySignal";
 
 export default async function EnVivoPage() {
   const supabase = await createClient();
@@ -40,6 +41,7 @@ export default async function EnVivoPage() {
     <PredictionEditingProvider>
     <div className="max-w-2xl mx-auto px-4 py-6 space-y-4">
 
+      <TabReadySignal />
       <LiveMatchPoller hasLiveMatch={liveMatches.length > 0} />
 
       {/* Header */}

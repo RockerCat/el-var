@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Home, ListOrdered, Radio, Trophy, Users } from "lucide-react";
+import { useTabNavigation } from "@/contexts/tab-navigation";
 
 const navItems = [
   { href: "/dashboard",   label: "Inicio",    icon: Home        },
@@ -15,20 +16,32 @@ const navItems = [
 
 export default function BottomNav({ hasLiveMatch = false }: { hasLiveMatch?: boolean }) {
   const pathname = usePathname();
+  // pendingHref is owned by TabNavigationProvider and only clears once the
+  // destination tab's own content signals it has mounted (TabReadySignal) —
+  // not just on route/pathname change, which can fire before the new
+  // page's client bundle has actually rendered anything visible.
+  const { pendingHref, startTabTransition } = useTabNavigation();
+
+  function handleTap(href: string) {
+    if (href === pathname) return;
+    startTabTransition(href);
+  }
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-[#0a0a12]/90 backdrop-blur-xl border-t border-[#1e1e35] overflow-hidden">
       <div className="flex items-stretch h-16 w-full">
         {navItems.map(({ href, label, icon: Icon }) => {
-          const active =
+          const isCurrentRoute =
             pathname === href ||
             (href === "/community" && pathname.startsWith("/groups"));
+          const active = pendingHref ? pendingHref === href : isCurrentRoute;
           const isLive = href === "/en-vivo";
 
           return (
             <Link
               key={href}
               href={href}
+              onClick={() => handleTap(href)}
               className={cn(
                 "flex-1 flex flex-col items-center justify-center gap-1 transition-colors",
                 active

@@ -12,6 +12,7 @@ import GroupStats from "@/components/groups/GroupStats";
 import ActivityFeed from "@/components/groups/ActivityFeed";
 import CopyButton from "@/components/groups/CopyButton";
 import CopyInviteLinkButton from "@/components/groups/CopyInviteLinkButton";
+import TabReadySignal from "@/components/layout/TabReadySignal";
 import {
   formatMemberCount,
   formatRelativeDate,
@@ -108,6 +109,7 @@ export default async function GroupPage({
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
+      <TabReadySignal />
 
       {/* Back link */}
       <Link
