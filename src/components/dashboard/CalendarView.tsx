@@ -13,9 +13,8 @@ type Filter = "today" | "pending" | "live" | "finished" | "all";
 const FILTERS: { id: Filter; label: string }[] = [
   { id: "today",    label: "Hoy"        },
   { id: "pending",  label: "Pendientes" },
-  { id: "live",     label: "En vivo"    },
-  { id: "finished", label: "Finalizados"},
   { id: "all",      label: "Todos"      },
+  { id: "finished", label: "Finalizados"},
 ];
 
 // ── Date helpers ──────────────────────────────────────────────────────
@@ -191,9 +190,7 @@ function DateSection({
 
 export default function CalendarView({ matches }: { matches: MatchWithPrediction[] }) {
 
-  const [filter, setFilter] = useState<Filter>(() =>
-    matches.some((m) => m.status === "live") ? "live" : "today"
-  );
+  const [filter, setFilter] = useState<Filter>("today");
 
   const filtered = useMemo(() => applyFilter(matches, filter), [matches, filter]);
 
