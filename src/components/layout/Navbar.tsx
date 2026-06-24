@@ -86,8 +86,6 @@ function GuestNav() {
 
 function VarLogo() {
   return (
-    <div className="w-8 h-8 rounded-lg bg-[#00c85a] flex items-center justify-center">
-      <span className="text-base leading-none">🏆</span>
-    </div>
+    <img src="/icons/logo.png" alt="La Penúltima" className="w-8 h-8 rounded-lg object-cover" />
   );
 }

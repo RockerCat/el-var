@@ -41,9 +41,7 @@ export default function AdminSidebar() {
         {/* Brand */}
         <div className="px-5 py-5 border-b border-[#1e1e35]">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-[#00c85a] flex items-center justify-center">
-              <span className="text-sm leading-none">🏆</span>
-            </div>
+            <img src="/icons/logo.png" alt="La Penúltima" className="w-7 h-7 rounded-lg object-cover" />
             <div>
               <p className="text-xs font-black text-[#f1f5f9] leading-none">La Penúltima</p>
               <p className="text-[9px] text-[#64748b] font-mono mt-0.5">Admin</p>

@@ -23,6 +23,9 @@ export const metadata: Metadata = {
   title: "La Penúltima - Polla Mundialista Interna",
   description: "Predice, compite y pelea por la bolsa del Mundial. Solo para amigos.",
   keywords: ["polla mundialista", "predicciones", "fútbol", "mundial 2026", "grupos privados"],
+  icons: {
+    icon: "/icons/logo.png",
+  },
   openGraph: {
     title:       "La Penúltima - Polla Mundialista Interna",
     description: "Predice, compite y pelea por la bolsa del Mundial. Solo para amigos.",
