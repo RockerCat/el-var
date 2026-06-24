@@ -25,6 +25,7 @@ import CalendarView from "@/components/dashboard/CalendarView";
 import { computePrizePool } from "@/lib/groups";
 import { PredictionEditingProvider } from "@/contexts/prediction-editing";
 import TabReadySignal from "@/components/layout/TabReadySignal";
+import HomeInstallBanner from "@/components/pwa/HomeInstallBanner";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -115,6 +116,7 @@ export default async function DashboardPage() {
             ? <LiveMatchesSection matches={liveMatches} />
             : fallbackMatch && <FeaturedMatchCard match={fallbackMatch} />
           }
+          <HomeInstallBanner />
           <CalendarView matches={matches} />
         </main>
 

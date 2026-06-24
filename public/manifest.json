@@ -1,0 +1,35 @@
+{
+  "name": "La Penúltima",
+  "short_name": "La Penúltima",
+  "description": "Plataforma de pronósticos deportivos",
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#0a0a12",
+  "background_color": "#0a0a12",
+  "icons": [
+    {
+      "src": "/icons/icon-192-v1.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512-v1.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512-maskable-v1.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/apple-touch-icon-180-v1.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

@@ -23,8 +23,15 @@ export const metadata: Metadata = {
   title: "La Penúltima - Polla Mundialista Interna",
   description: "Predice, compite y pelea por la bolsa del Mundial. Solo para amigos.",
   keywords: ["polla mundialista", "predicciones", "fútbol", "mundial 2026", "grupos privados"],
+  manifest: "/manifest.json",
   icons: {
     icon: "/icons/logo.png",
+    apple: "/icons/apple-touch-icon-180-v1.png",
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "La Penúltima",
   },
   openGraph: {
     title:       "La Penúltima - Polla Mundialista Interna",

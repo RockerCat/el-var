@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { User, BookOpen, LogOut, ChevronDown, Newspaper } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
+import PWAInstallCta from "@/components/pwa/PWAInstallCta";
 
 export default function UserMenuButton({
   displayName,
@@ -116,6 +117,7 @@ export default function UserMenuButton({
             Reglas
           </Link>
           <div className="border-t border-[#1e1e35]">
+            <PWAInstallCta variant="menu-item" onTriggered={() => setOpen(false)} />
             <button
               onClick={handleLogout}
               disabled={loggingOut}

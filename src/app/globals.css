@@ -227,6 +227,11 @@ button {
   .animate-confetti-particle { display: none; }
 }
 
+/* iOS safe-area bottom padding — for content that can sit above the home indicator */
+@utility pb-safe-b {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
 /* Hide scrollbar while preserving scroll behaviour */
 .no-scrollbar {
   -ms-overflow-style: none;

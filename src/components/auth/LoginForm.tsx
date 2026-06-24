@@ -10,6 +10,7 @@ import Card from "@/components/ui/Card";
 import { createClient } from "@/lib/supabase/client";
 import { getAuthErrorMessage } from "@/lib/auth-errors";
 import { LOADING_MESSAGES } from "@/lib/loading-messages";
+import PWAInstallCta from "@/components/pwa/PWAInstallCta";
 
 interface LoginFormProps {
   inviteCode: string | null;
@@ -209,6 +210,8 @@ export default function LoginForm({ inviteCode }: LoginFormProps) {
           </p>
         </div>
       </Card>
+
+      <PWAInstallCta className="mt-4" fullWidth />
 
       <div className="flex items-center justify-center gap-2 mt-6">
         <span className="w-1.5 h-1.5 rounded-full bg-[#3b82f6] animate-live-pulse" />
