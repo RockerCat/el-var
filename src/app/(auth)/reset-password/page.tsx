@@ -71,9 +71,7 @@ export default function ResetPasswordPage() {
       {/* Logo */}
       <div className="text-center mb-8">
         <Link href="/login" className="inline-flex items-center gap-2 mb-6">
-          <div className="w-9 h-9 rounded-xl bg-[#00c85a] flex items-center justify-center">
-            <span className="text-xl leading-none">🏆</span>
-          </div>
+          <img src="/icons/logo.png" alt="La Penúltima" className="w-9 h-9 rounded-xl object-cover" />
           <span className="font-bold text-xl text-[#f1f5f9]">
             La <span className="text-[#00c85a]">Penúltima</span>
           </span>
