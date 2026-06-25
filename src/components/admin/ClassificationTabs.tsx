@@ -5,9 +5,18 @@ import type {
   GroupStanding,
   TeamStanding,
   KnockoutPreviewMatch,
-  ClassificationTeam,
+  SlotResolution,
+  BracketConnection,
 } from "@/lib/classification";
-import { resolveSlot, assignBestThirdSlots } from "@/lib/classification";
+import {
+  resolveSlot,
+  assignBestThirdSlots,
+  orderSourceMatchesByDestination,
+  orderDestinationBySourcePairs,
+  computeBracketConnections,
+  computeLeafRowPositions,
+  computeParentRowPositions,
+} from "@/lib/classification";
 import { formatKickoff } from "@/lib/matches";
 
 // ── Types ──────────────────────────────────────────────────────────────
@@ -53,6 +62,13 @@ function goalDiffColor(d: number): string {
 
 function fmtDiff(d: number): string {
   return d > 0 ? `+${d}` : String(d);
+}
+
+// Unresolved Best-3rd slots (not enough data / ambiguous combination yet)
+// keep showing the original placeholder text, tagged as a pending
+// projection rather than a plain "no info" placeholder.
+function pendingLabel(slot: Extract<SlotResolution, { kind: "unresolved" }>): string {
+  return slot.pending ? `⏳ ${slot.label}` : slot.label;
 }
 
 // ══════════════════════════════════════════════════════════════════════
@@ -124,8 +140,8 @@ function KnockoutMatchCard({ match, large = false, groups, homeBestThird, awayBe
   match: KnockoutPreviewMatch;
   large?: boolean;
   groups?: GroupStanding[];
-  homeBestThird?: ClassificationTeam | null;
-  awayBestThird?: ClassificationTeam | null;
+  homeBestThird?: TeamStanding | null;
+  awayBestThird?: TeamStanding | null;
 }) {
   const homeSlot  = resolveSlot(match.home_team, match.home_placeholder, groups ?? [], homeBestThird ?? null);
   const awaySlot  = resolveSlot(match.away_team, match.away_placeholder, groups ?? [], awayBestThird ?? null);
@@ -135,8 +151,8 @@ function KnockoutMatchCard({ match, large = false, groups, homeBestThird, awayBe
   const isAwayProjected = awaySlot.kind === "projected";
   const homeFlag  = homeTeam?.flag_emoji;
   const awayFlag  = awayTeam?.flag_emoji;
-  const homeCode  = homeSlot.kind === "unresolved" ? homeSlot.label : homeTeam!.code;
-  const awayCode  = awaySlot.kind === "unresolved" ? awaySlot.label : awayTeam!.code;
+  const homeCode  = homeSlot.kind === "unresolved" ? pendingLabel(homeSlot) : homeTeam!.code;
+  const awayCode  = awaySlot.kind === "unresolved" ? pendingLabel(awaySlot) : awayTeam!.code;
   const hasScore  = match.home_score !== null && match.away_score !== null;
   const isLive    = match.status === "live";
   const isFinished = match.status === "finished";
@@ -240,7 +256,7 @@ function KnockoutTab({ matches, emptyMessage, cols = 2, groups, bestThirdAssignm
   emptyMessage: string;
   cols?: 1 | 2;
   groups?: GroupStanding[];
-  bestThirdAssignment?: Map<string, ClassificationTeam>;
+  bestThirdAssignment?: Map<string, TeamStanding>;
 }) {
   if (matches.length === 0) {
     return (
@@ -332,8 +348,8 @@ function BracketMatchRow({ match, highlight = false, groups, homeBestThird, away
   match: KnockoutPreviewMatch;
   highlight?: boolean;
   groups?: GroupStanding[];
-  homeBestThird?: ClassificationTeam | null;
-  awayBestThird?: ClassificationTeam | null;
+  homeBestThird?: TeamStanding | null;
+  awayBestThird?: TeamStanding | null;
 }) {
   const home = match.home_team;
   const away = match.away_team;
@@ -341,8 +357,8 @@ function BracketMatchRow({ match, highlight = false, groups, homeBestThird, away
   const awaySlot  = resolveSlot(away, match.away_placeholder, groups ?? [], awayBestThird ?? null);
   const homeTeam  = homeSlot.kind !== "unresolved" ? homeSlot.team : null;
   const awayTeam  = awaySlot.kind !== "unresolved" ? awaySlot.team : null;
-  const homeLabel = homeSlot.kind === "unresolved" ? homeSlot.label : homeTeam!.code;
-  const awayLabel = awaySlot.kind === "unresolved" ? awaySlot.label : awayTeam!.code;
+  const homeLabel = homeSlot.kind === "unresolved" ? pendingLabel(homeSlot) : homeTeam!.code;
+  const awayLabel = awaySlot.kind === "unresolved" ? pendingLabel(awaySlot) : awayTeam!.code;
   const isHomeProjected = homeSlot.kind === "projected";
   const isAwayProjected = awaySlot.kind === "projected";
   const hasScore  = match.home_score !== null && match.away_score !== null;
@@ -413,6 +429,7 @@ function ProjectionLegend() {
       <span className="flex items-center gap-1.5">✅ <span className="text-[#f1f5f9] font-semibold">Oficial</span> — cupo ya definido</span>
       <span className="flex items-center gap-1.5">🔮 <span className="text-[#3b82f6] font-semibold italic">Proyección</span> — basado en posiciones actuales</span>
       <span className="flex items-center gap-1.5"><span className="text-[#64748b] italic">Placeholder</span> — cupo aún sin resolver</span>
+      <span className="flex items-center gap-1.5">⏳ <span className="text-[#64748b] italic">Proyección pendiente</span> — mejores terceros aún sin definir con certeza</span>
     </div>
   );
 }
@@ -428,48 +445,47 @@ function BracketEmptySlot({ label }: { label: string }) {
 }
 
 // ── Bracket geometry ────────────────────────────────────────────────────
-// Slot model: each phase's matches sit in vertical slots whose height
-// doubles every round so every match is exactly centered between its
-// two source matches — matching the Apple Sports visual pattern.
-//
-//  R32  → flat space-y-2 list; effective slot = CARD_H + GAP = 96 px
-//  R16  → slot = 2 × 96  =  192 px   (1 dest match per 2 R32 matches)
-//  QF   → slot = 4 × 96  =  384 px
-//  SF   → slot = 8 × 96  =  768 px
-//  FIN  → slot = 16 × 96 = 1536 px
+// Dieciseisavos (R32) is the only round with no children, so its rows are
+// evenly spaced in plain flow. Every later round is absolutely positioned
+// at computeParentRowPositions()'s real midpoint — never a round-based
+// slot height — so the whole bracket's total height is just the leaf
+// column's height (16 rows × R32_SH), shared by every column via TOTAL_H.
 
-const CARD_H = 88;             // approximate BracketMatchRow rendered height (px)
-const HEADER = 44;             // column header (title + subtitle + mb-3) height (px)
-const R32_SH = CARD_H + 8;    // R32 slot height in flat layout = 96
-const R16_SH = 2  * R32_SH;   // 192
-const QF_SH  = 4  * R32_SH;   // 384
-const SF_SH  = 8  * R32_SH;   // 768
-const FIN_SH = 16 * R32_SH;   // 1536
+const CARD_H = 88;            // approximate BracketMatchRow rendered height (px)
+const HEADER = 44;            // column header (title + subtitle + mb-3) height (px)
+const R32_SH = CARD_H + 8;    // Dieciseisavos row height in flat layout = 96
 
 // ── BracketConnectorSVG ─────────────────────────────────────────────────
-// Draws precise SVG bracket connectors:
-//   ─ left arm  from source match top    (x: 0 → midX)
-//   │ vertical  between the two arms     (x: midX, y: y1 → y2)
-//   ─ left arm  from source match bottom (x: 0 → midX)
-//   ─ right arm from midpoint to dest    (x: midX → W)
+// Draws simple, local SVG bracket connectors using REAL, already-computed
+// row positions (computeLeafRowPositions / computeParentRowPositions in
+// lib/classification.ts) — never a round/index-based offset formula. Each
+// connection's vertical bar spans only between its own two children
+// (never beyond), converging at one shared midpoint x for the whole
+// connector — the standard bracket look. This is only correct because the
+// column orders feeding this component (see BracketView) are chosen so
+// every parent's two real children sit on ADJACENT rows; if a round ever
+// needed non-adjacent children again, the right fix is reordering that
+// round (as BracketView does for Octavos), not adding lanes/diagonals here.
 //
-// srcSlotH:        slot height of the SOURCE column
-// srcCenterOffset: y from slot-top to match center
-//   flat layout (R32): CARD_H / 2 = 44 px
-//   slot layout       : srcSlotH  / 2
+//   ─ left arm   from each source row's real y   (x: 0 → midX)
+//   │ vertical   from that source's y             down/up to the dest's real y
+//   ─ right arm  from midpoint to dest's real y   (x: midX → W), drawn once
+//
+// srcY/dstY: real, pre-computed center-y per row index in each column.
 
 function BracketConnectorSVG({
-  pairs,
-  srcSlotH,
-  srcCenterOffset,
+  connections,
+  srcY,
+  dstY,
+  totalH,
 }: {
-  pairs:           number;
-  srcSlotH:        number;
-  srcCenterOffset: number;
+  connections: BracketConnection[];
+  srcY:        number[];
+  dstY:        number[];
+  totalH:      number;
 }) {
-  const W      = 40;
-  const MID_X  = W / 2;
-  const totalH = 2 * pairs * srcSlotH;
+  const W     = 40;
+  const MID_X = W / 2;
 
   return (
     <div
@@ -481,16 +497,17 @@ function BracketConnectorSVG({
       }}
     >
       <svg width={W} height={totalH} style={{ display: "block", overflow: "visible" }}>
-        {Array.from({ length: pairs }, (_, i) => {
-          const y1   = i * 2 * srcSlotH + srcCenterOffset;
-          const y2   = (i * 2 + 1) * srcSlotH + srcCenterOffset;
-          const yMid = (y1 + y2) / 2;
+        {connections.map(({ srcRows: [rowA, rowB], destRow }, i) => {
+          const y1 = srcY[rowA];
+          const y2 = srcY[rowB];
+          const yd = dstY[destRow];
           return (
             <g key={i} stroke="rgba(0,200,90,0.6)" strokeWidth="1.5" fill="none" strokeLinecap="round">
-              <line x1={0}     y1={y1}   x2={MID_X} y2={y1}   />
-              <line x1={0}     y1={y2}   x2={MID_X} y2={y2}   />
-              <line x1={MID_X} y1={y1}   x2={MID_X} y2={y2}   />
-              <line x1={MID_X} y1={yMid} x2={W}     y2={yMid} />
+              <line x1={0}     y1={y1} x2={MID_X} y2={y1} />
+              <line x1={0}     y1={y2} x2={MID_X} y2={y2} />
+              <line x1={MID_X} y1={y1} x2={MID_X} y2={yd} />
+              <line x1={MID_X} y1={y2} x2={MID_X} y2={yd} />
+              <line x1={MID_X} y1={yd} x2={W}     y2={yd} />
             </g>
           );
         })}
@@ -500,15 +517,55 @@ function BracketConnectorSVG({
 }
 
 // ── BracketView — full horizontal bracket (slot model) ────────────────
-// Every knockout column uses fixed-height slots so each match sits at the
-// exact vertical midpoint of its two source matches.  All five knockout
-// columns (R32 through Final) share the same total body height (1536 px),
-// which keeps the whole bracket the same height regardless of phase.
+// Every knockout match sits at the exact vertical midpoint of its two real
+// source matches, computed recursively (computeLeafRowPositions /
+// computeParentRowPositions). All five knockout columns share the same
+// total body height (TOTAL_H), which keeps the whole bracket the same
+// height regardless of phase.
 
 function BracketView({ groups, roundOf32, roundOf16, quarterFinals, semiFinals, thirdPlace, finals, bestThirdAssignment }: Omit<Props, "bestThirds" | "defaultTab"> & {
-  bestThirdAssignment: Map<string, ClassificationTeam>;
+  bestThirdAssignment: Map<string, TeamStanding>;
 }) {
   const playedGroupMatches = groups.reduce((sum, g) => sum + g.teams.reduce((s, t) => s + t.played, 0) / 2, 0);
+
+  // Cuartos (quarter finals) is the visual anchor — shown in plain
+  // match_number order (M97..M100), because that's the one round whose
+  // real pairs (M97+M98, M99+M100) land on adjacent rows when BOTH its
+  // neighbors are derived from it. Every other column's order is DERIVED
+  // from that anchor using real "Winner M##" / "Loser M##" placeholders,
+  // never from array position or match_number alone:
+  //   - Octavos and Dieciseisavos are reordered backwards from Cuartos so
+  //     each pair of rows that actually feeds the same next match sits
+  //     adjacent to it (M89,M90,M93,M94,M91,M92,M95,M96 for Octavos).
+  //   - Semis and Final are reordered forwards from Cuartos the other
+  //     way: walking the already-fixed previous column two rows at a
+  //     time and placing whichever next match those two rows really feed.
+  // The result: every connection's two real children are ALWAYS adjacent
+  // rows in their column, so BracketConnectorSVG can stay a simple local
+  // connector — no lanes, no diagonals, no shared trunk line needed.
+  const orderedQF     = [...quarterFinals].sort((a, b) => (a.match_number ?? 0) - (b.match_number ?? 0));
+  const orderedR16    = orderSourceMatchesByDestination(roundOf16, orderedQF);
+  const orderedR32    = orderSourceMatchesByDestination(roundOf32, orderedR16);
+  const orderedSF     = orderDestinationBySourcePairs(orderedQF, semiFinals);
+  const orderedFinals = orderDestinationBySourcePairs(orderedSF, finals);
+
+  const r32ToR16Connections  = computeBracketConnections(orderedR32, orderedR16);
+  const r16ToQfConnections   = computeBracketConnections(orderedR16, orderedQF);
+  const qfToSfConnections    = computeBracketConnections(orderedQF, orderedSF);
+  const sfToFinalConnections = computeBracketConnections(orderedSF, orderedFinals);
+
+  // Row positioning: every match's vertical center is the midpoint of its
+  // two real children — computed recursively from Dieciseisavos (the only
+  // round with no children, so it's evenly spaced) up through the Final.
+  // No round/index-based offset is used here; a column's order can change
+  // (e.g. Cuartos' non-adjacent M97/M98 pair) without this breaking, since
+  // each position is derived purely from computeBracketConnections.
+  const TOTAL_H = orderedR32.length * R32_SH;
+  const r32Y = computeLeafRowPositions(orderedR32.length, R32_SH);
+  const r16Y = computeParentRowPositions(r32ToR16Connections, orderedR16.length, r32Y, TOTAL_H);
+  const qfY  = computeParentRowPositions(r16ToQfConnections, orderedQF.length, r16Y, TOTAL_H);
+  const sfY  = computeParentRowPositions(qfToSfConnections, orderedSF.length, qfY, TOTAL_H);
+  const finalY = computeParentRowPositions(sfToFinalConnections, orderedFinals.length, sfY, TOTAL_H);
 
   // Column header rendered as a fixed-height block so the connector
   // marginTop=HEADER aligns precisely with the first match slot.
@@ -524,10 +581,25 @@ function BracketView({ groups, roundOf32, roundOf16, quarterFinals, semiFinals, 
   }
 
   // Single slot wrapper — vertically centers its child inside a fixed-height div.
+  // Used only for Dieciseisavos, whose rows are naturally evenly spaced
+  // (no children to average), so plain flow stacking already matches
+  // computeLeafRowPositions exactly.
   function Slot({ h, children }: { h: number; children: React.ReactNode }) {
     return (
       <div style={{ height: h, display: "flex", alignItems: "center" }}>
         <div className="w-full">{children}</div>
+      </div>
+    );
+  }
+
+  // Positions a match at its REAL computed center-y (from
+  // computeParentRowPositions) inside a relatively-positioned column of
+  // height TOTAL_H. Replaces fixed-height slots for every round past
+  // Dieciseisavos, since their rows are no longer evenly spaced.
+  function AbsoluteSlot({ y, children }: { y: number; children: React.ReactNode }) {
+    return (
+      <div style={{ position: "absolute", left: 0, right: 0, top: y - CARD_H / 2 }}>
+        {children}
       </div>
     );
   }
@@ -553,9 +625,9 @@ function BracketView({ groups, roundOf32, roundOf16, quarterFinals, semiFinals, 
         {/* ── Dieciseisavos — 16 × R32_SH slots ──────────────── */}
         <div className="w-40 shrink-0">
           <ColHeader title="Dieciseisavos" subtitle={`${roundOf32.length}/16`} />
-          {roundOf32.length === 0
+          {orderedR32.length === 0
             ? <BracketEmptySlot label="Pendiente" />
-            : roundOf32.map((m) => (
+            : orderedR32.map((m) => (
                 <Slot key={m.id} h={R32_SH}>
                   <BracketMatchRow
                     match={m}
@@ -568,73 +640,90 @@ function BracketView({ groups, roundOf32, roundOf16, quarterFinals, semiFinals, 
           }
         </div>
 
-        {/* R32 → R16: 16 → 8, connector arms hit slot centers */}
-        <BracketConnectorSVG pairs={8} srcSlotH={R32_SH} srcCenterOffset={R32_SH / 2} />
+        {/* R32 → R16: 16 → 8, connector arms hit each match's real position */}
+        <BracketConnectorSVG connections={r32ToR16Connections} srcY={r32Y} dstY={r16Y} totalH={TOTAL_H} />
 
-        {/* ── Octavos — 8 × R16_SH slots ─────────────────────── */}
+        {/* ── Octavos — positioned at the midpoint of its 2 real R32 sources ── */}
         <div className="w-40 shrink-0">
           <ColHeader title="Octavos" subtitle={`${roundOf16.length}/8`} />
-          {roundOf16.length === 0
+          {orderedR16.length === 0
             ? <BracketEmptySlot label="Pendiente" />
-            : roundOf16.map((m) => (
-                <Slot key={m.id} h={R16_SH}><BracketMatchRow match={m} /></Slot>
-              ))
+            : (
+              <div style={{ position: "relative", height: TOTAL_H }}>
+                {orderedR16.map((m, i) => (
+                  <AbsoluteSlot key={m.id} y={r16Y[i]}><BracketMatchRow match={m} /></AbsoluteSlot>
+                ))}
+              </div>
+            )
           }
         </div>
 
         {/* R16 → QF */}
-        <BracketConnectorSVG pairs={4} srcSlotH={R16_SH} srcCenterOffset={R16_SH / 2} />
+        <BracketConnectorSVG connections={r16ToQfConnections} srcY={r16Y} dstY={qfY} totalH={TOTAL_H} />
 
-        {/* ── Cuartos — 4 × QF_SH slots ──────────────────────── */}
+        {/* ── Cuartos — positioned at the midpoint of its 2 real R16 sources ── */}
         <div className="w-40 shrink-0">
           <ColHeader title="Cuartos" subtitle={`${quarterFinals.length}/4`} />
-          {quarterFinals.length === 0
+          {orderedQF.length === 0
             ? <BracketEmptySlot label="Pendiente" />
-            : quarterFinals.map((m) => (
-                <Slot key={m.id} h={QF_SH}><BracketMatchRow match={m} /></Slot>
-              ))
+            : (
+              <div style={{ position: "relative", height: TOTAL_H }}>
+                {orderedQF.map((m, i) => (
+                  <AbsoluteSlot key={m.id} y={qfY[i]}><BracketMatchRow match={m} /></AbsoluteSlot>
+                ))}
+              </div>
+            )
           }
         </div>
 
         {/* QF → SF */}
-        <BracketConnectorSVG pairs={2} srcSlotH={QF_SH} srcCenterOffset={QF_SH / 2} />
+        <BracketConnectorSVG connections={qfToSfConnections} srcY={qfY} dstY={sfY} totalH={TOTAL_H} />
 
-        {/* ── Semis — 2 × SF_SH slots ─────────────────────────── */}
+        {/* ── Semis — positioned at the midpoint of its 2 real QF sources ──── */}
         <div className="w-40 shrink-0">
           <ColHeader title="Semis" subtitle={`${semiFinals.length}/2`} />
-          {semiFinals.length === 0
+          {orderedSF.length === 0
             ? <BracketEmptySlot label="Pendiente" />
-            : semiFinals.map((m) => (
-                <Slot key={m.id} h={SF_SH}><BracketMatchRow match={m} /></Slot>
-              ))
+            : (
+              <div style={{ position: "relative", height: TOTAL_H }}>
+                {orderedSF.map((m, i) => (
+                  <AbsoluteSlot key={m.id} y={sfY[i]}><BracketMatchRow match={m} /></AbsoluteSlot>
+                ))}
+              </div>
+            )
           }
         </div>
 
         {/* SF → Final */}
-        <BracketConnectorSVG pairs={1} srcSlotH={SF_SH} srcCenterOffset={SF_SH / 2} />
+        <BracketConnectorSVG connections={sfToFinalConnections} srcY={sfY} dstY={finalY} totalH={TOTAL_H} />
 
-        {/* ── Final — single FIN_SH slot ──────────────────────── */}
+        {/* ── Final — positioned at the midpoint of its 2 real SF sources ──── */}
         <div className="w-40 shrink-0">
           <ColHeader title="🏆 Final" titleColor="text-[#f59e0b]" />
-          <Slot h={FIN_SH}>
-            <div>
-              {finals.length > 0
-                ? finals.map((m) => <BracketMatchRow key={m.id} match={m} highlight />)
-                : (
+          <div style={{ position: "relative", height: TOTAL_H }}>
+            {orderedFinals.length > 0
+              ? orderedFinals.map((m, i) => (
+                  <AbsoluteSlot key={m.id} y={finalY[i]}><BracketMatchRow match={m} highlight /></AbsoluteSlot>
+                ))
+              : (
+                <AbsoluteSlot y={TOTAL_H / 2}>
                   <div className="bg-[#11111c] border border-[#f59e0b]/20 rounded-xl px-3 py-5 text-center">
                     <p className="text-xl leading-none mb-1">🏆</p>
                     <p className="text-[10px] text-[#64748b]">Por definir</p>
                   </div>
-                )
-              }
-              {thirdPlace.length > 0 && (
-                <div className="mt-6">
-                  <p className="text-[10px] font-black text-[#94a3b8] uppercase tracking-widest mb-2">🥉 3er Puesto</p>
-                  {thirdPlace.map((m) => <BracketMatchRow key={m.id} match={m} />)}
-                </div>
-              )}
+                </AbsoluteSlot>
+              )
+            }
+          </div>
+          {/* 3er Puesto is fed by Loser M101/M102 but intentionally sits
+              outside the champion tree's positioned column — it must not
+              interfere with the recursive midpoint layout above. */}
+          {thirdPlace.length > 0 && (
+            <div className="mt-6">
+              <p className="text-[10px] font-black text-[#94a3b8] uppercase tracking-widest mb-2">🥉 3er Puesto</p>
+              {thirdPlace.map((m) => <BracketMatchRow key={m.id} match={m} />)}
             </div>
-          </Slot>
+          )}
         </div>
 
       </div>
