@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Lock, AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { validatePassword } from "@/lib/auth-errors";
+import { getAuthErrorMessage, validatePassword } from "@/lib/auth-errors";
 import Input from "@/components/ui/Input";
 
 type PageState = "loading" | "ready" | "success" | "invalid";
@@ -19,23 +19,76 @@ export default function ResetPasswordPage() {
   const [error,      setError]      = useState<string | null>(null);
 
   useEffect(() => {
-    // Supabase appends the recovery token as a URL hash:
-    // /reset-password#access_token=...&type=recovery
-    // The browser Supabase client picks this up automatically on
-    // onAuthStateChange with event = "PASSWORD_RECOVERY".
     const supabase = createClient();
+    let settled = false;
+
+    function markReady() {
+      if (settled) return;
+      settled = true;
+      setPageState("ready");
+    }
+
+    function markInvalid() {
+      if (settled) return;
+      settled = true;
+      setPageState("invalid");
+    }
+
+    async function verify() {
+      const params = new URLSearchParams(window.location.search);
+      const tokenHash = params.get("token_hash");
+      const type      = params.get("type");
+      const code      = params.get("code");
+
+      // A. Primary flow — admin-issued or email link with ?token_hash&type=recovery
+      if (tokenHash && type === "recovery") {
+        const { error: verifyErr } = await supabase.auth.verifyOtp({
+          token_hash: tokenHash,
+          type:       "recovery",
+        });
+        if (verifyErr) markInvalid(); else markReady();
+        return;
+      }
+
+      // B. Defensive compat — ?code=... (PKCE-style exchange)
+      if (code) {
+        const { error: exchangeErr } = await supabase.auth.exchangeCodeForSession(code);
+        if (exchangeErr) markInvalid(); else markReady();
+        return;
+      }
+
+      // C. Defensive compat — #access_token=...&refresh_token=...&type=recovery
+      const hash = window.location.hash.startsWith("#")
+        ? window.location.hash.slice(1)
+        : window.location.hash;
+      const hashParams   = new URLSearchParams(hash);
+      const accessToken  = hashParams.get("access_token");
+      const refreshToken = hashParams.get("refresh_token");
+      const hashType     = hashParams.get("type");
+
+      if (accessToken && refreshToken && hashType === "recovery") {
+        const { error: sessionErr } = await supabase.auth.setSession({
+          access_token:  accessToken,
+          refresh_token: refreshToken,
+        });
+        window.history.replaceState(null, "", window.location.pathname + window.location.search);
+        if (sessionErr) markInvalid(); else markReady();
+        return;
+      }
+
+      // Nothing recognized yet in this pass — supabase-js may still be
+      // auto-detecting the hash internally (detectSessionInUrl) and will
+      // fire PASSWORD_RECOVERY below. The timeout is the final fallback.
+    }
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY") {
-        setPageState("ready");
-      }
+      if (event === "PASSWORD_RECOVERY") markReady();
     });
 
-    // If the user lands here without a valid recovery token the event
-    // never fires — show an error after a short grace period.
-    const timeout = setTimeout(() => {
-      setPageState((s) => s === "loading" ? "invalid" : s);
-    }, 3000);
+    verify();
+
+    // D. Invalid link — nothing matched after a short grace period.
+    const timeout = setTimeout(markInvalid, 4000);
 
     return () => {
       subscription.unsubscribe();
@@ -57,7 +110,7 @@ export default function ResetPasswordPage() {
     setSubmitting(false);
 
     if (updateErr) {
-      setError(updateErr.message ?? "No se pudo actualizar la contraseña.");
+      setError(getAuthErrorMessage(updateErr));
     } else {
       setPageState("success");
       setTimeout(() => router.push("/login"), 2500);

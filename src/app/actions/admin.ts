@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { getAppUrl } from "@/lib/app-url";
 import { isAdmin } from "@/lib/db/admin";
 import { createMatchNews } from "@/lib/db/news";
 
@@ -15,6 +17,10 @@ export type AdvancedEditState  = { error: string } | { success: true; scored: nu
 export type RecalculateState   =
   | { error: string }
   | { success: true; matches_processed: number; predictions_scored: number }
+  | null;
+export type RecoveryLinkState  =
+  | { error: string }
+  | { success: true; link: string; userName: string }
   | null;
 
 export type MatchPrediction = {
@@ -177,6 +183,64 @@ export async function toggleUserStatusAction(
 
   revalidatePath("/admin/users");
   return { success: true };
+}
+
+// ── generateRecoveryLinkAction ────────────────────────────────────────
+// Manual fallback to Supabase's email-based password recovery: an admin
+// generates a one-time recovery link (via the Auth Admin API) and sends
+// it to the user out of band (WhatsApp, etc). The link itself is never
+// persisted or logged — only the action is recorded in the audit log.
+
+export async function generateRecoveryLinkAction(
+  _prev: RecoveryLinkState,
+  formData: FormData
+): Promise<RecoveryLinkState> {
+  const targetId    = (formData.get("user_id")    as string | null)?.trim() ?? "";
+  const targetEmail = (formData.get("user_email")  as string | null)?.trim() ?? "";
+  const targetName  = (formData.get("user_name")   as string | null)?.trim() || targetEmail;
+
+  if (!targetId || !targetEmail) return { error: "Datos incompletos." };
+
+  const supabase = await createClient();
+  const { data: { user }, error: authErr } = await supabase.auth.getUser();
+  if (authErr || !user) return { error: "No autenticado." };
+  if (!(await isAdmin(user.id))) return { error: "Sin permisos de administrador." };
+
+  let appUrl: string;
+  try {
+    appUrl = getAppUrl();
+  } catch (err) {
+    return { error: (err as Error).message };
+  }
+
+  let admin: ReturnType<typeof createAdminClient>;
+  try {
+    admin = createAdminClient();
+  } catch {
+    return { error: "Servicio de recuperación no configurado." };
+  }
+
+  const { data: linkData, error: linkErr } = await admin.auth.admin.generateLink({
+    type:  "recovery",
+    email: targetEmail,
+  });
+
+  const tokenHash = linkData?.properties?.hashed_token;
+  if (linkErr || !tokenHash) {
+    return { error: "No se pudo generar el enlace de recuperación." };
+  }
+
+  const link = `${appUrl}/reset-password?token_hash=${tokenHash}&type=recovery`;
+
+  void writeActivity(supabase, {
+    admin_id:     user.id,
+    action:       "generate_recovery_link",
+    entity_type:  "user",
+    entity_id:    targetId,
+    entity_label: targetName,
+  });
+
+  return { success: true, link, userName: targetName };
 }
 
 // ── updateMatchResultAction ───────────────────────────────────────────
