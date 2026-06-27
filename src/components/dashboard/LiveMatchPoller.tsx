@@ -9,7 +9,7 @@ interface LiveMatchPollerProps {
   hasLiveMatch: boolean;
   /**
    * Interval (ms) while tab is visible and a live match exists.
-   * Dashboard default: 5 000 ms   Match detail default: 3 000 ms
+   * Dashboard default: 10 000 ms   Match detail default: 10 000 ms
    */
   activeInterval?: number;
   /**
@@ -35,7 +35,7 @@ const HIDDEN_INTERVAL_MS = 60_000;
  */
 export default function LiveMatchPoller({
   hasLiveMatch,
-  activeInterval = 5_000,
+  activeInterval = 10_000,
   idleInterval   = 15_000,
 }: LiveMatchPollerProps) {
   const router = useRouter();
@@ -65,7 +65,6 @@ export default function LiveMatchPoller({
   }, [isAnyEditing, router, dev]);
 
   useEffect(() => {
-    const interval = hasLiveMatch ? activeInterval : idleInterval;
     if (dev) console.debug(`[poller] mounted — hasLive=${hasLiveMatch} idle=${idleInterval}ms active=${activeInterval}ms`);
 
     function doRefresh() {

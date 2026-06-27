@@ -15,7 +15,7 @@ const HIDDEN_INTERVAL_MS = 60_000;
  * Returns the next polling delay (ms) for a match detail page.
  *
  *   finished               → 60 s (passive — score won't change)
- *   live                   → 5 s
+ *   live                   → 10 s
  *   scheduled, ≤ 5 min     → 10 s  (imminent kickoff)
  *   scheduled, > 5 min     → 30 s
  *   kickoff passed in DB   → 5 s   (lazy sync not yet flushed)
@@ -25,7 +25,7 @@ const HIDDEN_INTERVAL_MS = 60_000;
  */
 function pollingInterval(status: string, startsAt: string): number {
   if (status === "finished") return HIDDEN_INTERVAL_MS;
-  if (status === "live")     return 5_000;
+  if (status === "live")     return 10_000;
 
   // status === "scheduled"
   const msToKickoff = new Date(startsAt).getTime() - Date.now();

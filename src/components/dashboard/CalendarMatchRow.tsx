@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
@@ -44,12 +44,42 @@ export default function CalendarMatchRow({ match }: { match: MatchWithPrediction
   // True once the user touches an input — guards against pausing polling
   // for auto-open forms (no prediction yet) where there is nothing to lose.
   const [hasStartedTyping, setHasStartedTyping] = useState(false);
+
+  // ── Draft persistence ──────────────────────────────────────────────
+  const homeRef = useRef<HTMLInputElement>(null);
+  const awayRef = useRef<HTMLInputElement>(null);
+
+  // Restore draft once after hydration — only for new predictions on open matches.
+  useEffect(() => {
+    if (match.prediction || matchClosedReason(match) !== null) return;
+    try {
+      const raw = sessionStorage.getItem(`pred_draft_v1_${match.id}`);
+      if (!raw) return;
+      const { home, away } = JSON.parse(raw) as { home?: string; away?: string };
+      if (homeRef.current && home !== undefined) homeRef.current.value = home;
+      if (awayRef.current && away !== undefined) awayRef.current.value = away;
+    } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // intentional: one-shot draft restore after hydration
+
   useEffect(() => {
     if (formState && "success" in formState) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsEditing(false);
       setHasStartedTyping(false);
+      try { sessionStorage.removeItem(`pred_draft_v1_${match.id}`); } catch {}
     }
-  }, [formState]);
+  }, [formState, match.id]);
+
+  function handleInput() {
+    setHasStartedTyping(true);
+    try {
+      sessionStorage.setItem(`pred_draft_v1_${match.id}`, JSON.stringify({
+        home: homeRef.current?.value,
+        away: awayRef.current?.value,
+      }));
+    } catch {}
+  }
 
   const saved     = (formState && "success" in formState) ? formState.prediction : match.prediction;
   const isOpen    = matchClosedReason(match) === null;
@@ -65,6 +95,7 @@ export default function CalendarMatchRow({ match }: { match: MatchWithPrediction
     registerEditing(match.id, formActive);
     return () => registerEditing(match.id, false);
   }, [match.id, isOpen, isEditing, saved, hasStartedTyping, registerEditing]);
+
   const isLive    = status === "live";
   const isFinished = status === "finished";
   const hasScore  = match.home_score !== null && match.away_score !== null;
@@ -193,19 +224,19 @@ export default function CalendarMatchRow({ match }: { match: MatchWithPrediction
 
           {isOpen && (
             isEditing ? (
-              <form action={formAction} onInput={() => setHasStartedTyping(true)} className="flex flex-col items-center gap-2.5 pt-1">
+              <form action={formAction} onInput={handleInput} className="flex flex-col items-center gap-2.5 pt-1">
                 <input type="hidden" name="match_id" value={match.id} />
 
-                {/* Teams with centered inputs — mirrors MatchRowInGroup open layout */}
+                {/* Teams with centered inputs */}
                 <div className="flex items-center gap-1.5 w-full">
                   <div className="flex items-center gap-1 min-w-0 flex-1">
                     <span className="text-sm leading-none shrink-0">{matchTeamFlag(home_team)}</span>
                     <span className="text-xs font-semibold text-[#f1f5f9] truncate">{matchTeamName(home_team, match.home_placeholder)}</span>
                   </div>
                   <div className="shrink-0 flex items-center gap-1">
-                    <ScoreInput name="home_score" defaultValue={saved?.home_score} disabled={isPending} />
+                    <ScoreInput name="home_score" defaultValue={saved?.home_score} disabled={isPending} ref={homeRef} />
                     <span className="text-[#94a3b8] text-sm font-light select-none">–</span>
-                    <ScoreInput name="away_score" defaultValue={saved?.away_score} disabled={isPending} />
+                    <ScoreInput name="away_score" defaultValue={saved?.away_score} disabled={isPending} ref={awayRef} />
                   </div>
                   <div className="flex items-center gap-1 flex-row-reverse min-w-0 flex-1">
                     <span className="text-sm leading-none shrink-0">{matchTeamFlag(away_team)}</span>
@@ -227,7 +258,11 @@ export default function CalendarMatchRow({ match }: { match: MatchWithPrediction
                   {saved && (
                     <button
                       type="button"
-                      onClick={() => { setIsEditing(false); setHasStartedTyping(false); }}
+                      onClick={() => {
+                        setIsEditing(false);
+                        setHasStartedTyping(false);
+                        try { sessionStorage.removeItem(`pred_draft_v1_${match.id}`); } catch {}
+                      }}
                       className="text-[9px] text-[#475569] hover:text-[#94a3b8] transition-colors"
                     >
                       Cancelar
@@ -290,10 +325,16 @@ function StatusPill({ match }: { match: MatchWithPrediction }) {
 }
 
 function ScoreInput({
-  name, defaultValue, disabled,
-}: { name: string; defaultValue?: number; disabled?: boolean }) {
+  name, defaultValue, disabled, ref,
+}: {
+  name: string;
+  defaultValue?: number;
+  disabled?: boolean;
+  ref?: React.Ref<HTMLInputElement>;
+}) {
   return (
     <input
+      ref={ref}
       type="number"
       name={name}
       min={0}

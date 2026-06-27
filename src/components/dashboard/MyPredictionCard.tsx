@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { Check, Lock, Loader2 } from "lucide-react";
 import { savePredictionAction } from "@/app/actions/predictions";
 import type { Prediction, PredictionActionState } from "@/lib/matches";
@@ -38,12 +38,42 @@ export default function MyPredictionCard({
   );
   const [isEditing, setIsEditing] = useState(!myPrediction && isScheduled);
   const [hasStartedTyping, setHasStartedTyping] = useState(false);
+
+  // ── Draft persistence ─────────────────────────────────────────────
+  const homeRef = useRef<HTMLInputElement>(null);
+  const awayRef = useRef<HTMLInputElement>(null);
+
+  // Restore draft once after hydration — only for new predictions on open matches.
+  useEffect(() => {
+    if (myPrediction || !isScheduled) return;
+    try {
+      const raw = sessionStorage.getItem(`pred_draft_v1_${matchId}`);
+      if (!raw) return;
+      const { home, away } = JSON.parse(raw) as { home?: string; away?: string };
+      if (homeRef.current && home !== undefined) homeRef.current.value = home;
+      if (awayRef.current && away !== undefined) awayRef.current.value = away;
+    } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // intentional: one-shot draft restore after hydration
+
   useEffect(() => {
     if (formState && "success" in formState) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsEditing(false);
       setHasStartedTyping(false);
+      try { sessionStorage.removeItem(`pred_draft_v1_${matchId}`); } catch {}
     }
-  }, [formState]);
+  }, [formState, matchId]);
+
+  function handleInput() {
+    setHasStartedTyping(true);
+    try {
+      sessionStorage.setItem(`pred_draft_v1_${matchId}`, JSON.stringify({
+        home: homeRef.current?.value,
+        away: awayRef.current?.value,
+      }));
+    } catch {}
+  }
 
   const saved = (formState && "success" in formState) ? formState.prediction : myPrediction;
 
@@ -54,6 +84,7 @@ export default function MyPredictionCard({
     registerEditing(matchId, formActive);
     return () => registerEditing(matchId, false);
   }, [matchId, isScheduled, isEditing, saved, hasStartedTyping, registerEditing]);
+
   const gotPoints = isFinished && !!saved && (saved as { points?: number; scored_at?: string }).scored_at
     && ((saved as { points?: number }).points ?? 0) > 0;
 
@@ -68,14 +99,14 @@ export default function MyPredictionCard({
       {isScheduled && (
         <>
           {isEditing ? (
-            <form action={formAction} onInput={() => setHasStartedTyping(true)} className="flex flex-col items-center gap-3">
+            <form action={formAction} onInput={handleInput} className="flex flex-col items-center gap-3">
               <input type="hidden" name="match_id" value={matchId} />
 
               {/* Score inputs centered */}
               <div className="flex items-center gap-3">
-                <ScoreInput name="home_score" defaultValue={saved?.home_score} disabled={isPending} />
+                <ScoreInput name="home_score" defaultValue={saved?.home_score} disabled={isPending} ref={homeRef} />
                 <span className="text-[#64748b] text-xl font-light select-none">–</span>
-                <ScoreInput name="away_score" defaultValue={saved?.away_score} disabled={isPending} />
+                <ScoreInput name="away_score" defaultValue={saved?.away_score} disabled={isPending} ref={awayRef} />
               </div>
 
               {formState && "error" in formState && (
@@ -96,7 +127,11 @@ export default function MyPredictionCard({
               {saved && (
                 <button
                   type="button"
-                  onClick={() => { setIsEditing(false); setHasStartedTyping(false); }}
+                  onClick={() => {
+                    setIsEditing(false);
+                    setHasStartedTyping(false);
+                    try { sessionStorage.removeItem(`pred_draft_v1_${matchId}`); } catch {}
+                  }}
                   className="text-xs text-[#64748b] hover:text-[#94a3b8] transition-colors"
                 >
                   Cancelar
@@ -259,10 +294,16 @@ function MySituationLine({
 }
 
 function ScoreInput({
-  name, defaultValue, disabled,
-}: { name: string; defaultValue?: number; disabled?: boolean }) {
+  name, defaultValue, disabled, ref,
+}: {
+  name: string;
+  defaultValue?: number;
+  disabled?: boolean;
+  ref?: React.Ref<HTMLInputElement>;
+}) {
   return (
     <input
+      ref={ref}
       type="number"
       name={name}
       min={0}
