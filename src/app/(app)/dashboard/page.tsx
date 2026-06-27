@@ -15,6 +15,12 @@ import {
   PHASE_SCORING,
   type MatchWithPrediction,
 } from "@/lib/matches";
+import {
+  computeGroupStandings,
+  assignBestThirdSlots,
+  resolveSlot,
+  type ClassificationMatch,
+} from "@/lib/classification";
 import type { LeaderboardEntry } from "@/lib/groups";
 import { Check } from "lucide-react";
 import Link from "next/link";
@@ -49,6 +55,36 @@ export default async function DashboardPage() {
     getUserGroupsWithMeta(user.id),
   ]);
 
+  // Resolve knockout match teams from group standings so Inicio shows
+  // real team names (e.g. "Sudáfrica") rather than raw placeholders
+  // (e.g. "Runner-up Group A") for confirmed/projected slots.
+  const groupStandings = computeGroupStandings(
+    matches
+      .filter((m) => m.stage === "group")
+      .map((m) => ({
+        group_code: m.group_code,
+        home_score: m.home_score,
+        away_score: m.away_score,
+        status:     m.status,
+        home_team:  m.home_team,
+        away_team:  m.away_team,
+      })) as ClassificationMatch[]
+  );
+  const bestThirdSlots = assignBestThirdSlots(
+    groupStandings,
+    matches.filter((m) => m.stage === "round_of_32")
+  );
+  const resolvedMatches: MatchWithPrediction[] = matches.map((m) => {
+    if (m.stage === "group" || (m.home_team && m.away_team)) return m;
+    const homeRes = resolveSlot(m.home_team, m.home_placeholder, groupStandings, bestThirdSlots.get(`${m.id}:home`) ?? null);
+    const awayRes = resolveSlot(m.away_team, m.away_placeholder, groupStandings, bestThirdSlots.get(`${m.id}:away`) ?? null);
+    return {
+      ...m,
+      home_team: homeRes.kind !== "unresolved" ? homeRes.team : m.home_team,
+      away_team: awayRes.kind !== "unresolved" ? awayRes.team : m.away_team,
+    };
+  });
+
   const community   = groups[0] ?? null;
   const [leaderboard, activePlayers] = await Promise.all([
     community ? getGroupLeaderboard(community.id) : Promise.resolve([]),
@@ -57,30 +93,30 @@ export default async function DashboardPage() {
   const userEntry   = leaderboard.find((e) => e.user_id === user.id) ?? null;
 
   // Scheduled matches with open prediction window and no prediction yet
-  const pendingCount = matches.filter(
+  const pendingCount = resolvedMatches.filter(
     (m) => m.status === "scheduled" && matchClosedReason(m) === null && !m.prediction
   ).length;
 
   // Live matches sorted by kickoff — shown as a group when ≥1 exist.
-  const liveMatches = matches
+  const liveMatches = resolvedMatches
     .filter((m) => m.status === "live")
     .sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime());
 
   // Fallback featured match (used only when no live matches).
   const fallbackMatch: MatchWithPrediction | null = (() => {
-    const open = matches.find((m) => m.status === "scheduled" && matchClosedReason(m) === null);
+    const open = resolvedMatches.find((m) => m.status === "scheduled" && matchClosedReason(m) === null);
     if (open) return open;
-    const scheduled = matches
+    const scheduled = resolvedMatches
       .filter((m) => m.status === "scheduled")
       .sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime())[0];
     if (scheduled) return scheduled;
-    return matches
+    return resolvedMatches
       .filter((m) => m.status === "finished")
       .sort((a, b) => new Date(b.starts_at).getTime() - new Date(a.starts_at).getTime())[0] ?? null;
   })();
 
-  const currentStage   = detectCurrentStage(matches);
-  const hasLiveMatch   = matches.some((m) => m.status === "live");
+  const currentStage   = detectCurrentStage(resolvedMatches);
+  const hasLiveMatch   = resolvedMatches.some((m) => m.status === "live");
 
   const prizePool = community
     ? computePrizePool(
@@ -117,7 +153,7 @@ export default async function DashboardPage() {
             : fallbackMatch && <FeaturedMatchCard match={fallbackMatch} />
           }
           <HomeInstallBanner />
-          <CalendarView matches={matches} />
+          <CalendarView matches={resolvedMatches} />
         </main>
 
         {/* ── Left: user summary + scoring card ────────────────────── */}
