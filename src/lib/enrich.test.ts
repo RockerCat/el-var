@@ -155,3 +155,50 @@ describe("enrichWithResolvedTeams — projected teams when groups are incomplete
     expect(enrichedM73.home_team?.code).toBe("CAN");
   });
 });
+
+// ── News name resolution: "Equipo por definir" pattern ──────────────────────
+// Validates the exact fallback used in createMatchNews (lib/db/news.ts).
+// When enrichment cannot resolve a team, news must use a friendly string —
+// never the raw DB placeholder like "Runner-up Group A".
+
+describe("enrichWithResolvedTeams — news name resolution pattern", () => {
+  it("unresolvable team produces null so news can use 'Equipo por definir'", () => {
+    const m73 = knockoutMatch("m73", 73, "Runner-up Group B", "Runner-up Group C");
+    const enriched = enrichWithResolvedTeams([m73]);
+    const result = enriched[0];
+    // When passed as a standalone array, TypeScript infers home_team as `null`.
+    // Cast to ClassificationTeam | null to mirror the runtime type at call sites.
+    const homeTeam = result.home_team as ClassificationTeam | null;
+    const awayTeam = result.away_team as ClassificationTeam | null;
+    const homeName = homeTeam?.name ?? "Equipo por definir";
+    const awayName = awayTeam?.name ?? "Equipo por definir";
+    expect(homeName).toBe("Equipo por definir");
+    expect(awayName).toBe("Equipo por definir");
+    expect(homeName).not.toMatch(/Runner-up|Winner|Best 3rd/i);
+    expect(awayName).not.toMatch(/Runner-up|Winner|Best 3rd/i);
+  });
+
+  it("resolved team provides real name so news skips the fallback", () => {
+    const m73 = knockoutMatch("m73", 73, "Runner-up Group B", "Runner-up Group C");
+    const enriched = enrichWithResolvedTeams([...groupBMatches, ...groupCMatches, m73]);
+    const result = enriched.find((m) => m.id === "m73")!;
+    const homeName = result.home_team?.name ?? "Equipo por definir";
+    const awayName = result.away_team?.name ?? "Equipo por definir";
+    expect(homeName).toBe("CAN");
+    expect(awayName).toBe("MAR");
+    expect(homeName).not.toMatch(/Runner-up|Winner|Best 3rd/i);
+    expect(awayName).not.toMatch(/Runner-up|Winner|Best 3rd/i);
+  });
+
+  it("title built with resolved teams has no technical placeholder text", () => {
+    const m73 = knockoutMatch("m73", 73, "Runner-up Group B", "Runner-up Group C");
+    const enriched = enrichWithResolvedTeams([...groupBMatches, ...groupCMatches, m73]);
+    const result = enriched.find((m) => m.id === "m73")!;
+    const homeName = result.home_team?.name ?? "Equipo por definir";
+    const awayName = result.away_team?.name ?? "Equipo por definir";
+    const title = `${homeName} 1 - 0 ${awayName}`;
+    expect(title).not.toMatch(/Runner-up|Winner|Best 3rd/i);
+    expect(title).toContain("CAN");
+    expect(title).toContain("MAR");
+  });
+});

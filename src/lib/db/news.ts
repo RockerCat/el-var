@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { pickTemplate, fillTemplate } from "@/lib/news/pick";
 import { primaryTag, hasTag } from "@/lib/news/teamMeta";
+import { enrichWithResolvedTeams } from "@/lib/enrich";
+import type { Match } from "@/lib/matches";
 import {
   classifyResultCategory,
   RESULT_TEMPLATES,
@@ -629,26 +631,31 @@ export async function createMatchNews(
       .maybeSingle();
     if (existing) return;
 
-    // Fetch match + teams
-    const { data: match } = await supabase
+    // Fetch ALL matches so enrichWithResolvedTeams can resolve knockout
+    // team slots from group standings — identical to dashboard/en-vivo/admin.
+    const { data: allMatchRows } = await supabase
       .from("matches")
-      .select(
-        "home_placeholder, away_placeholder, home_team:home_team_id(id, name, flag_emoji, code), away_team:away_team_id(id, name, flag_emoji, code)"
-      )
-      .eq("id", matchId)
-      .maybeSingle();
-    if (!match) return;
+      .select("*, home_team:home_team_id(id, name, flag_emoji, code), away_team:away_team_id(id, name, flag_emoji, code)")
+      .order("starts_at", { ascending: true });
+
+    if (!allMatchRows || allMatchRows.length === 0) return;
+
+    const enrichedMatches = enrichWithResolvedTeams(allMatchRows as Match[]);
+    const enrichedMatch = enrichedMatches.find((m) => m.id === matchId);
+    if (!enrichedMatch) return;
 
     type TeamRow = { id: string; name: string; flag_emoji: string | null; code: string | null };
-    const homeTeam = match.home_team as unknown as TeamRow | null;
-    const awayTeam = match.away_team as unknown as TeamRow | null;
+    const homeTeam = enrichedMatch.home_team as TeamRow | null;
+    const awayTeam = enrichedMatch.away_team as TeamRow | null;
 
-    const homeName = homeTeam?.name ?? (match.home_placeholder as string | null) ?? "Local";
-    const awayName = awayTeam?.name ?? (match.away_placeholder as string | null) ?? "Visitante";
-    const homeFlag = homeTeam?.flag_emoji ?? "";
-    const awayFlag = awayTeam?.flag_emoji ?? "";
-    const homeCode = homeTeam?.code ?? null;
-    const awayCode = awayTeam?.code ?? null;
+    // Use enriched team name; never fall back to the raw DB placeholder
+    // (e.g. "Runner-up Group A") — show a user-friendly string instead.
+    const homeName   = homeTeam?.name ?? "Equipo por definir";
+    const awayName   = awayTeam?.name ?? "Equipo por definir";
+    const homeFlag   = homeTeam?.flag_emoji ?? "";
+    const awayFlag   = awayTeam?.flag_emoji ?? "";
+    const homeCode   = homeTeam?.code ?? null;
+    const awayCode   = awayTeam?.code ?? null;
     const homeTeamId = homeTeam?.id ?? null;
     const awayTeamId = awayTeam?.id ?? null;
 
