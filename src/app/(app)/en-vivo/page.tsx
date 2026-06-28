@@ -15,6 +15,7 @@ import LiveMatchCard from "@/components/dashboard/LiveMatchCard";
 import LiveMatchPoller from "@/components/dashboard/LiveMatchPoller";
 import { PredictionEditingProvider } from "@/contexts/prediction-editing";
 import TabReadySignal from "@/components/layout/TabReadySignal";
+import { enrichWithResolvedTeams } from "@/lib/enrich";
 
 export default async function EnVivoPage() {
   const supabase = await createClient();
@@ -25,15 +26,16 @@ export default async function EnVivoPage() {
   if (!(await isGroupMember(user.id))) redirect("/no-access");
 
   const matches = await getMatchesWithPredictions(user.id);
+  const resolvedMatches = enrichWithResolvedTeams(matches);
 
-  const liveMatches = matches
+  const liveMatches = resolvedMatches
     .filter((m) => m.status === "live")
     .sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime());
 
   // Caso 1: un solo partido en vivo → ir directo al detalle
   if (liveMatches.length === 1) redirect(`/matches/${liveMatches[0].id}`);
 
-  const nextMatch = matches
+  const nextMatch = resolvedMatches
     .filter((m) => m.status === "scheduled")
     .sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime())[0] ?? null;
 
