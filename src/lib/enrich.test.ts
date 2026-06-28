@@ -123,6 +123,34 @@ describe("enrichWithResolvedTeams — M73 scenario (Runner-up Group B vs Runner-
   });
 });
 
+// ── Admin match detail page: single match extracted from enriched batch ─────
+// Reproduces the bug in /admin/matches/[matchId]/page.tsx where the page
+// fetched only the target match by id, leaving group placeholders unresolved.
+// Fix: getMatchForAdmin fetches all matches, enriches the batch, then finds by id.
+
+describe("getMatchForAdmin pattern — single match from enriched batch", () => {
+  // Exact bug-report scenario: knockout match with Winner Group C / Runner-up Group F.
+  // Group C is fully finished so BRA is 1st, MAR is 2nd.
+  const target = knockoutMatch("target-match", 100, "Winner Group C", "Runner-up Group C");
+
+  it("resolves placeholders when all group matches are included in the batch (fix)", () => {
+    const allMatches = [...groupCMatches, target]; // simulates getMatchForAdmin: full batch
+    const enriched = enrichWithResolvedTeams(allMatches);
+    const found = enriched.find((m) => m.id === "target-match")!;
+    expect(found.home_team?.code).toBe("BRA"); // 1st in Group C
+    expect(found.away_team?.code).toBe("MAR"); // 2nd in Group C
+    expect(found.home_team).not.toBeNull();
+    expect(found.away_team).not.toBeNull();
+  });
+
+  it("stays unresolved when only the target match is in the batch (old bug)", () => {
+    const enriched = enrichWithResolvedTeams([target]); // old page: single-match fetch
+    const found = enriched.find((m) => m.id === "target-match")!;
+    expect(found.home_team).toBeNull(); // placeholder can't resolve without group context
+    expect(found.away_team).toBeNull();
+  });
+});
+
 // ── En Vivo shows same teams as Inicio for same match_id ────────────────────
 
 describe("enrichWithResolvedTeams — same result regardless of call site", () => {

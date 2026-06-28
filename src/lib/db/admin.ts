@@ -56,6 +56,27 @@ export async function getMatchesForAdmin(opts?: {
   });
 }
 
+// Fetches a single match for the admin detail page, enriched with resolved teams.
+// Must fetch ALL matches first so enrichWithResolvedTeams has full group-standings
+// context — fetching by id alone would leave group placeholders unresolved.
+export async function getMatchForAdmin(matchId: string): Promise<Match | null> {
+  await syncStartedMatches();
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("matches")
+    .select(`*, home_team:home_team_id(*), away_team:away_team_id(*)`)
+    .order("starts_at", { ascending: true });
+
+  if (error) {
+    console.error("[admin] getMatchForAdmin:", error.message);
+    return null;
+  }
+
+  const enriched = enrichWithResolvedTeams((data ?? []) as Match[]);
+  return enriched.find((m) => m.id === matchId) ?? null;
+}
+
 // ── Dashboard stats ───────────────────────────────────────────────────
 
 export type AdminStats = {

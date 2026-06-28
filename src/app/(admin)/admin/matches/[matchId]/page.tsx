@@ -1,9 +1,8 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
-import { syncStartedMatches } from "@/lib/db/matches";
 import MatchEditorCard from "@/components/admin/MatchEditorCard";
-import { matchTeamCode, type Match } from "@/lib/matches";
+import { matchTeamCode } from "@/lib/matches";
+import { getMatchForAdmin } from "@/lib/db/admin";
 
 interface PageProps {
   params: Promise<{ matchId: string }>;
@@ -12,17 +11,8 @@ interface PageProps {
 export default async function AdminMatchDetailPage({ params }: PageProps) {
   const { matchId } = await params;
 
-  await syncStartedMatches();
-
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("matches")
-    .select("*, home_team:home_team_id(*), away_team:away_team_id(*)")
-    .eq("id", matchId)
-    .single();
-
-  if (!data) notFound();
-  const match = data as Match;
+  const match = await getMatchForAdmin(matchId);
+  if (!match) notFound();
 
   const matchLabel = `${matchTeamCode(match.home_team, match.home_placeholder)} vs ${matchTeamCode(match.away_team, match.away_placeholder)}`;
 
