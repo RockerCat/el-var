@@ -37,6 +37,9 @@ export type Match = {
   // For knockout draws: the team that advanced via penalty shootout.
   // NEVER used for scoring — only for bracket/classification purposes.
   advancing_team_id: string | null;
+  // 'home' | 'away' when a knockout match was decided by penalties.
+  // Used by bracket propagation (Winner Mxx / Loser Mxx resolution).
+  winner_side: 'home' | 'away' | null;
 };
 
 /** True for every stage after the group phase (i.e., knockout rounds). */

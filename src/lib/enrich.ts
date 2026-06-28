@@ -19,16 +19,25 @@ type EnrichableMatch = {
   away_team: ClassificationTeam | null;
   home_placeholder: string | null;
   away_placeholder: string | null;
+  winner_side: 'home' | 'away' | null;
 };
 
 function recordResult(
-  m: { match_number: number | null; home_score: number | null; away_score: number | null; home_team: ClassificationTeam | null; away_team: ClassificationTeam | null },
+  m: { match_number: number | null; home_score: number | null; away_score: number | null; home_team: ClassificationTeam | null; away_team: ClassificationTeam | null; winner_side?: 'home' | 'away' | null },
   knockoutResults: Map<number, KnockoutResult>
 ) {
   if (m.match_number === null || m.home_score === null || m.away_score === null) return;
   if (!m.home_team || !m.away_team) return;
-  if (m.home_score > m.away_score) knockoutResults.set(m.match_number, { winner: m.home_team, loser: m.away_team });
-  else if (m.away_score > m.home_score) knockoutResults.set(m.match_number, { winner: m.away_team, loser: m.home_team });
+  if (m.home_score > m.away_score) {
+    knockoutResults.set(m.match_number, { winner: m.home_team, loser: m.away_team });
+  } else if (m.away_score > m.home_score) {
+    knockoutResults.set(m.match_number, { winner: m.away_team, loser: m.home_team });
+  } else if (m.winner_side === 'home') {
+    knockoutResults.set(m.match_number, { winner: m.home_team, loser: m.away_team });
+  } else if (m.winner_side === 'away') {
+    knockoutResults.set(m.match_number, { winner: m.away_team, loser: m.home_team });
+  }
+  // Draw with no winner_side: unresolvable — slot stays null downstream.
 }
 
 /**
@@ -40,8 +49,8 @@ function recordResult(
  * are processed before later rounds — this allows "Winner M73" in M90 to resolve
  * once M73's winner has been established from group standings in the same pass.
  *
- * Draws (penalty shootouts) are not resolved — advancing_team_id is not in
- * EnrichableMatch. Those slots remain unresolved until home_team_id is set in DB.
+ * Penalty draws resolve when winner_side ('home' | 'away') is set on the match.
+ * Without winner_side, penalty-draw slots remain unresolved.
  */
 export function enrichWithResolvedTeams<T extends EnrichableMatch>(matches: T[]): T[] {
   const groupStandings = computeGroupStandings(

@@ -106,6 +106,7 @@ export default function AdvancedMatchEditor({ match, teams }: Props) {
   const [homeScore,       setHomeScore]      = useState(match.home_score?.toString() ?? "");
   const [awayScore,       setAwayScore]      = useState(match.away_score?.toString() ?? "");
   const [advancingTeamId, setAdvancingTeamId] = useState(match.advancing_team_id ?? "");
+  const [winnerSide,      setWinnerSide]     = useState<string>(match.winner_side ?? "");
 
   // ── Confirmation state ─────────────────────────────────────────────
   const [confirmPending, setConfirmPending] = useState(false);
@@ -169,6 +170,11 @@ export default function AdvancedMatchEditor({ match, teams }: Props) {
                       </option>
                     ))}
                   </AdminSelect>
+                  {!homeTeamId && match.home_team && (
+                    <p className="text-[10px] text-[#00c85a]">
+                      Resuelto actualmente: {match.home_team.flag_emoji ?? ""} {match.home_team.code}
+                    </p>
+                  )}
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <FieldLabel>Placeholder</FieldLabel>
@@ -212,6 +218,11 @@ export default function AdvancedMatchEditor({ match, teams }: Props) {
                       </option>
                     ))}
                   </AdminSelect>
+                  {!awayTeamId && match.away_team && (
+                    <p className="text-[10px] text-[#00c85a]">
+                      Resuelto actualmente: {match.away_team.flag_emoji ?? ""} {match.away_team.code}
+                    </p>
+                  )}
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <FieldLabel>Placeholder</FieldLabel>
@@ -358,7 +369,7 @@ export default function AdvancedMatchEditor({ match, teams }: Props) {
                 </div>
               </div>
 
-              {/* Knockout advancing team — only for non-group stages */}
+              {/* Knockout advancing team — only when team IDs are known */}
               {isKnockoutStage(stage as MatchStage) && (homeTeamId || awayTeamId) && (
                 <div className="flex flex-col gap-1.5">
                   <FieldLabel>Equipo clasificado (penales)</FieldLabel>
@@ -379,8 +390,28 @@ export default function AdvancedMatchEditor({ match, teams }: Props) {
                       </option>
                     )}
                   </AdminSelect>
+                </div>
+              )}
+
+              {/* winner_side — for all knockout matches, including group-derived ones */}
+              {isKnockoutStage(stage as MatchStage) && (
+                <div className="flex flex-col gap-1.5">
+                  <FieldLabel>Ganador de la llave</FieldLabel>
+                  <AdminSelect
+                    name="winner_side"
+                    value={winnerSide}
+                    onChange={(e) => setWinnerSide(e.target.value)}
+                  >
+                    <option value="">— Por definir —</option>
+                    <option value="home">
+                      {match.home_team ? `${match.home_team.flag_emoji ?? ""} ${match.home_team.name}` : "Local"} (local)
+                    </option>
+                    <option value="away">
+                      {match.away_team ? `${match.away_team.flag_emoji ?? ""} ${match.away_team.name}` : "Visitante"} (visitante)
+                    </option>
+                  </AdminSelect>
                   <p className="text-[10px] text-[#64748b]">
-                    Solo para bracket. No afecta puntuación — los penales no cuentan para puntos.
+                    Para empates: indica quién avanzó por penales. No afecta puntuación.
                   </p>
                 </div>
               )}

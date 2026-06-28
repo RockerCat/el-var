@@ -26,6 +26,7 @@ function groupMatch(
     away_team: team(away),
     home_placeholder: null,
     away_placeholder: null,
+    winner_side: null as 'home' | 'away' | null,
   };
 }
 
@@ -48,6 +49,7 @@ function knockoutMatch(
     away_team: null,
     home_placeholder: homePlaceholder,
     away_placeholder: awayPlaceholder,
+    winner_side: null as 'home' | 'away' | null,
   };
 }
 
@@ -72,6 +74,7 @@ function finishedKnockoutMatch(
     away_team: awayTeam,
     home_placeholder: null,
     away_placeholder: null,
+    winner_side: null as 'home' | 'away' | null,
   };
 }
 
@@ -322,6 +325,7 @@ describe("enrichWithResolvedTeams — Winner Mxx when R32 teams come from group 
     away_team: null,
     home_placeholder: "Winner Group B",
     away_placeholder: "Winner Group C",
+    winner_side: null as 'home' | 'away' | null,
   };
   const m90 = knockoutMatch("m90", 90, "Winner M73", "Winner M75", "round_of_16");
 
@@ -392,6 +396,7 @@ function finishedNullTeams(
     away_team: null,
     home_placeholder: homePH,
     away_placeholder: awayPH,
+    winner_side: null as 'home' | 'away' | null,
   };
 }
 
@@ -634,5 +639,71 @@ describe("Scenario 7 — Server-side enrichment matches Copa/Bracket view resolu
     const result = enrichWithResolvedTeams([src, dst]).find((m) => m.id === "dst-100")!;
     expect(result.home_team?.code).toBe("TA");
     expect(result.away_team?.code).toBe("TB");
+  });
+});
+
+// ════════════════════════════════════════════════════════════════════════════
+// winner_side — penalty draw resolution
+// ════════════════════════════════════════════════════════════════════════════
+
+function drawWith(num: number, home: ClassificationTeam, away: ClassificationTeam, side: 'home' | 'away' | null) {
+  return {
+    ...finishedKnockoutMatch(`draw-${num}`, num, home, away, 1, 1),
+    winner_side: side,
+  };
+}
+
+describe("winner_side — knockout draw propagation", () => {
+  // Scenario 1: draw + winner_side='home' → Winner Mxx resolves to the home team
+  it("1. winner_side='home' resolves Winner Mxx to the home team", () => {
+    const src = drawWith(1, TA, TB, "home");
+    const dst = destination(10, "Winner M1", "Winner M2");
+    const result = enrichWithResolvedTeams([src, dst]).find((m) => m.id === "dst-10")!;
+    expect(result.home_team?.code).toBe("TA");
+  });
+
+  // Scenario 2: draw + winner_side='away' → Winner Mxx resolves to the away team
+  it("2. winner_side='away' resolves Winner Mxx to the away team", () => {
+    const src = drawWith(1, TA, TB, "away");
+    const dst = destination(10, "Winner M1", "Winner M2");
+    const result = enrichWithResolvedTeams([src, dst]).find((m) => m.id === "dst-10")!;
+    expect(result.home_team?.code).toBe("TB");
+  });
+
+  // Scenario 3: draw + winner_side='away' → Loser Mxx resolves to the home team (the loser)
+  it("3. Loser Mxx resolves to the opposite side of winner_side", () => {
+    const src = drawWith(1, TA, TB, "away"); // TB wins → TA loses
+    const dst = destination(10, "Loser M1", "Loser M2");
+    const result = enrichWithResolvedTeams([src, dst]).find((m) => m.id === "dst-10")!;
+    expect(result.home_team?.code).toBe("TA"); // loser = home = TA
+  });
+
+  // Scenario 4: non-draw knockout → score determines winner, winner_side not required
+  it("4. Non-draw knockout resolves by score — winner_side is not needed", () => {
+    const src = finishedWithTeams(1, TA, TB, 2, 0); // winner_side is null from helper
+    const dst = destination(10, "Winner M1", "Winner M2");
+    const result = enrichWithResolvedTeams([src, dst]).find((m) => m.id === "dst-10")!;
+    expect(result.home_team?.code).toBe("TA");
+    expect(src.winner_side).toBeNull(); // score was sufficient
+  });
+
+  // Scenario 5: group draw — winner_side on a group match has no effect on propagation
+  it("5. Group match draw with winner_side is ignored — groups don't propagate via Winner Mxx", () => {
+    // A group match can't be referenced by Winner Mxx in the bracket.
+    // The match is a group draw; winner_side wouldn't be set in practice, but even if it
+    // were, it should not affect group standings.
+    const groupDraw = {
+      ...groupMatch("g1", "TA", "TB", 1, 1, "A"),
+      winner_side: "home" as 'home' | 'away' | null,
+    };
+    // Add a second group match so we can compute standings
+    const groupB = groupMatch("g2", "TC", "TD", 2, 0, "A");
+    // Knockout placeholder referencing Winner Group A — resolved by standings, not winner_side
+    const ko = knockoutMatch("ko1", 50, "Winner Group A", "Runner-up Group A");
+    const result = enrichWithResolvedTeams([groupDraw, groupB, ko]).find((m) => m.id === "ko1")!;
+    // TC won the group with 3 pts; TA and TB share 1 pt each (projected by points)
+    // Regardless, winner_side on the group match must not short-circuit group standings logic
+    expect(result.home_team).not.toBeNull(); // placeholder resolved via standings
+    expect(result.home_team?.code).toBe("TC"); // group winner is TC (won both matches)
   });
 });

@@ -12,7 +12,7 @@ import CaminoTabs from "@/components/admin/ClassificationTabs";
 import TabReadySignal from "@/components/layout/TabReadySignal";
 
 const KNOCKOUT_SELECT =
-  "id, match_number, starts_at, venue, status, home_score, away_score, " +
+  "id, match_number, starts_at, venue, status, home_score, away_score, winner_side, " +
   "home_placeholder, away_placeholder, " +
   "home_team:home_team_id(id, name, code, flag_emoji), " +
   "away_team:away_team_id(id, name, code, flag_emoji)";

@@ -257,6 +257,8 @@ export async function updateMatchResultAction(
   const awayRaw           = (formData.get("away_score")         as string | null) ?? "";
   const matchLabel        = (formData.get("match_label")        as string | null) ?? "";
   const advancingTeamRaw  = (formData.get("advancing_team_id")  as string | null)?.trim() || null;
+  const winnerSideRaw     = (formData.get("winner_side")        as string | null)?.trim() || null;
+  const winnerSide        = (winnerSideRaw === "home" || winnerSideRaw === "away") ? winnerSideRaw : null;
 
   if (!matchId || !status) return { error: "Datos incompletos." };
 
@@ -278,20 +280,21 @@ export async function updateMatchResultAction(
 
   const { data: oldMatch } = await supabase
     .from("matches")
-    .select("status, home_score, away_score, stage, advancing_team_id")
+    .select("status, home_score, away_score, stage, advancing_team_id, winner_side")
     .eq("id", matchId)
     .single();
 
-  // Knockout draw being finalized requires advancing_team_id.
+  // Knockout draw being finalized requires winner_side (or advancing_team_id for backward compat).
   if (
     status === "finished" &&
     homeScore !== null &&
     awayScore !== null &&
     homeScore === awayScore &&
     oldMatch?.stage !== "group" &&
+    !winnerSide &&
     !advancingTeamRaw
   ) {
-    return { error: "En eliminatorias empatadas debes seleccionar el equipo que clasificó." };
+    return { error: "En eliminatorias empatadas debes seleccionar el ganador por penales." };
   }
 
   const { data: rpcData, error } = await supabase.rpc("update_match_result", {
@@ -311,9 +314,12 @@ export async function updateMatchResultAction(
     return { error: `Error: ${msg}` };
   }
 
+  // Save winner_side separately — not handled by the scoring RPC.
+  await supabase.from("matches").update({ winner_side: winnerSide }).eq("id", matchId);
+
   const { data: { user } } = await supabase.auth.getUser();
   if (user) {
-    const newValues = { status, home_score: homeScore, away_score: awayScore, advancing_team_id: advancingTeamRaw };
+    const newValues = { status, home_score: homeScore, away_score: awayScore, advancing_team_id: advancingTeamRaw, winner_side: winnerSide };
     void writeMatchAudit(supabase, {
       match_id: matchId, admin_id: user.id,
       action: "update_result", old_values: oldMatch ?? null, new_values: newValues,
@@ -441,6 +447,8 @@ export async function advancedEditMatchAction(
   const matchNumberRaw    = (formData.get("match_number")        as string | null)?.trim() ?? "";
   const venueRaw          = (formData.get("venue")               as string | null)?.trim() || null;
   const advancingTeamRaw  = (formData.get("advancing_team_id")   as string | null)?.trim() || null;
+  const winnerSideAdvRaw  = (formData.get("winner_side")          as string | null)?.trim() || null;
+  const winnerSideAdv     = (winnerSideAdvRaw === "home" || winnerSideAdvRaw === "away") ? winnerSideAdvRaw : null;
 
   if (!matchId)    return { error: "match_id requerido." };
   if (!startsAtRaw) return { error: "Fecha/hora requerida." };
@@ -470,16 +478,17 @@ export async function advancedEditMatchAction(
     return { error: "El equipo local y visitante no pueden ser el mismo." };
   }
 
-  // Knockout draw being finalized requires advancing_team_id.
+  // Knockout draw being finalized requires winner_side (or advancing_team_id for backward compat).
   if (
     status === "finished" &&
     homeScore !== null &&
     awayScore !== null &&
     homeScore === awayScore &&
     stage !== "group" &&
+    !winnerSideAdv &&
     !advancingTeamRaw
   ) {
-    return { error: "En eliminatorias empatadas debes seleccionar el equipo que clasificó." };
+    return { error: "En eliminatorias empatadas debes seleccionar el ganador por penales." };
   }
 
   const supabase = await createClient();
@@ -489,7 +498,7 @@ export async function advancedEditMatchAction(
 
   const { data: oldMatch } = await supabase
     .from("matches")
-    .select("home_team_id, away_team_id, home_placeholder, away_placeholder, starts_at, stage, status, home_score, away_score, group_code, match_number, venue, advancing_team_id")
+    .select("home_team_id, away_team_id, home_placeholder, away_placeholder, starts_at, stage, status, home_score, away_score, group_code, match_number, venue, advancing_team_id, winner_side")
     .eq("id", matchId)
     .single();
 
@@ -522,13 +531,16 @@ export async function advancedEditMatchAction(
     return { error: `Error: ${msg}` };
   }
 
+  // Save winner_side separately — not handled by the scoring RPC.
+  await supabase.from("matches").update({ winner_side: winnerSideAdv }).eq("id", matchId);
+
   const newValues = {
     home_team_id: homeTeamRaw, away_team_id: awayTeamRaw,
     home_placeholder: homePlaceholder, away_placeholder: awayPlaceholder,
     starts_at: startsAt, stage, status,
     home_score: homeScore, away_score: awayScore,
     group_code: groupCodeRaw, match_number: matchNumber, venue: venueRaw,
-    advancing_team_id: advancingTeamRaw,
+    advancing_team_id: advancingTeamRaw, winner_side: winnerSideAdv,
   };
 
   void writeActivity(supabase, {

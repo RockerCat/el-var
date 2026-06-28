@@ -235,13 +235,15 @@ export default function MatchEditorCard({ match }: { match: Match }) {
   const [homeScoreVal,    setHomeScoreVal]     = useState(match.home_score ?? "");
   const [awayScoreVal,    setAwayScoreVal]     = useState(match.away_score ?? "");
   const [advancingTeamId, setAdvancingTeamId] = useState(match.advancing_team_id ?? "");
+  const [winnerSide,      setWinnerSide]      = useState<string>(match.winner_side ?? "");
 
   useEffect(() => { setStatusVal(match.status); },                         [match.status]);
   useEffect(() => { setHomeScoreVal(match.home_score ?? ""); },             [match.home_score]);
   useEffect(() => { setAwayScoreVal(match.away_score ?? ""); },             [match.away_score]);
   useEffect(() => { setAdvancingTeamId(match.advancing_team_id ?? ""); },  [match.advancing_team_id]);
+  useEffect(() => { setWinnerSide(match.winner_side ?? ""); },              [match.winner_side]);
 
-  // For non-draw knockout matches, auto-derive the advancing team from scores.
+  // For non-draw knockout matches, auto-derive the advancing team and winner_side from scores.
   // For draws the admin must select manually.
   const isKnockout = isKnockoutStage(match.stage);
   useEffect(() => {
@@ -250,6 +252,7 @@ export default function MatchEditorCard({ match }: { match: Match }) {
     const a = Number(awayScoreVal);
     if (!isNaN(h) && !isNaN(a) && homeScoreVal !== "" && awayScoreVal !== "" && h !== a) {
       setAdvancingTeamId(h > a ? (match.home_team_id ?? "") : (match.away_team_id ?? ""));
+      setWinnerSide(h > a ? "home" : "away");
     }
   }, [homeScoreVal, awayScoreVal, isKnockout, match.home_team_id, match.away_team_id]);
 
@@ -344,39 +347,37 @@ export default function MatchEditorCard({ match }: { match: Match }) {
               </div>
             </div>
 
-            {/* Knockout advancing team selector — only for non-group stages */}
-            {isKnockout && (match.home_team_id || match.away_team_id) && (
+            {/* Knockout: winner_side for bracket propagation — shown for all knockout matches.
+                For non-draws, auto-derived from scores. For draws, admin selects manually. */}
+            {isKnockout && (
               <div className="flex flex-col gap-1.5">
-                <FieldLabel>Equipo clasificado</FieldLabel>
+                <input type="hidden" name="advancing_team_id" value={advancingTeamId} />
+                <FieldLabel>Ganador de la llave</FieldLabel>
                 <select
-                  name="advancing_team_id"
-                  value={advancingTeamId}
-                  onChange={(e) => setAdvancingTeamId(e.target.value)}
+                  name="winner_side"
+                  value={winnerSide}
+                  onChange={(e) => setWinnerSide(e.target.value)}
                   className="h-10 rounded-xl bg-[#0e0e1d] border border-[#2a2a45] text-[#f1f5f9] text-sm px-3 focus:outline-none focus:border-[#00c85a]/60 focus:ring-2 focus:ring-[#00c85a]/10 transition-colors"
                 >
-                  <option value="">— Sin seleccionar —</option>
-                  {match.home_team && match.home_team_id && (
-                    <option value={match.home_team_id}>
-                      {match.home_team.flag_emoji ?? ""} {match.home_team.name} (local)
-                    </option>
-                  )}
-                  {match.away_team && match.away_team_id && (
-                    <option value={match.away_team_id}>
-                      {match.away_team.flag_emoji ?? ""} {match.away_team.name} (visitante)
-                    </option>
-                  )}
+                  <option value="">— Por definir —</option>
+                  <option value="home">
+                    {match.home_team ? `${match.home_team.flag_emoji ?? ""} ${match.home_team.name}` : "Local"} (local)
+                  </option>
+                  <option value="away">
+                    {match.away_team ? `${match.away_team.flag_emoji ?? ""} ${match.away_team.name}` : "Visitante"} (visitante)
+                  </option>
                 </select>
-                {/* Warn on draw without selection */}
+                {/* Warn on draw without winner_side selection */}
                 {statusVal === "finished"
                   && homeScoreVal !== "" && awayScoreVal !== ""
                   && Number(homeScoreVal) === Number(awayScoreVal)
-                  && !advancingTeamId && (
+                  && !winnerSide && (
                   <p className="text-[10px] text-[#f59e0b]">
-                    Empate en eliminatoria — selecciona el equipo que clasificó por penales.
+                    Empate en eliminatoria — selecciona el ganador por penales.
                   </p>
                 )}
                 <p className="text-[10px] text-[#64748b]">
-                  Solo para bracket. No afecta puntuación (penales no cuentan).
+                  Para empates: indica quién avanzó por penales. No afecta puntuación.
                 </p>
               </div>
             )}

@@ -48,6 +48,7 @@ export type KnockoutPreviewMatch = {
   away_placeholder: string | null;
   home_team: ClassificationTeam | null;
   away_team: ClassificationTeam | null;
+  winner_side: 'home' | 'away' | null;
 };
 
 // ── Sorting comparator ─────────────────────────────────────────────────

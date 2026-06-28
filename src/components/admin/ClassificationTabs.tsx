@@ -782,6 +782,10 @@ export default function CaminoTabs({
         knockoutResults.set(m.match_number, { winner: resolvedHome, loser: resolvedAway });
       } else if (m.away_score > m.home_score) {
         knockoutResults.set(m.match_number, { winner: resolvedAway, loser: resolvedHome });
+      } else if (m.winner_side === 'home') {
+        knockoutResults.set(m.match_number, { winner: resolvedHome, loser: resolvedAway });
+      } else if (m.winner_side === 'away') {
+        knockoutResults.set(m.match_number, { winner: resolvedAway, loser: resolvedHome });
       }
     }
   }
