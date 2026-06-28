@@ -17,9 +17,7 @@
 /.next/
 /out/
 
-# next-pwa generated service worker (rebuilt on every production build)
-/public/sw.js
-/public/sw.js.map
+# Workbox generated files — PWA disabled; sw.js is now a committed kill-switch
 /public/workbox-*.js
 /public/workbox-*.js.map
 
