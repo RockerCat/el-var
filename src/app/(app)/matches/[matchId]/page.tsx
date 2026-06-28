@@ -12,6 +12,8 @@ import {
 import {
   formatKickoff,
   formatPredictionTimestamp,
+  matchTeamName,
+  matchTeamFlag,
   PHASE_LABELS,
   PHASE_SCORING,
   simulatePoints,
@@ -22,18 +24,12 @@ import {
   type ScoringResult,
   type Team,
 } from "@/lib/matches";
+import { enrichWithResolvedTeams } from "@/lib/enrich";
 import { cn } from "@/lib/utils";
 import MatchDetailPoller from "@/components/dashboard/MatchDetailPoller";
 import MatchDetailHeaderWrapper from "@/components/dashboard/MatchDetailHeaderWrapper";
 import MyPredictionCard from "@/components/dashboard/MyPredictionCard";
 import { PredictionEditingProvider } from "@/contexts/prediction-editing";
-
-// ── Data types ────────────────────────────────────────────────────────
-
-type MatchWithTeams = Match & {
-  home_team: { id: string; name: string; code: string; flag_emoji: string | null };
-  away_team: { id: string; name: string; code: string; flag_emoji: string | null };
-};
 
 // ── Page ─────────────────────────────────────────────────────────────
 
@@ -54,18 +50,12 @@ export default async function MatchDetailPage({
   // ── Lazy status sync — scheduled → live if kickoff passed ────────
   await syncStartedMatches();
 
-  // ── Fetch match ───────────────────────────────────────────────────
-  const { data: rawMatch } = await supabase
-    .from("matches")
-    .select("*, home_team:home_team_id(*), away_team:away_team_id(*)")
-    .eq("id", matchId)
-    .single();
-
-  if (!rawMatch) redirect("/dashboard");
-  const match = rawMatch as MatchWithTeams;
-
-  // ── Fetch own prediction + group in parallel ──────────────────────
-  const [predResult, groups] = await Promise.all([
+  // ── Fetch all matches (needed to enrich knockout team slots) + own prediction + groups ──
+  const [allMatchResult, predResult, groups] = await Promise.all([
+    supabase
+      .from("matches")
+      .select("*, home_team:home_team_id(*), away_team:away_team_id(*)")
+      .order("starts_at", { ascending: true }),
     supabase
       .from("predictions")
       .select("*")
@@ -74,6 +64,11 @@ export default async function MatchDetailPage({
       .maybeSingle(),
     getUserGroupsWithMeta(user.id),
   ]);
+
+  // Enrich resolves projected teams for knockout matches (same logic as dashboard/en-vivo).
+  const enrichedMatches = enrichWithResolvedTeams((allMatchResult.data ?? []) as Match[]);
+  const match = enrichedMatches.find((m) => m.id === matchId);
+  if (!match) redirect("/dashboard");
 
   const myPrediction = predResult.data as Prediction | null;
   const community    = groups[0] ?? null;
@@ -222,8 +217,8 @@ export default async function MatchDetailPage({
                 dist={dist}
                 total={distTotal}
                 pct={pct}
-                homeName={match.home_team.name}
-                awayName={match.away_team.name}
+                homeName={match.home_team?.name ?? match.home_placeholder ?? "Local"}
+                awayName={match.away_team?.name ?? match.away_placeholder ?? "Visitante"}
               />
             </section>
           )}
@@ -294,7 +289,7 @@ type Insight =
 function buildInsights(
   preds: MatchPredictionEntry[],
   rich:  (MatchPredictionEntry & { sim: ScoringResult })[],
-  match: MatchWithTeams,
+  match: Match,
   isFinished: boolean
 ): Insight[] {
   if (preds.length < 2) return [];
@@ -317,8 +312,8 @@ function buildInsights(
   if (allSame) {
     const r0 = results[0];
     const winner =
-      r0 >  0 ? match.home_team.name :
-      r0 <  0 ? match.away_team.name :
+      r0 >  0 ? (match.home_team?.name ?? match.home_placeholder ?? "Local") :
+      r0 <  0 ? (match.away_team?.name ?? match.away_placeholder ?? "Visitante") :
       "el empate";
     insights.push({ type: "unanimous", winner });
   }
@@ -329,8 +324,8 @@ function buildInsights(
       const believers = preds.filter(p => Math.sign(p.pred_home - p.pred_away) === r);
       if (believers.length === 1) {
         const team =
-          r > 0  ? match.home_team.name :
-          r < 0  ? match.away_team.name :
+          r > 0  ? (match.home_team?.name ?? match.home_placeholder ?? "Local") :
+          r < 0  ? (match.away_team?.name ?? match.away_placeholder ?? "Visitante") :
           "el empate";
         insights.push({ type: "lone_believer", name: believers[0].display_name, team });
       }
@@ -368,10 +363,10 @@ function MatchHeader({
   match,
   advancingTeam,
 }: {
-  match: MatchWithTeams;
+  match: Match;
   advancingTeam: Team | null;
 }) {
-  const { home_team, away_team, status, stage, group_code } = match;
+  const { home_team, away_team, home_placeholder, away_placeholder, status, stage, group_code } = match;
   const hasScore = match.home_score !== null && match.away_score !== null;
   const phaseLabel = PHASE_LABELS[stage as MatchStage];
   // Show penalty note when: knockout + draw + advancing team known
@@ -394,7 +389,7 @@ function MatchHeader({
 
       {/* Teams + score */}
       <div className="flex items-center gap-4">
-        <TeamDisplay team={home_team} side="home" />
+        <TeamDisplay team={home_team} placeholder={home_placeholder} side="home" />
 
         <div className="shrink-0 text-center min-w-[80px]">
           {status === "scheduled" ? (
@@ -418,7 +413,7 @@ function MatchHeader({
           )}
         </div>
 
-        <TeamDisplay team={away_team} side="away" />
+        <TeamDisplay team={away_team} placeholder={away_placeholder} side="away" />
       </div>
 
       {/* Penalty shootout note — shown only for knockout draws with a known advancing team */}
@@ -474,9 +469,11 @@ function StatusBadge({ status }: { status: string }) {
 
 function TeamDisplay({
   team,
+  placeholder,
   side,
 }: {
-  team: { name: string; flag_emoji: string | null };
+  team: Team | null;
+  placeholder: string | null;
   side: "home" | "away";
 }) {
   return (
@@ -484,9 +481,9 @@ function TeamDisplay({
       "flex-1 flex flex-col items-center gap-1.5 min-w-0",
       side === "away" && "items-center"
     )}>
-      <span className="text-4xl leading-none">{team.flag_emoji ?? "🏴"}</span>
+      <span className="text-4xl leading-none">{matchTeamFlag(team)}</span>
       <span className="text-xs font-bold text-[#f1f5f9] text-center truncate w-full">
-        {team.name}
+        {matchTeamName(team, placeholder)}
       </span>
     </div>
   );
