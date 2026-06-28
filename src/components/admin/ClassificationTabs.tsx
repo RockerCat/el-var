@@ -7,6 +7,7 @@ import type {
   KnockoutPreviewMatch,
   SlotResolution,
   BracketConnection,
+  KnockoutResult,
 } from "@/lib/classification";
 import {
   resolveSlot,
@@ -136,15 +137,16 @@ function GroupCard({ group }: { group: GroupStanding }) {
 
 // ── KnockoutMatchCard (phase view — full card with date + venue) ────────
 
-function KnockoutMatchCard({ match, large = false, groups, homeBestThird, awayBestThird }: {
+function KnockoutMatchCard({ match, large = false, groups, homeBestThird, awayBestThird, knockoutResults }: {
   match: KnockoutPreviewMatch;
   large?: boolean;
   groups?: GroupStanding[];
   homeBestThird?: TeamStanding | null;
   awayBestThird?: TeamStanding | null;
+  knockoutResults?: Map<number, KnockoutResult>;
 }) {
-  const homeSlot  = resolveSlot(match.home_team, match.home_placeholder, groups ?? [], homeBestThird ?? null);
-  const awaySlot  = resolveSlot(match.away_team, match.away_placeholder, groups ?? [], awayBestThird ?? null);
+  const homeSlot  = resolveSlot(match.home_team, match.home_placeholder, groups ?? [], homeBestThird ?? null, knockoutResults);
+  const awaySlot  = resolveSlot(match.away_team, match.away_placeholder, groups ?? [], awayBestThird ?? null, knockoutResults);
   const homeTeam  = homeSlot.kind !== "unresolved" ? homeSlot.team : null;
   const awayTeam  = awaySlot.kind !== "unresolved" ? awaySlot.team : null;
   const isHomeProjected = homeSlot.kind === "projected";
@@ -251,12 +253,13 @@ function GruposTab({ groups }: { groups: GroupStanding[] }) {
   );
 }
 
-function KnockoutTab({ matches, emptyMessage, cols = 2, groups, bestThirdAssignment }: {
+function KnockoutTab({ matches, emptyMessage, cols = 2, groups, bestThirdAssignment, knockoutResults }: {
   matches: KnockoutPreviewMatch[];
   emptyMessage: string;
   cols?: 1 | 2;
   groups?: GroupStanding[];
   bestThirdAssignment?: Map<string, TeamStanding>;
+  knockoutResults?: Map<number, KnockoutResult>;
 }) {
   if (matches.length === 0) {
     return (
@@ -276,6 +279,7 @@ function KnockoutTab({ matches, emptyMessage, cols = 2, groups, bestThirdAssignm
             groups={groups}
             homeBestThird={bestThirdAssignment?.get(`${m.id}:home`)}
             awayBestThird={bestThirdAssignment?.get(`${m.id}:away`)}
+            knockoutResults={knockoutResults}
           />
         ))}
       </div>
@@ -283,7 +287,7 @@ function KnockoutTab({ matches, emptyMessage, cols = 2, groups, bestThirdAssignm
   );
 }
 
-function FinalTab({ finals, thirdPlace }: { finals: KnockoutPreviewMatch[]; thirdPlace: KnockoutPreviewMatch[] }) {
+function FinalTab({ finals, thirdPlace, knockoutResults }: { finals: KnockoutPreviewMatch[]; thirdPlace: KnockoutPreviewMatch[]; knockoutResults?: Map<number, KnockoutResult> }) {
   const finalMatch = finals[0]     ?? null;
   const thirdMatch = thirdPlace[0] ?? null;
   if (!finalMatch && !thirdMatch) {
@@ -301,7 +305,7 @@ function FinalTab({ finals, thirdPlace }: { finals: KnockoutPreviewMatch[]; thir
             <span className="text-base leading-none">🏆</span>
             <h2 className="text-sm font-black text-[#f59e0b] uppercase tracking-widest">Final</h2>
           </div>
-          <KnockoutMatchCard match={finalMatch} large />
+          <KnockoutMatchCard match={finalMatch} large knockoutResults={knockoutResults} />
         </section>
       )}
       {thirdMatch && (
@@ -310,7 +314,7 @@ function FinalTab({ finals, thirdPlace }: { finals: KnockoutPreviewMatch[]; thir
             <span className="text-base leading-none">🥉</span>
             <h2 className="text-sm font-black text-[#94a3b8] uppercase tracking-widest">Tercer puesto</h2>
           </div>
-          <KnockoutMatchCard match={thirdMatch} />
+          <KnockoutMatchCard match={thirdMatch} knockoutResults={knockoutResults} />
         </section>
       )}
     </div>
@@ -344,17 +348,18 @@ function BracketGroupMini({ group }: { group: GroupStanding }) {
 
 // ── BracketMatchRow — compact 2-line card for bracket column ───────────
 
-function BracketMatchRow({ match, highlight = false, groups, homeBestThird, awayBestThird }: {
+function BracketMatchRow({ match, highlight = false, groups, homeBestThird, awayBestThird, knockoutResults }: {
   match: KnockoutPreviewMatch;
   highlight?: boolean;
   groups?: GroupStanding[];
   homeBestThird?: TeamStanding | null;
   awayBestThird?: TeamStanding | null;
+  knockoutResults?: Map<number, KnockoutResult>;
 }) {
   const home = match.home_team;
   const away = match.away_team;
-  const homeSlot  = resolveSlot(home, match.home_placeholder, groups ?? [], homeBestThird ?? null);
-  const awaySlot  = resolveSlot(away, match.away_placeholder, groups ?? [], awayBestThird ?? null);
+  const homeSlot  = resolveSlot(home, match.home_placeholder, groups ?? [], homeBestThird ?? null, knockoutResults);
+  const awaySlot  = resolveSlot(away, match.away_placeholder, groups ?? [], awayBestThird ?? null, knockoutResults);
   const homeTeam  = homeSlot.kind !== "unresolved" ? homeSlot.team : null;
   const awayTeam  = awaySlot.kind !== "unresolved" ? awaySlot.team : null;
   const homeLabel = homeSlot.kind === "unresolved" ? pendingLabel(homeSlot) : homeTeam!.code;
@@ -523,8 +528,9 @@ function BracketConnectorSVG({
 // total body height (TOTAL_H), which keeps the whole bracket the same
 // height regardless of phase.
 
-function BracketView({ groups, roundOf32, roundOf16, quarterFinals, semiFinals, thirdPlace, finals, bestThirdAssignment }: Omit<Props, "bestThirds" | "defaultTab"> & {
+function BracketView({ groups, roundOf32, roundOf16, quarterFinals, semiFinals, thirdPlace, finals, bestThirdAssignment, knockoutResults }: Omit<Props, "bestThirds" | "defaultTab"> & {
   bestThirdAssignment: Map<string, TeamStanding>;
+  knockoutResults: Map<number, KnockoutResult>;
 }) {
   const playedGroupMatches = groups.reduce((sum, g) => sum + g.teams.reduce((s, t) => s + t.played, 0) / 2, 0);
 
@@ -634,6 +640,7 @@ function BracketView({ groups, roundOf32, roundOf16, quarterFinals, semiFinals, 
                     groups={groups}
                     homeBestThird={bestThirdAssignment.get(`${m.id}:home`)}
                     awayBestThird={bestThirdAssignment.get(`${m.id}:away`)}
+                    knockoutResults={knockoutResults}
                   />
                 </Slot>
               ))
@@ -651,7 +658,7 @@ function BracketView({ groups, roundOf32, roundOf16, quarterFinals, semiFinals, 
             : (
               <div style={{ position: "relative", height: TOTAL_H }}>
                 {orderedR16.map((m, i) => (
-                  <AbsoluteSlot key={m.id} y={r16Y[i]}><BracketMatchRow match={m} /></AbsoluteSlot>
+                  <AbsoluteSlot key={m.id} y={r16Y[i]}><BracketMatchRow match={m} knockoutResults={knockoutResults} /></AbsoluteSlot>
                 ))}
               </div>
             )
@@ -669,7 +676,7 @@ function BracketView({ groups, roundOf32, roundOf16, quarterFinals, semiFinals, 
             : (
               <div style={{ position: "relative", height: TOTAL_H }}>
                 {orderedQF.map((m, i) => (
-                  <AbsoluteSlot key={m.id} y={qfY[i]}><BracketMatchRow match={m} /></AbsoluteSlot>
+                  <AbsoluteSlot key={m.id} y={qfY[i]}><BracketMatchRow match={m} knockoutResults={knockoutResults} /></AbsoluteSlot>
                 ))}
               </div>
             )
@@ -687,7 +694,7 @@ function BracketView({ groups, roundOf32, roundOf16, quarterFinals, semiFinals, 
             : (
               <div style={{ position: "relative", height: TOTAL_H }}>
                 {orderedSF.map((m, i) => (
-                  <AbsoluteSlot key={m.id} y={sfY[i]}><BracketMatchRow match={m} /></AbsoluteSlot>
+                  <AbsoluteSlot key={m.id} y={sfY[i]}><BracketMatchRow match={m} knockoutResults={knockoutResults} /></AbsoluteSlot>
                 ))}
               </div>
             )
@@ -703,7 +710,7 @@ function BracketView({ groups, roundOf32, roundOf16, quarterFinals, semiFinals, 
           <div style={{ position: "relative", height: TOTAL_H }}>
             {orderedFinals.length > 0
               ? orderedFinals.map((m, i) => (
-                  <AbsoluteSlot key={m.id} y={finalY[i]}><BracketMatchRow match={m} highlight /></AbsoluteSlot>
+                  <AbsoluteSlot key={m.id} y={finalY[i]}><BracketMatchRow match={m} highlight knockoutResults={knockoutResults} /></AbsoluteSlot>
                 ))
               : (
                 <AbsoluteSlot y={TOTAL_H / 2}>
@@ -721,7 +728,7 @@ function BracketView({ groups, roundOf32, roundOf16, quarterFinals, semiFinals, 
           {thirdPlace.length > 0 && (
             <div className="mt-6">
               <p className="text-[10px] font-black text-[#94a3b8] uppercase tracking-widest mb-2">🥉 3er Puesto</p>
-              {thirdPlace.map((m) => <BracketMatchRow key={m.id} match={m} />)}
+              {thirdPlace.map((m) => <BracketMatchRow key={m.id} match={m} knockoutResults={knockoutResults} />)}
             </div>
           )}
         </div>
@@ -756,6 +763,28 @@ export default function CaminoTabs({
   // Computed once and reused by both Bracket and Por fase > Dieciseisavos —
   // same Map, same resolveSlot() calls, no second implementation.
   const bestThirdAssignment = assignBestThirdSlots(groups, roundOf32);
+
+  // Build knockoutResults round-by-round in order so that R32 winners (resolved via group
+  // standings when home_team_id is null in DB) feed into R16 resolution, and so on.
+  // Using resolveSlot here mirrors what BracketMatchRow/KnockoutMatchCard will do for display,
+  // ensuring the map reflects the same teams the UI will show.
+  const knockoutResults: Map<number, KnockoutResult> = new Map();
+  for (const round of [roundOf32, roundOf16, quarterFinals, semiFinals, thirdPlace, finals]) {
+    for (const m of round) {
+      if (m.status !== "finished") continue;
+      if (m.home_score === null || m.away_score === null || m.match_number === null) continue;
+      const homeSlot = resolveSlot(m.home_team, m.home_placeholder, groups, bestThirdAssignment.get(`${m.id}:home`) ?? null, knockoutResults);
+      const awaySlot = resolveSlot(m.away_team, m.away_placeholder, groups, bestThirdAssignment.get(`${m.id}:away`) ?? null, knockoutResults);
+      const resolvedHome = homeSlot.kind !== "unresolved" ? homeSlot.team : null;
+      const resolvedAway = awaySlot.kind !== "unresolved" ? awaySlot.team : null;
+      if (!resolvedHome || !resolvedAway) continue;
+      if (m.home_score > m.away_score) {
+        knockoutResults.set(m.match_number, { winner: resolvedHome, loser: resolvedAway });
+      } else if (m.away_score > m.home_score) {
+        knockoutResults.set(m.match_number, { winner: resolvedAway, loser: resolvedHome });
+      }
+    }
+  }
 
   function handleViewChange(v: ViewId) {
     setView(v);
@@ -825,16 +854,16 @@ export default function CaminoTabs({
             />
           )}
           {tab === "r16"    && (
-            <KnockoutTab matches={roundOf16}     emptyMessage="Los cruces de octavos aún no están disponibles." />
+            <KnockoutTab matches={roundOf16}     emptyMessage="Los cruces de octavos aún no están disponibles." knockoutResults={knockoutResults} />
           )}
           {tab === "qf"     && (
-            <KnockoutTab matches={quarterFinals} emptyMessage="Los cuartos de final aún no están disponibles." />
+            <KnockoutTab matches={quarterFinals} emptyMessage="Los cuartos de final aún no están disponibles." knockoutResults={knockoutResults} />
           )}
           {tab === "sf"     && (
-            <KnockoutTab matches={semiFinals}    emptyMessage="Las semifinales aún no están disponibles." />
+            <KnockoutTab matches={semiFinals}    emptyMessage="Las semifinales aún no están disponibles." knockoutResults={knockoutResults} />
           )}
           {tab === "final"  && (
-            <FinalTab finals={finals} thirdPlace={thirdPlace} />
+            <FinalTab finals={finals} thirdPlace={thirdPlace} knockoutResults={knockoutResults} />
           )}
         </div>
       )}
@@ -850,6 +879,7 @@ export default function CaminoTabs({
           thirdPlace={thirdPlace}
           finals={finals}
           bestThirdAssignment={bestThirdAssignment}
+          knockoutResults={knockoutResults}
         />
       )}
 

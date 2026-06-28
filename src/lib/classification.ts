@@ -299,15 +299,20 @@ export type SlotResolution =
   | { kind: "projected";  team: ClassificationTeam }
   | { kind: "unresolved"; label: string; pending?: boolean };
 
+export type KnockoutResult = { winner: ClassificationTeam; loser: ClassificationTeam };
+
 const WINNER_GROUP_RE    = /^Winner Group ([A-L])$/;
 const RUNNER_UP_GROUP_RE = /^Runner-up Group ([A-L])$/;
 const BEST_THIRD_RE      = /^Best 3rd \(([A-L](?:\/[A-L])*)\)$/;
+const WINNER_MATCH_RE    = /^Winner M(\d+)$/;
+const LOSER_MATCH_RE     = /^Loser M(\d+)$/;
 
 export function resolveSlot(
   team: ClassificationTeam | null,
   placeholder: string | null,
   groups: GroupStanding[],
-  bestThird: TeamStanding | null = null
+  bestThird: TeamStanding | null = null,
+  knockoutResults: Map<number, KnockoutResult> = new Map()
 ): SlotResolution {
   if (team) return { kind: "official", team };
   if (!placeholder) return { kind: "unresolved", label: "Por definir" };
@@ -338,6 +343,18 @@ export function resolveSlot(
     // resolve it with certainty yet (e.g. fewer than 8 thirds recorded,
     // or an ambiguous combination the FIFA matrix doesn't cover yet).
     return { kind: "unresolved", label: placeholder, pending: true };
+  }
+
+  const winnerRef = placeholder.match(WINNER_MATCH_RE);
+  if (winnerRef) {
+    const res = knockoutResults.get(Number(winnerRef[1]));
+    if (res) return { kind: "official", team: res.winner };
+  }
+
+  const loserRef = placeholder.match(LOSER_MATCH_RE);
+  if (loserRef) {
+    const res = knockoutResults.get(Number(loserRef[1]));
+    if (res) return { kind: "official", team: res.loser };
   }
 
   return { kind: "unresolved", label: placeholder };

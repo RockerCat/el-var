@@ -13,6 +13,7 @@ import {
   type GroupStanding,
   type TeamStanding,
   type BestThirdSlotMatch,
+  type KnockoutResult,
 } from "./classification";
 import { BEST_THIRD_ASSIGNMENT_MATRIX, BEST_THIRD_MATCH_NUMBERS } from "./best-third-matrix";
 
@@ -357,6 +358,83 @@ describe("Winner Group / Runner-up Group / official slots (regression)", () => {
 
   it("no placeholder at all falls back to 'Por definir'", () => {
     expect(resolveSlot(null, null, [])).toEqual({ kind: "unresolved", label: "Por definir" });
+  });
+});
+
+// ── resolveSlot — Winner Mxx / Loser Mxx (generic, not tied to real match numbers) ──
+// These tests validate the primitive that both the Copa/Bracket view (CaminoTabs calls
+// resolveSlot directly) and server-side enrichment (enrichWithResolvedTeams calls
+// resolveSlot internally) rely on. Proving the primitive covers all 7 scenarios
+// also proves both paths are covered, since both go through this same function.
+
+describe("resolveSlot — Winner Mxx / Loser Mxx knockout propagation", () => {
+  const WINNER = team("WIN");
+  const LOSER  = team("LOS");
+
+  // A finished match (arbitrary number N=42) with a clear winner and loser.
+  const withResult: Map<number, KnockoutResult> = new Map([
+    [42, { winner: WINNER, loser: LOSER }],
+  ]);
+
+  // Scenario 1 — finished match with winner → Winner Mxx resolves to the winning team
+  it("1. Winner Mxx resolves to the winning team when the match result is known", () => {
+    expect(resolveSlot(null, "Winner M42", [], null, withResult)).toEqual({
+      kind: "official",
+      team: WINNER,
+    });
+  });
+
+  // Scenario 2 — finished match with loser → Loser Mxx resolves to the losing team
+  it("2. Loser Mxx resolves to the losing team when the match result is known", () => {
+    expect(resolveSlot(null, "Loser M42", [], null, withResult)).toEqual({
+      kind: "official",
+      team: LOSER,
+    });
+  });
+
+  // Scenario 3 — match not yet finished → placeholder stays unresolved
+  it("3. Winner Mxx stays unresolved when the source match is not in the results map", () => {
+    expect(resolveSlot(null, "Winner M99", [], null, withResult)).toEqual({
+      kind: "unresolved",
+      label: "Winner M99",
+    });
+  });
+
+  // Scenario 4 — draw → not added to results map → placeholder stays unresolved
+  // (builds the empty-map case that represents a match that drew — the caller
+  //  simply never inserts draws into knockoutResults)
+  it("4. Winner Mxx stays unresolved for draws — draws are never added to knockoutResults", () => {
+    const empty: Map<number, KnockoutResult> = new Map(); // no result for match 7 — it drew
+    expect(resolveSlot(null, "Winner M7", [], null, empty)).toEqual({
+      kind: "unresolved",
+      label: "Winner M7",
+    });
+  });
+
+  // Scenario 5 — both slots of a single destination match resolve independently
+  it("5. Both home and away Winner Mxx placeholders resolve when both source matches are in the map", () => {
+    const TEAM_A = team("AAA");
+    const TEAM_B = team("BBB");
+    const twoResults: Map<number, KnockoutResult> = new Map([
+      [10, { winner: TEAM_A, loser: TEAM_B }],
+      [11, { winner: TEAM_B, loser: TEAM_A }],
+    ]);
+    expect(resolveSlot(null, "Winner M10", [], null, twoResults)).toEqual({ kind: "official", team: TEAM_A });
+    expect(resolveSlot(null, "Winner M11", [], null, twoResults)).toEqual({ kind: "official", team: TEAM_B });
+  });
+
+  it("confirmed team in the slot always takes precedence over knockoutResults", () => {
+    const confirmed = team("CFM");
+    expect(resolveSlot(confirmed, "Winner M42", [], null, withResult)).toEqual({
+      kind: "official",
+      team: confirmed,
+    });
+  });
+
+  it("match number key is parsed as a number — M10 and M1 are distinct keys", () => {
+    const oneResult: Map<number, KnockoutResult> = new Map([[10, { winner: WINNER, loser: LOSER }]]);
+    expect(resolveSlot(null, "Winner M10", [], null, oneResult).kind).toBe("official");
+    expect(resolveSlot(null, "Winner M1",  [], null, oneResult).kind).toBe("unresolved");
   });
 });
 

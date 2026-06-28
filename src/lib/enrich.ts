@@ -4,6 +4,7 @@ import {
   resolveSlot,
   type ClassificationMatch,
   type ClassificationTeam,
+  type KnockoutResult,
 } from "./classification";
 
 type EnrichableMatch = {
@@ -20,11 +21,27 @@ type EnrichableMatch = {
   away_placeholder: string | null;
 };
 
+function recordResult(
+  m: { match_number: number | null; home_score: number | null; away_score: number | null; home_team: ClassificationTeam | null; away_team: ClassificationTeam | null },
+  knockoutResults: Map<number, KnockoutResult>
+) {
+  if (m.match_number === null || m.home_score === null || m.away_score === null) return;
+  if (!m.home_team || !m.away_team) return;
+  if (m.home_score > m.away_score) knockoutResults.set(m.match_number, { winner: m.home_team, loser: m.away_team });
+  else if (m.away_score > m.home_score) knockoutResults.set(m.match_number, { winner: m.away_team, loser: m.home_team });
+}
+
 /**
- * Resolves knockout match slots from group standings.
- * Replaces raw placeholders ("Runner-up Group A") with projected / official
- * teams when enough group data is available. Group matches and matches with
- * both teams already set are returned unchanged.
+ * Resolves knockout match slots from group standings and finished knockout results.
+ * Replaces raw placeholders ("Runner-up Group A", "Winner M73") with projected /
+ * official teams when enough data is available.
+ *
+ * Matches must be ordered chronologically (starts_at ASC) so that earlier rounds
+ * are processed before later rounds — this allows "Winner M73" in M90 to resolve
+ * once M73's winner has been established from group standings in the same pass.
+ *
+ * Draws (penalty shootouts) are not resolved — advancing_team_id is not in
+ * EnrichableMatch. Those slots remain unresolved until home_team_id is set in DB.
  */
 export function enrichWithResolvedTeams<T extends EnrichableMatch>(matches: T[]): T[] {
   const groupStandings = computeGroupStandings(
@@ -43,24 +60,51 @@ export function enrichWithResolvedTeams<T extends EnrichableMatch>(matches: T[])
     groupStandings,
     matches.filter((m) => m.stage === "round_of_32"),
   );
-  return matches.map((m): T => {
-    if (m.stage === "group" || (m.home_team && m.away_team)) return m;
+
+  // Topological pass: process matches in chronological order (guaranteed by callers ordering
+  // by starts_at ASC). As each finished knockout match is enriched, its winner/loser is added
+  // to knockoutResults so the next round can resolve "Winner Mxx"/"Loser Mxx" placeholders.
+  // This handles the common case where home_team_id is null in DB for a recently-finished
+  // R32 match — teams are resolved via group standings, then propagated to R16+.
+  const knockoutResults: Map<number, KnockoutResult> = new Map();
+  const result: T[] = [];
+
+  for (const m of matches) {
+    // Group matches and matches where both teams are already set in DB: pass through.
+    // Still record their result so downstream rounds can reference them.
+    if (m.stage === "group" || (m.home_team && m.away_team)) {
+      if (m.stage !== "group" && m.status === "finished") recordResult(m, knockoutResults);
+      result.push(m);
+      continue;
+    }
+
+    // Resolve this match using current group standings and knockout results accumulated so far.
     const homeRes = resolveSlot(
       m.home_team,
       m.home_placeholder,
       groupStandings,
       bestThirdSlots.get(`${m.id}:home`) ?? null,
+      knockoutResults,
     );
     const awayRes = resolveSlot(
       m.away_team,
       m.away_placeholder,
       groupStandings,
       bestThirdSlots.get(`${m.id}:away`) ?? null,
+      knockoutResults,
     );
-    return {
+
+    const enriched = {
       ...m,
       home_team: homeRes.kind !== "unresolved" ? homeRes.team : m.home_team,
       away_team: awayRes.kind !== "unresolved" ? awayRes.team : m.away_team,
     } as T;
-  });
+
+    // After enrichment, if this match is finished and now has both teams, record for next rounds.
+    if (enriched.status === "finished") recordResult(enriched, knockoutResults);
+
+    result.push(enriched);
+  }
+
+  return result;
 }
