@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import type { Match } from "@/lib/matches";
 import { syncStartedMatches } from "@/lib/db/matches";
+import { enrichWithResolvedTeams } from "@/lib/enrich";
 
 // ── Auth ──────────────────────────────────────────────────────────────
 
@@ -34,20 +35,25 @@ export async function getMatchesForAdmin(opts?: {
 
   const supabase = await createClient();
 
-  let query = supabase
+  // Fetch all matches so enrichWithResolvedTeams has full group-standings context.
+  // Filtering happens in memory after enrichment.
+  const { data, error } = await supabase
     .from("matches")
     .select(`*, home_team:home_team_id(*), away_team:away_team_id(*)`)
     .order("starts_at", { ascending: true });
 
-  if (opts?.group)  query = query.eq("group_code", opts.group);
-  if (opts?.status) query = query.eq("status",     opts.status);
-
-  const { data, error } = await query;
   if (error) {
     console.error("[admin] getMatchesForAdmin:", error.message);
     return [];
   }
-  return (data ?? []) as Match[];
+
+  const enriched = enrichWithResolvedTeams((data ?? []) as Match[]);
+
+  return enriched.filter((m) => {
+    if (opts?.group  && m.group_code !== opts.group)  return false;
+    if (opts?.status && m.status     !== opts.status) return false;
+    return true;
+  });
 }
 
 // ── Dashboard stats ───────────────────────────────────────────────────
