@@ -9,6 +9,8 @@ import {
   type MatchPredictionEntry,
   type MissingPredictionEntry,
 } from "@/lib/db/matches";
+import { getGroupLeaderboard } from "@/lib/db/leaderboard";
+import type { LeaderboardEntry } from "@/lib/groups";
 import {
   formatKickoff,
   formatPredictionTimestamp,
@@ -73,21 +75,24 @@ export default async function MatchDetailPage({
   const myPrediction = predResult.data as Prediction | null;
   const community    = groups[0] ?? null;
 
-  // ── Fetch group predictions (revealed only) + missing predictions (always) ──
-  const revealed = match.status === "live" || match.status === "finished";
-  const [allPreds, missingPreds]: [MatchPredictionEntry[], MissingPredictionEntry[]] =
+  // ── Derived flags (needed before fetch to conditionally request leaderboard) ──
+  const revealed   = match.status === "live" || match.status === "finished";
+  const isLive     = match.status === "live";
+  const isFinished = match.status === "finished";
+  const hasScore   = match.home_score !== null && match.away_score !== null;
+
+  // ── Fetch group predictions (revealed only) + missing predictions + leaderboard (live only) ──
+  const [allPreds, missingPreds, rawLeaderboard]: [MatchPredictionEntry[], MissingPredictionEntry[], LeaderboardEntry[]] =
     community
       ? await Promise.all([
           revealed ? getMatchDetailPredictions(matchId, community.id) : Promise.resolve([]),
           getMatchMissingPredictions(matchId, community.id),
+          isLive && hasScore ? getGroupLeaderboard(community.id) : Promise.resolve([]),
         ])
-      : [[], []];
+      : [[], [], []];
 
   // ── Derived data ──────────────────────────────────────────────────
-  const stage      = match.stage as MatchStage;
-  const isLive     = match.status === "live";
-  const isFinished = match.status === "finished";
-  const hasScore   = match.home_score !== null && match.away_score !== null;
+  const stage = match.stage as MatchStage;
 
   // For knockout draws: which team advanced via penalties (for display only — not scoring).
   const advancingTeam: Team | null =
@@ -137,10 +142,41 @@ export default async function MatchDetailPage({
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5);
 
-  // Live ranking (sorted by simulated pts)
-  const liveRanking = isLive && hasScore
-    ? [...richPreds].sort((a, b) => b.sim.points - a.sim.points)
-    : [];
+  // Projected full leaderboard for live matches
+  const projectedLeaderboard: ProjectedEntry[] = (() => {
+    if (!isLive || !hasScore || rawLeaderboard.length === 0) return [];
+
+    const predByUserId = new Map(richPreds.map((p) => [p.user_id, p]));
+
+    const withProjected = rawLeaderboard.map((entry) => {
+      const pred   = predByUserId.get(entry.user_id);
+      const simPts = pred?.sim.points ?? 0;
+      return {
+        user_id:         entry.user_id,
+        display_name:    entry.display_name,
+        current_rank:    entry.rank,
+        current_points:  entry.total_points,
+        sim_points:      simPts,
+        projected_total: entry.total_points + simPts,
+        projected_rank:  0,
+        pred_home:       pred?.pred_home  ?? null,
+        pred_away:       pred?.pred_away  ?? null,
+        sim_reason:      (pred?.sim.reason ?? null) as ScoringResult["reason"] | null,
+      };
+    });
+
+    // Sort by projected total desc, name asc for stability
+    withProjected.sort((a, b) =>
+      b.projected_total - a.projected_total ||
+      a.display_name.localeCompare(b.display_name)
+    );
+
+    // Assign ranks: same logic as the real leaderboard (count users with MORE points)
+    return withProjected.map((e) => ({
+      ...e,
+      projected_rank: withProjected.filter((o) => o.projected_total > e.projected_total).length + 1,
+    }));
+  })();
 
   // My situation
   const mySim = myPrediction && hasScore
@@ -201,11 +237,11 @@ export default async function MatchDetailPage({
 
       {revealed && (
         <>
-          {/* ── Si el partido terminara ahora (live only) ─────────── */}
-          {isLive && hasScore && liveRanking.length > 0 && (
+          {/* ── Tabla proyectada (live only) ──────────────────────── */}
+          {isLive && hasScore && projectedLeaderboard.length > 0 && (
             <section>
-              <SectionHeader title="Si el partido terminara ahora…" />
-              <LiveRankingCard ranking={liveRanking} currentUserId={user.id} />
+              <SectionHeader title="Así quedaría la tabla con este resultado... (por ahora)" />
+              <ProjectedLeaderboardCard entries={projectedLeaderboard} currentUserId={user.id} />
             </section>
           )}
 
@@ -489,24 +525,43 @@ function TeamDisplay({
   );
 }
 
-// ── Live ranking ──────────────────────────────────────────────────────
+// ── Projected leaderboard (live matches) ─────────────────────────────
 
-const MEDALS = ["🥇", "🥈", "🥉"] as const;
+const RANK_MEDALS: Record<number, string> = { 1: "🥇", 2: "🥈", 3: "🥉" };
 
-function LiveRankingCard({
-  ranking,
+type ProjectedEntry = {
+  user_id:         string;
+  display_name:    string;
+  current_rank:    number;
+  current_points:  number;
+  sim_points:      number;
+  projected_total: number;
+  projected_rank:  number;
+  pred_home:       number | null;
+  pred_away:       number | null;
+  sim_reason:      ScoringResult["reason"] | null;
+};
+
+function ProjectedLeaderboardCard({
+  entries,
   currentUserId,
 }: {
-  ranking: (MatchPredictionEntry & { sim: ScoringResult })[];
+  entries:       ProjectedEntry[];
   currentUserId: string;
 }) {
   return (
     <div className="bg-[#11111c] border border-[#1e1e35] rounded-2xl overflow-hidden">
-      {ranking.map((entry, i) => {
+      {entries.map((entry) => {
         const isMe   = entry.user_id === currentUserId;
-        const medal  = i < 3 ? MEDALS[i] : null;
-        const pts    = entry.sim.points;
-        const reason = entry.sim.reason;
+        const medal  = RANK_MEDALS[entry.projected_rank];
+        const simPts = entry.sim_points;
+
+        const simColor =
+          simPts === 0                                         ? "text-[#475569]" :
+          entry.sim_reason === "Marcador exacto"               ? "text-[#f59e0b]" :
+          "text-[#00c85a]";
+
+        const rankDelta = entry.current_rank - entry.projected_rank; // positive = moved up
 
         return (
           <div
@@ -516,14 +571,16 @@ function LiveRankingCard({
               isMe && "bg-[#00c85a]/[0.05]"
             )}
           >
+            {/* Rank */}
             <div className="w-7 shrink-0 text-center">
               {medal ? (
                 <span className="text-base leading-none">{medal}</span>
               ) : (
-                <span className="text-xs font-mono text-[#64748b]">#{i + 1}</span>
+                <span className="text-xs font-mono text-[#64748b]">{entry.projected_rank}</span>
               )}
             </div>
 
+            {/* Name + prediction */}
             <div className="flex-1 min-w-0">
               <p className={cn(
                 "text-sm font-bold truncate",
@@ -532,19 +589,34 @@ function LiveRankingCard({
                 {entry.display_name}
                 {isMe && <span className="text-[10px] text-[#00c85a]/60 font-mono ml-1.5">tú</span>}
               </p>
-              <p className="text-[10px] text-[#64748b] font-mono">
-                {entry.pred_home}–{entry.pred_away}
-              </p>
+              {entry.pred_home !== null ? (
+                <p className="text-[10px] font-mono text-[#64748b]">
+                  {entry.pred_home}–{entry.pred_away}
+                </p>
+              ) : (
+                <p className="text-[10px] text-[#475569]">Sin pronóstico</p>
+              )}
             </div>
 
-            <div className="text-right shrink-0">
-              <p className={cn(
-                "text-lg font-black tabular-nums",
-                pts > 0 ? (reason === "Marcador exacto" ? "text-[#f59e0b]" : "text-[#00c85a]") : "text-[#2a2a45]"
+            {/* Position change arrow */}
+            <div className="shrink-0 w-4 text-center">
+              {rankDelta > 0 && <span className="text-xs text-[#00c85a]">↑</span>}
+              {rankDelta < 0 && <span className="text-xs text-[#ef4444]">↓</span>}
+            </div>
+
+            {/* Points: current +sim = total */}
+            <div className="text-right shrink-0 tabular-nums text-sm">
+              <span className="text-[#64748b]">{entry.current_points}</span>
+              <span className={cn("mx-0.5", simColor)}>
+                {" "}{simPts > 0 ? `+${simPts}` : "+0"}
+              </span>
+              <span className="text-[#64748b]">{" "}=</span>
+              <span className={cn(
+                "font-black ml-0.5",
+                isMe ? "text-[#00c85a]" : "text-[#f1f5f9]"
               )}>
-                {pts > 0 ? `+${pts}` : "0"}
-              </p>
-              <p className="text-[9px] text-[#64748b]">pts</p>
+                {" "}{entry.projected_total}
+              </span>
             </div>
           </div>
         );
