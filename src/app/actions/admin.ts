@@ -314,8 +314,8 @@ export async function updateMatchResultAction(
     return { error: `Error: ${msg}` };
   }
 
-  // Save winner_side separately — not handled by the scoring RPC.
-  await supabase.from("matches").update({ winner_side: winnerSide }).eq("id", matchId);
+  // winner_side must go through a SECURITY DEFINER RPC — matches has no direct UPDATE policy.
+  await supabase.rpc("save_winner_side", { p_match_id: matchId, p_winner_side: winnerSide });
 
   const { data: { user } } = await supabase.auth.getUser();
   if (user) {
@@ -335,7 +335,9 @@ export async function updateMatchResultAction(
   revalidatePath("/admin");
   revalidatePath("/admin/dashboard");
   revalidatePath("/admin/matches");
+  revalidatePath("/admin/classification");
   revalidatePath("/dashboard");
+  revalidatePath("/copa");
   revalidatePath("/groups", "layout");
   revalidatePath("/noticias");
 
@@ -531,8 +533,8 @@ export async function advancedEditMatchAction(
     return { error: `Error: ${msg}` };
   }
 
-  // Save winner_side separately — not handled by the scoring RPC.
-  await supabase.from("matches").update({ winner_side: winnerSideAdv }).eq("id", matchId);
+  // winner_side must go through a SECURITY DEFINER RPC — matches has no direct UPDATE policy.
+  await supabase.rpc("save_winner_side", { p_match_id: matchId, p_winner_side: winnerSideAdv });
 
   const newValues = {
     home_team_id: homeTeamRaw, away_team_id: awayTeamRaw,
@@ -556,7 +558,9 @@ export async function advancedEditMatchAction(
   revalidatePath("/admin/matches");
   revalidatePath(`/admin/matches/${matchId}`);
   revalidatePath(`/admin/matches/${matchId}/advanced`);
+  revalidatePath("/admin/classification");
   revalidatePath("/dashboard");
+  revalidatePath("/copa");
   revalidatePath("/groups", "layout");
   revalidatePath("/noticias");
 

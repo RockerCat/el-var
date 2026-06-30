@@ -367,8 +367,9 @@ function BracketMatchRow({ match, highlight = false, groups, homeBestThird, away
   const isHomeProjected = homeSlot.kind === "projected";
   const isAwayProjected = awaySlot.kind === "projected";
   const hasScore  = match.home_score !== null && match.away_score !== null;
-  const homeWins  = hasScore && (match.home_score ?? 0) > (match.away_score ?? 0);
-  const awayWins  = hasScore && (match.away_score ?? 0) > (match.home_score ?? 0);
+  const isDraw    = hasScore && match.home_score === match.away_score;
+  const homeWins  = hasScore && ((match.home_score ?? 0) > (match.away_score ?? 0) || (isDraw && match.winner_side === "home"));
+  const awayWins  = hasScore && ((match.away_score ?? 0) > (match.home_score ?? 0) || (isDraw && match.winner_side === "away"));
   const isLive    = match.status === "live";
   const isFinished = match.status === "finished";
 

@@ -7,7 +7,7 @@ import {
   updateMatchResultAction,
   type UpdateMatchState,
 } from "@/app/actions/admin";
-import { matchTeamName, matchTeamCode, matchTeamFlag, type Match } from "@/lib/matches";
+import { matchTeamName, matchTeamCode, matchTeamFlag, isKnockoutStage, type Match } from "@/lib/matches";
 
 const STATUS_OPTIONS = [
   { value: "scheduled", label: "🗓 Programado" },
@@ -41,10 +41,33 @@ export default function AdminCalendarRow({ match }: { match: Match }) {
   const [statusVal,    setStatusVal]    = useState<string>(match.status);
   const [homeScoreVal, setHomeScoreVal] = useState<string | number>(match.home_score ?? "");
   const [awayScoreVal, setAwayScoreVal] = useState<string | number>(match.away_score ?? "");
+  const [winnerSide,   setWinnerSide]   = useState<string>(match.winner_side ?? "");
 
   useEffect(() => { setStatusVal(match.status); },              [match.status]);
   useEffect(() => { setHomeScoreVal(match.home_score ?? ""); }, [match.home_score]);
   useEffect(() => { setAwayScoreVal(match.away_score ?? ""); }, [match.away_score]);
+  useEffect(() => { setWinnerSide(match.winner_side ?? ""); },  [match.winner_side]);
+
+  const isKnockout = isKnockoutStage(match.stage);
+  const bothTeams  = match.home_team !== null && match.away_team !== null;
+  const hs = parseInt(homeScoreVal.toString(), 10);
+  const as_ = parseInt(awayScoreVal.toString(), 10);
+  const isDraw = homeScoreVal !== "" && awayScoreVal !== "" && !isNaN(hs) && !isNaN(as_) && hs === as_;
+  const showWinnerSide = isKnockout && statusVal === "live" && isDraw && bothTeams;
+
+  function handleHomeScore(v: string) {
+    setHomeScoreVal(v);
+    const h = parseInt(v, 10);
+    const a = parseInt(awayScoreVal.toString(), 10);
+    if (!isNaN(h) && !isNaN(a) && h !== a) setWinnerSide("");
+  }
+
+  function handleAwayScore(v: string) {
+    setAwayScoreVal(v);
+    const h = parseInt(homeScoreVal.toString(), 10);
+    const a = parseInt(v, 10);
+    if (!isNaN(h) && !isNaN(a) && h !== a) setWinnerSide("");
+  }
 
   const matchLabel = `${matchTeamCode(match.home_team, match.home_placeholder)} vs ${matchTeamCode(match.away_team, match.away_placeholder)}${match.group_code ? ` · G${match.group_code}` : ""}`;
 
@@ -103,6 +126,8 @@ export default function AdminCalendarRow({ match }: { match: Match }) {
       <form action={formAction}>
         <input type="hidden" name="match_id"    value={match.id} />
         <input type="hidden" name="match_label" value={matchLabel} />
+        {/* Always sent so an existing winner_side is preserved on unrelated edits */}
+        <input type="hidden" name="winner_side" value={winnerSide} />
 
         <div className="flex items-center gap-1.5 flex-wrap">
 
@@ -123,14 +148,14 @@ export default function AdminCalendarRow({ match }: { match: Match }) {
             <ScoreInput
               name="home_score"
               value={homeScoreVal}
-              onChange={setHomeScoreVal}
+              onChange={handleHomeScore}
               placeholder={matchTeamCode(match.home_team, match.home_placeholder)}
             />
             <span className="text-[#475569] text-xs select-none">–</span>
             <ScoreInput
               name="away_score"
               value={awayScoreVal}
-              onChange={setAwayScoreVal}
+              onChange={handleAwayScore}
               placeholder={matchTeamCode(match.away_team, match.away_placeholder)}
             />
           </div>
@@ -156,6 +181,29 @@ export default function AdminCalendarRow({ match }: { match: Match }) {
           </Link>
 
         </div>
+
+        {/* Knockout penalty winner — only while live, tied, and both teams known */}
+        {showWinnerSide && (
+          <div className="mt-2 flex flex-col gap-1">
+            <span className="text-[9px] text-[#64748b] uppercase tracking-wide font-medium">
+              Ganador de la llave
+            </span>
+            {/* No name — hidden input above carries the value */}
+            <select
+              value={winnerSide}
+              onChange={(e) => setWinnerSide(e.target.value)}
+              className="h-8 w-full rounded-lg bg-[#0e0e1d] border border-[#f59e0b]/40 text-[#f1f5f9] text-xs px-2 focus:outline-none focus:border-[#f59e0b]/70 transition-colors"
+            >
+              <option value="">— Por definir —</option>
+              <option value="home">
+                {match.home_team!.flag_emoji ?? ""} {match.home_team!.name} (local)
+              </option>
+              <option value="away">
+                {match.away_team!.flag_emoji ?? ""} {match.away_team!.name} (visitante)
+              </option>
+            </select>
+          </div>
+        )}
 
         {/* Feedback */}
         {state && "error" in state && (

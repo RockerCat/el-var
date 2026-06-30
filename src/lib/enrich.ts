@@ -109,8 +109,12 @@ export function enrichWithResolvedTeams<T extends EnrichableMatch>(matches: T[])
       away_team: awayRes.kind !== "unresolved" ? awayRes.team : m.away_team,
     } as T;
 
-    // After enrichment, if this match is finished and now has both teams, record for next rounds.
-    if (enriched.status === "finished") recordResult(enriched, knockoutResults);
+    // Record for downstream "Winner Mxx"/"Loser Mxx" resolution only when both
+    // teams are identified — either from DB (fast path above) or dynamically via
+    // resolveSlot. winner_side handles penalty-draw winner when scores are equal.
+    if (enriched.status === "finished" && enriched.home_team && enriched.away_team) {
+      recordResult(enriched, knockoutResults);
+    }
 
     result.push(enriched);
   }
