@@ -241,10 +241,10 @@ If multiple users tie for a prize position:
 
 ### Third Place Match
 
-- Exact Score = 7 points
-- Correct Winner = 5 points
+- Exact Score = 8 points
+- Correct Winner = 6 points
 
-(Scored the same as Semi Finals.)
+(Scored the same as Final.)
 
 ### Final
 
