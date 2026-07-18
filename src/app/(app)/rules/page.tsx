@@ -9,6 +9,7 @@ import {
   PHASE_SCORING,
   SCORING_TABLE_ROWS,
   PHASE_EQUIV_ROWS,
+  isScoringRowCurrent,
   type MatchStage,
 } from "@/lib/matches";
 import { computePrizePool, formatCOP } from "@/lib/groups";
@@ -175,9 +176,9 @@ export default async function RulesPage() {
             <span className="text-[10px] font-bold text-[#00c85a]/70 uppercase tracking-widest text-right w-24">Ganador</span>
           </div>
 
-          {SCORING_TABLE_ROWS.map(({ stage, label }) => {
+          {SCORING_TABLE_ROWS.map(({ stage, label, stages }) => {
             const scoring   = PHASE_SCORING[stage];
-            const isCurrent = PHASE_LABELS[stage] === currentPhaseLabel;
+            const isCurrent = isScoringRowCurrent({ stage, stages }, currentStage);
 
             return (
               <div

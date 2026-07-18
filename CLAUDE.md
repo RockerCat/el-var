@@ -8,7 +8,7 @@ Los participantes realizan predicciones de resultados de partidos y compiten en 
 
 La plataforma está diseñada para una comunidad cerrada mediante invitación.
 
-La aplicación NO procesa apuestas ni pagos.
+La aplicación NO procesa apuestas ni pagos. Puede mostrar una bolsa de premios proyectada (basada en una cuota de inscripción configurable) a modo informativo, pero el cobro y pago se gestiona directamente entre los miembros del grupo, fuera de la plataforma.
 
 ---
 
@@ -85,19 +85,44 @@ Responsibilities:
 - Create prediction
 - Update prediction
 - Lock prediction after kickoff
+- Live match view with score polling ("En Vivo")
 
 #### Rankings
 
 - Global leaderboard
 - Prize projection
 - Position tracking
+- Group/community activity feed (recent scored predictions)
+
+#### Community
+
+- Group creation and invitation links (invite code, shareable URL with Open Graph preview)
+- Member list and active player count
+- Prize pool configuration and projection (entry fee + first/second place split)
+
+#### Classification ("Copa")
+
+- Group stage standings (points, goal difference, best-third calculation)
+- Knockout bracket preview (Round of 32 through Final), including advancing-team placeholders
+
+#### News ("Noticias")
+
+- Auto-generated recaps from match results, standings changes, and prize projections
+- Deterministic template selection (no randomness) so content is stable on regeneration
 
 #### Administration
 
-- User management
-- Match management
+- User management (enable/disable accounts)
+- Match management (results, fixture corrections, advanced editor for knockout placeholders/advancing teams)
 - Invitation management
-- Audit history
+- Prize configuration
+- Score recalculation
+- Data snapshot / backup before risky changes (knockout stage transitions, recalculation, migrations)
+- Audit history (admin activity log)
+
+#### PWA
+
+- Installable as a home-screen app (iOS install modal, install banner/CTA)
 
 ---
 
@@ -171,14 +196,19 @@ Official scoring result:
 
 ### Prize Distribution
 
-Current configuration:
+Configurable per group by the administrator (entry fee + first/second place percentages).
+
+Default configuration:
 
 - First Place = 70%
 - Second Place = 30%
 
+Prize pool is informational only — computed as entry fee × active member count. The platform never collects or transfers money.
+
 If multiple users tie for a prize position:
 
-- Split the prize equally.
+- Pool the prize(s) for all positions occupied by the tie and split equally among the tied users.
+- Example: two users tied for 1st combine the 1st + 2nd place prizes and split them in half; 2nd place is not separately awarded.
 
 ---
 
@@ -208,6 +238,13 @@ If multiple users tie for a prize position:
 
 - Exact Score = 7 points
 - Correct Winner = 5 points
+
+### Third Place Match
+
+- Exact Score = 7 points
+- Correct Winner = 5 points
+
+(Scored the same as Semi Finals.)
 
 ### Final
 
@@ -244,11 +281,13 @@ instead of projected winnings.
 
 ## Technical Stack
 
-- Next.js
-- React
-- TypeScript
-- Tailwind
-- Supabase
+- Next.js 16 (App Router, Server Actions)
+- React 19, TypeScript
+- Tailwind CSS v4
+- Supabase (auth, Postgres, RPCs, migrations in `supabase/migrations`)
+- Vitest for unit tests (scoring/classification logic)
+- PWA install flow (manual install prompts; no service-worker caching library)
+- Deployed on Vercel
 
 ---
 

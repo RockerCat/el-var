@@ -2,9 +2,9 @@
 
 ## Project Status
 
-**Status:** Production Ready
+**Status:** Production Ready — Tournament In Progress
 
-**Last Updated:** June 2026
+**Last Updated:** July 2026
 
 The platform is fully operational for the FIFA World Cup 2026.
 
@@ -46,9 +46,13 @@ The platform currently supports:
 - User registration
 - Invitation system
 - Predictions
+- Live match tracking
 - Rankings
 - Community features
+- Classification / bracket tracking
+- News feed
 - Prize tracking
+- PWA install
 - Administrative management
 - Full FIFA World Cup 2026 support
 
@@ -137,6 +141,31 @@ Implemented:
 - Prediction Creation
 - Prediction Editing
 - Automatic Lock After Kickoff
+- Automatic Scheduled → Live Transition (server-side, time-based, no cron required)
+
+---
+
+### Live Matches ("En Vivo")
+
+**Status:** Complete
+
+Implemented:
+
+- Live Match List / Auto-Redirect To Single Live Match
+- Score Polling While Live
+- Next Upcoming Match Preview
+
+---
+
+### News ("Noticias")
+
+**Status:** Complete
+
+Implemented:
+
+- Auto-Generated Recaps From Results, Standings And Prize Projections
+- Deterministic Template Selection (stable content on regeneration)
+- Article Detail View
 
 ---
 
@@ -198,6 +227,22 @@ Implemented:
 
 ---
 
+### PWA Install
+
+**Status:** Complete
+
+Implemented:
+
+- Home-Screen Install Banner
+- iOS Install Instructions Modal
+- Install CTA
+
+#### Notes
+
+- No service-worker caching library (removed after it served stale JS chunks after deploys).
+
+---
+
 ## Administration
 
 ### Admin Dashboard
@@ -221,6 +266,7 @@ Implemented:
 
 - Enable User
 - Disable User
+- Generate Password Recovery Link (admin-issued, for users who lose email access)
 
 #### Rules
 
@@ -230,6 +276,17 @@ Disabled users:
 - Cannot receive prizes
 
 Accounts remain active for login purposes.
+
+---
+
+### Invitation Tools
+
+**Status:** Complete
+
+Implemented:
+
+- Copy Invitation Link
+- Copy Pre-Written Invitation Message (WhatsApp-style, ready to paste)
 
 ---
 
@@ -273,6 +330,7 @@ Implemented:
 - Match Number Editing
 - Venue Editing
 - Result Editing
+- Advancing Team Override (for knockout draws decided on penalties — does not affect scoring)
 
 #### Purpose
 
@@ -294,7 +352,7 @@ Recalculation process must remain idempotent.
 
 ---
 
-### Classification
+### Classification ("Copa")
 
 **Status:** Complete
 
@@ -302,8 +360,9 @@ Implemented:
 
 - Group Standings
 - Qualified Teams
-- Best Third Place Teams
-- Round of 32 Preview
+- Best Third Place Teams (assignment matrix)
+- Full Knockout Bracket Preview (Round of 32, Round of 16, Quarter Finals, Semi Finals, Third Place, Final)
+- Auto-Detected Current Stage Tab
 
 ---
 
@@ -315,6 +374,7 @@ Implemented:
 
 - Administrative Activity Log
 - Match Change Tracking
+- Data Snapshot / Backup Before Risky Changes (knockout transitions, recalculation, migrations)
 
 ---
 
@@ -449,6 +509,8 @@ Use:
 30%
 
 #### Notes
+
+Entry fee and distribution percentages are configurable per group from the admin panel (Prize Configuration). Values above reflect the current live configuration.
 
 The platform does not process payments.
 

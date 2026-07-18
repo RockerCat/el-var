@@ -219,15 +219,28 @@ export const STAGE_SHORT_LABELS: Record<MatchStage, string> = {
 };
 
 // ── Scoring table rows — single source of truth for rules + drawer ────
+//
+// `stages` lists every MatchStage a row represents for "current phase"
+// highlighting. Only the closing row needs it: the third-place match is
+// scored identically to the Final (see PHASE_SCORING) and both are
+// shown together as "Finales".
 
-export const SCORING_TABLE_ROWS: { stage: MatchStage; label: string }[] = [
+export const SCORING_TABLE_ROWS: { stage: MatchStage; label: string; stages?: MatchStage[] }[] = [
   { stage: "group",         label: "Fase 1 — Grupos"         },
   { stage: "round_of_32",   label: "Fase 2 — Dieciseisavos"  },
   { stage: "round_of_16",   label: "Fase 3 — Octavos"        },
   { stage: "quarter_final", label: "Fase 4 — Cuartos"        },
   { stage: "semi_final",    label: "Semifinal"                },
-  { stage: "final",         label: "Final"                    },
+  { stage: "final",         label: "Finales", stages: ["third_place", "final"] },
 ];
+
+/** Whether a scoring-table row should be flagged as the current phase. */
+export function isScoringRowCurrent(
+  row: { stage: MatchStage; stages?: MatchStage[] },
+  currentStage: MatchStage
+): boolean {
+  return (row.stages ?? [row.stage]).includes(currentStage);
+}
 
 // ── Phase equivalency rows — single source of truth for rules page ────
 
@@ -248,7 +261,7 @@ export const PHASE_SCORING: Record<MatchStage, ScoringRule> = {
   round_of_16:   { exact: 5, result: 3 },
   quarter_final: { exact: 6, result: 4 },
   semi_final:    { exact: 7, result: 5 },
-  third_place:   { exact: 7, result: 5 },
+  third_place:   { exact: 8, result: 6 },
   final:         { exact: 8, result: 6 },
 };
 
