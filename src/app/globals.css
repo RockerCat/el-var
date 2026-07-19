@@ -227,6 +227,60 @@ button {
   .animate-confetti-particle { display: none; }
 }
 
+/* ── Podio final ───────────────────────────────────────────────────────
+   Entry animations for the tournament-closing Podio page. Scoped with a
+   podium- prefix so they never affect any other screen's use of similar
+   effects (e.g. .animate-fade-in-up, .animate-goal-card).
+   ──────────────────────────────────────────────────────────────────── */
+@keyframes podium-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.animate-podium-fade-in {
+  animation: podium-fade-in 0.6s ease both;
+}
+
+@keyframes podium-fade-scale {
+  from { opacity: 0; transform: scale(0.92); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.animate-podium-fade-scale {
+  animation: podium-fade-scale 0.5s ease both;
+}
+
+@keyframes podium-rise {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-podium-rise {
+  animation: podium-rise 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes podium-champion-glow {
+  0%, 100% {
+    box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.35), 0 0 18px rgba(245, 158, 11, 0.18);
+  }
+  50% {
+    box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.65), 0 0 34px rgba(245, 158, 11, 0.38);
+  }
+}
+.animate-podium-champion-glow {
+  animation: podium-champion-glow 2.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-podium-fade-in,
+  .animate-podium-fade-scale,
+  .animate-podium-rise {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+  .animate-podium-champion-glow {
+    animation: none;
+  }
+}
+
 /* iOS safe-area bottom padding — for content that can sit above the home indicator */
 @utility pb-safe-b {
   padding-bottom: env(safe-area-inset-bottom, 0px);

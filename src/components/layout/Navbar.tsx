@@ -3,7 +3,13 @@ import { createClient } from "@/lib/supabase/server";
 import NavActiveLinks from "./NavActiveLinks";
 import UserMenuButton from "./UserMenuButton";
 
-export default async function Navbar({ hasLiveMatch = false }: { hasLiveMatch?: boolean }) {
+export default async function Navbar({
+  hasLiveMatch = false,
+  podiumActive = false,
+}: {
+  hasLiveMatch?: boolean;
+  podiumActive?: boolean;
+}) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -26,7 +32,12 @@ export default async function Navbar({ hasLiveMatch = false }: { hasLiveMatch?: 
         </Link>
 
         {user ? (
-          <AuthenticatedNav displayName={displayName} initial={initial} hasLiveMatch={hasLiveMatch} />
+          <AuthenticatedNav
+            displayName={displayName}
+            initial={initial}
+            hasLiveMatch={hasLiveMatch}
+            podiumActive={podiumActive}
+          />
         ) : (
           <GuestNav />
         )}
@@ -41,16 +52,18 @@ function AuthenticatedNav({
   displayName,
   initial,
   hasLiveMatch,
+  podiumActive,
 }: {
   displayName: string;
   initial: string;
   hasLiveMatch?: boolean;
+  podiumActive?: boolean;
 }) {
   return (
     <>
       {/* Desktop center links */}
       <nav className="hidden md:flex items-center gap-1 flex-1 justify-center">
-        <NavActiveLinks hasLiveMatch={hasLiveMatch} />
+        <NavActiveLinks hasLiveMatch={hasLiveMatch} podiumActive={podiumActive} />
       </nav>
 
       {/* Right side */}

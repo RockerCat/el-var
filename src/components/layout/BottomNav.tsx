@@ -3,10 +3,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { Home, ListOrdered, Radio, Trophy, Users } from "lucide-react";
+import { Home, ListOrdered, Radio, Crown, Trophy, Users } from "lucide-react";
 import { useTabNavigation } from "@/contexts/tab-navigation";
 
-const navItems = [
+const BASE_NAV_ITEMS = [
   { href: "/dashboard",   label: "Inicio",    icon: Home        },
   { href: "/leaderboard", label: "Tabla",     icon: ListOrdered },
   { href: "/en-vivo",     label: "En Vivo",   icon: Radio       },
@@ -14,8 +14,21 @@ const navItems = [
   { href: "/community",   label: "Comunidad", icon: Users       },
 ];
 
-export default function BottomNav({ hasLiveMatch = false }: { hasLiveMatch?: boolean }) {
+// Once the tournament is finished, this replaces the "En Vivo" entry in the
+// exact same slot — same position, same responsive behaviour.
+const PODIUM_NAV_ITEM = { href: "/podio", label: "Podio", icon: Crown };
+
+export default function BottomNav({
+  hasLiveMatch = false,
+  podiumActive = false,
+}: {
+  hasLiveMatch?: boolean;
+  podiumActive?: boolean;
+}) {
   const pathname = usePathname();
+  const navItems = podiumActive
+    ? BASE_NAV_ITEMS.map((item) => (item.href === "/en-vivo" ? PODIUM_NAV_ITEM : item))
+    : BASE_NAV_ITEMS;
   // pendingHref is owned by TabNavigationProvider and only clears once the
   // destination tab's own content signals it has mounted (TabReadySignal) —
   // not just on route/pathname change, which can fire before the new

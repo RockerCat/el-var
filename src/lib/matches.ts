@@ -265,6 +265,19 @@ export const PHASE_SCORING: Record<MatchStage, ScoringRule> = {
   final:         { exact: 8, result: 6 },
 };
 
+/**
+ * True only when every real match in the tournament (the full `matches`
+ * table — group stage through the Final, including the third-place match)
+ * has reached "finished". An empty list is never treated as finished: that
+ * would incorrectly close the tournament out from under a failed or partial
+ * fetch. This is the single source of truth for "the tournament is over" —
+ * do not infer it from "no live match", a passed kickoff date, the Final's
+ * scoreline existing, or a champion already being mathematically decided.
+ */
+export function isTournamentFinished(matches: Pick<Match, "status">[]): boolean {
+  return matches.length > 0 && matches.every((m) => m.status === "finished");
+}
+
 /** Returns the stage of the current active phase (first non-finished match). */
 export function detectCurrentStage(
   matches: Pick<Match, "stage" | "status">[]

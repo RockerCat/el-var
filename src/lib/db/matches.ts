@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import type { Match, Prediction, MatchWithPrediction } from "@/lib/matches";
+import { isTournamentFinished } from "@/lib/matches";
 
 export type MatchPredictionEntry = {
   user_id:       string;
@@ -87,6 +88,22 @@ export async function getMatchesWithPredictions(
     ...m,
     prediction: predMap.get(m.id) ?? null,
   }));
+}
+
+/**
+ * Fetches the status of every match in the tournament and applies the exact
+ * same "finished" rule the rest of the app uses (see isTournamentFinished in
+ * lib/matches.ts). Fails closed on any query error — a transient fetch
+ * failure must never make the Podio page open early.
+ */
+export async function getTournamentFinished(): Promise<boolean> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("matches").select("status");
+  if (error) {
+    console.error("[matches] getTournamentFinished:", error.message);
+    return false;
+  }
+  return isTournamentFinished((data ?? []) as Pick<Match, "status">[]);
 }
 
 export async function getMatchDetailPredictions(
